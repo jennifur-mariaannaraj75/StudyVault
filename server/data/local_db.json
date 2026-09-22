@@ -1,0 +1,58 @@
+{
+  "users": [],
+  "notebooks": [],
+  "documents": [],
+  "messages": [],
+  "notes": [],
+  "artifacts": [
+    {
+      "notebookId": "6aa76a421a6a10bb3d2ed3ba",
+      "type": "compare",
+      "data": "### 📊 Multi-Document Comparison Matrix\n\n| Concept | **quantum_supremacy_primer.txt** | **error_correction_surface_codes.txt** |\n| :--- | :--- | :--- |\n| **Subject** | quantum_supremacy_primer.txt [quantum_supremacy_primer.txt, p.1] | error_correction_surface_codes.txt [error_correction_surface_codes.txt, p.1] |\n| **Page Count** | 1 Pages | 1 Pages |\n",
+      "updatedAt": "2026-09-22T08:35:19.509Z"
+    },
+    {
+      "notebookId": "6aa76a421a6a10bb3d2ed3ba",
+      "type": "flashcards",
+      "data": {
+        "cards": [
+          {
+            "id": "1",
+            "question": "What are the two sublayers of the Data-Link Layer under IEEE 802?",
+            "answer": "1. Logical Link Control (LLC)\n2. Media Access Control (MAC)",
+            "sourceRef": "p.116"
+          },
+          {
+            "id": "2",
+            "question": "What is the broadcast MAC address representation?",
+            "answer": "Forty-eight 1s, written in hex as FF:FF:FF:FF:FF:FF",
+            "sourceRef": "p.119"
+          }
+        ]
+      },
+      "updatedAt": "2026-09-22T08:35:26.167Z"
+    },
+    {
+      "notebookId": "6aa76a421a6a10bb3d2ed3ba",
+      "type": "quiz",
+      "data": {
+        "questions": [
+          {
+            "id": 1,
+            "question": "Which sublayer handles flow control under IEEE 802?",
+            "options": [
+              "Physical Layer",
+              "Logical Link Control (LLC)",
+              "MAC Sublayer",
+              "Network Layer"
+            ],
+            "correctIndex": 1,
+            "explanation": "LLC handles flow control and framing (p.116).",
+            "citation": "p.116"
+          }
+        ]
+      },
+      "updatedAt": "2026-09-22T08:36:13.101Z"
+    }
+  ]
+}

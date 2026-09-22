@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StudyVault — AI-Powered Source-Grounded Study Assistant</title>
+<meta name="description" content="StudyVault: Upload PDFs, get AI-grounded answers with exact page citations, generate flashcards, quizzes, and exam notes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  LANDING PAGE  (shown when logged out)                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="landingPage" class="landing-page">
+
+  <!-- Animated background canvas -->
+  <canvas id="landingCanvas" class="landing-canvas"></canvas>
+
+  <!-- Floating gradient orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- Left: Hero copy -->
+  <div class="landing-hero">
+    <div class="landing-logo-wrap">
+      <div class="landing-logo-icon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="url(#lg1)"/>
+          <defs><linearGradient id="lg1" x1="0" y1="0" x2="24" y2="24"><stop stop-color="#8AB4F8"/><stop offset=".5" stop-color="#C58AF9"/><stop offset="1" stop-color="#78D9EC"/></linearGradient></defs>
+        </svg>
+      </div>
+      <span class="landing-logo-name">StudyVault</span>
+      <span class="landing-logo-badge">BETA</span>
+    </div>
+
+    <h1 class="landing-headline">
+      Study smarter with<br>
+      <span class="landing-headline-gradient">AI that cites its sources.</span>
+    </h1>
+
+    <p class="landing-subheadline">
+      Upload PDFs, ask questions, and get exact answers with page citations.
+      Generate flashcards, quizzes, and exam notes — all grounded in <em>your</em> documents.
+    </p>
+
+    <div class="landing-features">
+      <div class="lf-chip">📄 Page-Level Citations</div>
+      <div class="lf-chip">🃏 Spaced Repetition</div>
+      <div class="lf-chip">🧪 Interactive Quiz</div>
+      <div class="lf-chip">✍️ Exam Mode Answers</div>
+      <div class="lf-chip">🎧 AI Podcast</div>
+      <div class="lf-chip">🛡️ Admin Panel</div>
+    </div>
+
+    <div class="landing-stats">
+      <div class="landing-stat"><span class="ls-num">100%</span><span class="ls-label">Source-Grounded</span></div>
+      <div class="landing-stat-divider"></div>
+      <div class="landing-stat"><span class="ls-num">5+</span><span class="ls-label">Study Modes</span></div>
+      <div class="landing-stat-divider"></div>
+      <div class="landing-stat"><span class="ls-num">Free</span><span class="ls-label">To Get Started</span></div>
+    </div>
+  </div>
+
+  <!-- Right: Auth Card -->
+  <div class="landing-auth-card" id="landingAuthCard">
+
+    <!-- Tab switcher -->
+    <div class="landing-auth-tabs">
+      <button class="lat active" data-lat="signin" id="latSignin">Sign In</button>
+      <button class="lat" data-lat="signup" id="latSignup">Create Account</button>
+    </div>
+
+    <!-- SIGN IN FORM -->
+    <form class="lat-form active" id="latSigninForm">
+      <div class="lat-field">
+        <label>Email address</label>
+        <input type="email" id="latEmail" class="lat-input" placeholder="you@example.com" autocomplete="email" required />
+      </div>
+      <div class="lat-field">
+        <label>Password</label>
+        <div class="lat-pw-wrap">
+          <input type="password" id="latPassword" class="lat-input" placeholder="Your password" autocomplete="current-password" required />
+          <button type="button" class="lat-pw-toggle" id="latPwToggle" tabindex="-1">👁</button>
+        </div>
+      </div>
+      <div class="lat-error" id="latSigninError" style="display:none"></div>
+      <button type="submit" class="lat-submit" id="latSigninBtn">
+        <span>Sign In</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </form>
+
+    <!-- SIGN UP FORM -->
+    <form class="lat-form" id="latSignupForm">
+      <div class="lat-field">
+        <label>Full name</label>
+        <input type="text" id="latName" class="lat-input" placeholder="Your full name" autocomplete="name" required />
+      </div>
+      <div class="lat-field">
+        <label>Email address</label>
+        <input type="email" id="latRegEmail" class="lat-input" placeholder="you@example.com" autocomplete="email" required />
+      </div>
+      <div class="lat-field">
+        <label>Password <span class="lat-hint">(min 6 chars)</span></label>
+        <input type="password" id="latRegPassword" class="lat-input" placeholder="Create a password" autocomplete="new-password" required />
+      </div>
+      <div class="lat-error" id="latSignupError" style="display:none"></div>
+      <button type="submit" class="lat-submit" id="latSignupBtn">
+        <span>Create Free Account</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </form>
+
+    <!-- Divider -->
+    <div class="lat-divider"><span>or</span></div>
+
+    <!-- Google -->
+    <div id="landingGoogleBtn"></div>
+    <button class="lat-google" id="latGoogleFallback">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </button>
+
+    <p class="lat-footer">By signing in you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a>.</p>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  MAIN APP  (hidden until logged in)                         -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="app" id="app" style="display:none">
+
+  <!-- TOP BAR / HEADER -->
+  <header class="topbar">
+    <div class="brand-group">
+      <div class="sparkle-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 0C12 6.62742 6.62742 12 0 12C6.62742 12 12 17.3726 12 24C12 17.3726 17.3726 12 24 12C17.3726 12 12 6.62742 12 0Z" fill="url(#gemini-grad)"/>
+          <defs>
+            <linearGradient id="gemini-grad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#8AB4F8"/>
+              <stop offset="0.5" stop-color="#C58AF9"/>
+              <stop offset="1" stop-color="#78D9EC"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <span class="brand-title">StudyVault <span class="brand-badge">AI Study Assistant</span></span>
+    </div>
+
+    <div class="notebook-active-info">
+      <h1 id="notebookTitle">Select or create a notebook</h1>
+      <span class="storage-status-pill" id="storagePill">Zero-Config Mode</span>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn-primary-sm" id="sampleNotebooksBtn">✨ Sample Research</button>
+      <button class="btn-icon" id="openSettingsBtn" title="AI Settings">⚙️</button>
+      <button class="btn-ghost" id="renameBtn" style="display:none">Rename</button>
+      <button class="btn-ghost btn-danger" id="deleteNotebookBtn" style="display:none">Delete</button>
+
+      <!-- Auth: Logged Out -->
+      <button class="btn-auth-login" id="openAuthModalBtn">🔑 Sign In</button>
+
+      <!-- Auth: Logged In (hidden until authed) -->
+      <div class="user-menu" id="userMenu" style="display:none">
+        <button class="user-avatar-btn" id="userAvatarBtn">
+          <div class="user-avatar-circle" id="userAvatarCircle">👤</div>
+          <span class="user-name-label" id="userNameLabel">Student</span>
+          <span class="user-chevron">▾</span>
+        </button>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="user-dropdown-header">
+            <div class="dropdown-user-email" id="dropdownUserEmail">user@email.com</div>
+            <div class="dropdown-user-role" id="dropdownUserRole">Student</div>
+          </div>
+          <button class="dropdown-item" id="adminPanelBtn" style="display:none">🛡️ Admin Panel</button>
+          <button class="dropdown-item" id="openSettingsBtnUser">⚙️ AI Settings</button>
+          <button class="dropdown-item dropdown-item-danger" id="logoutBtn">🚪 Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN THREE-COLUMN WORKSPACE -->
+  <div class="workspace">
+
+    <!-- LEFT PANEL: Shelf & Sources -->
+    <aside class="left-panel">
+      <div class="panel-section-header">
+        <h2>Notebooks</h2>
+        <button class="btn-icon" id="newNotebookBtn" title="Create New Notebook">+</button>
+      </div>
+      
+      <div class="shelf-list" id="notebookList"></div>
+
+      <div class="panel-section-header" style="margin-top: 1.25rem;">
+        <h2>Sources (<span id="sourceCount">0</span>)</h2>
+        <button class="btn-icon" id="searchSourcesBtn" title="Search Across Sources">🔍</button>
+      </div>
+
+      <div class="source-search-box" id="sourceSearchBox" style="display:none">
+        <input type="text" id="sourceSearchInput" placeholder="Search across all sources..." />
+      </div>
+
+      <div class="sources-list" id="sourcesRailInner">
+        <p class="sources-empty">No sources added yet.</p>
+      </div>
+
+      <div class="add-source-group">
+        <button class="btn-add-source" id="addSourceMenuBtn">
+          <span>＋ Add Source</span>
+        </button>
+        <div class="add-source-dropdown" id="addSourceDropdown">
+          <button id="optUploadPdf">📄 Upload PDF / Text file</button>
+          <button id="optPasteText">📝 Paste Text Note</button>
+          <button id="optAddUrl">🌐 Scrape Web URL</button>
+          <button id="optSampleData">⚡ Load Sample Research</button>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.txt,.md" multiple hidden />
+      </div>
+    </aside>
+
+    <!-- CENTER PANEL: Grounded Gemini Chat -->
+    <main class="center-panel">
+      <div class="chat-header">
+        <div class="chat-title-group">
+          <h3>Grounded Learning Chat</h3>
+          <span class="grounded-tag">🛡️ Page-Level Citations</span>
+        </div>
+        <div class="action-mode-bar">
+          <button class="chip-mode active" data-mode="chat">💬 Chat</button>
+          <button class="chip-mode" data-mode="explain">📖 Explain</button>
+          <button class="chip-mode" data-mode="2-mark">✍️ 2-Mark</button>
+          <button class="chip-mode" data-mode="5-mark">📝 5-Mark</button>
+          <button class="chip-mode" data-mode="10-mark">🏆 10-Mark</button>
+        </div>
+      </div>
+
+      <div class="chat-container" id="chatSection">
+        <div class="chat-log" id="chatLog">
+          <div class="chat-empty" id="chatEmpty">
+            <div class="empty-sparkle-icon">✨</div>
+            <h3>Source-Grounded Study Workspace</h3>
+            <p>Ask source-grounded questions, generate 2-Mark / 5-Mark exam answers, flip study flashcards, or take interactive quizzes with exact page citations.</p>
+          </div>
+        </div>
+
+        <form class="chat-input-wrapper" id="chatForm">
+          <textarea id="chatInput" placeholder="Ask a question about your uploaded study sources..." rows="2"></textarea>
+          <button type="submit" class="btn-send-gemini" id="sendBtn">
+            <span>Ask</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL: Studio Suite & Artifacts -->
+    <aside class="right-panel">
+      <div class="studio-tabs">
+        <button class="tab-btn active" data-tab="tabOverview">🎧 Podcast</button>
+        <button class="tab-btn" data-tab="tabBriefing">📄 Briefing</button>
+        <button class="tab-btn" data-tab="tabFlashcards">🃏 Flashcards</button>
+        <button class="tab-btn" data-tab="tabQuiz">🧪 Quiz</button>
+        <button class="tab-btn" data-tab="tabImportant">🔥 Questions</button>
+        <button class="tab-btn" data-tab="tabCompare">📊 Compare</button>
+        <button class="tab-btn" data-tab="tabNotes">📌 Notes</button>
+      </div>
+
+      <div class="studio-tab-content">
+
+        <!-- TAB 1: Audio Overview Podcast -->
+        <div class="tab-pane active" id="tabOverview">
+          <div class="overview-hero">
+            <div class="overview-badge">SIGNATURE AUDIO OVERVIEW</div>
+            <h2>2-Host AI Podcast</h2>
+            <p>Listen to Alex & Sierra unpack your study sources with live waveforms and synced transcript.</p>
+            <button class="btn-sparkle-lg" id="generateAudioBtn">✨ Generate Audio Overview</button>
+          </div>
+
+          <div class="podcast-player-card" id="podcastPlayerCard" style="display:none">
+            <div class="hosts-header">
+              <div class="host-avatar host-alex"><span>Alex</span></div>
+              <div class="waveform-box">
+                <canvas id="waveformCanvas" width="220" height="40"></canvas>
+              </div>
+              <div class="host-avatar host-sierra"><span>Sierra</span></div>
+            </div>
+
+            <div class="player-controls">
+              <button class="btn-ctrl" id="btnAudioSkipBack" title="Skip 10s">↺ 10s</button>
+              <button class="btn-play-pause" id="btnAudioPlay">▶ Play Podcast</button>
+              <button class="btn-ctrl" id="btnAudioSkipFwd" title="Skip 10s">↻ 10s</button>
+              <select class="speed-select" id="audioSpeedSelect">
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2.0x</option>
+              </select>
+            </div>
+
+            <div class="transcript-box" id="transcriptContainer"></div>
+          </div>
+        </div>
+
+        <!-- TAB 2: Briefing Doc -->
+        <div class="tab-pane" id="tabBriefing">
+          <div class="tab-pane-header">
+            <h2>Executive Briefing</h2>
+            <div class="tab-action-group">
+              <button class="btn-ctrl" id="exportBriefingMdBtn" title="Export Markdown">📝 Export MD</button>
+              <button class="btn-primary-sm" id="generateBriefingBtn">✨ Generate</button>
+            </div>
+          </div>
+          <div class="briefing-content" id="briefingContent">
+            <p class="tab-empty">Click "Generate" to create an executive summary, key findings, and action items.</p>
+          </div>
+        </div>
+
+        <!-- TAB 3: Flashcards Deck -->
+        <div class="tab-pane" id="tabFlashcards">
+          <div class="tab-pane-header">
+            <h2>Spaced Repetition Deck</h2>
+            <div class="tab-action-group">
+              <button class="btn-ctrl" id="exportAnkiCsvBtn" title="Export Anki CSV">🃏 Export Anki</button>
+              <button class="btn-primary-sm" id="generateCardsBtn">✨ Generate</button>
+            </div>
+          </div>
+          <!-- Mastery Bar -->
+          <div class="mastery-bar-wrapper" id="masteryBarWrapper" style="display:none">
+            <div class="mastery-info-row">
+              <span>Deck Mastery: <strong id="masteryPercent">0%</strong></span>
+              <span id="masteryCount">0 / 0 Mastered</span>
+            </div>
+            <div class="mastery-progress-track">
+              <div class="mastery-progress-fill" id="masteryFill" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="flashcards-wrapper" id="flashcardsWrapper">
+            <p class="tab-empty">Click "Generate" to create interactive self-testing study flashcards with Leitner spaced repetition ratings.</p>
+          </div>
+        </div>
+
+        <!-- TAB 4: Practice Quiz -->
+        <div class="tab-pane" id="tabQuiz">
+          <div class="tab-pane-header">
+            <h2>Interactive Practice Quiz</h2>
+            <button class="btn-primary-sm" id="generateQuizBtn">✨ Start Quiz</button>
+          </div>
+          <div class="quiz-wrapper" id="quizWrapper">
+            <p class="tab-empty">Click "Start Quiz" to launch a timed multiple-choice practice exam with instant grading.</p>
+          </div>
+        </div>
+
+        <!-- TAB 5: Important Questions -->
+        <div class="tab-pane" id="tabImportant">
+          <div class="tab-pane-header">
+            <h2>Important Exam Questions</h2>
+            <button class="btn-primary-sm" id="generateImportantBtn">🔥 Extract Questions</button>
+          </div>
+          <div class="important-q-wrapper" id="importantWrapper">
+            <p class="tab-empty">Extract high-frequency exam questions categorized by priority (Very Important, Important, Possible).</p>
+          </div>
+        </div>
+
+        <!-- TAB 6: Compare Documents -->
+        <div class="tab-pane" id="tabCompare">
+          <div class="tab-pane-header">
+            <h2>Multi-Source Matrix</h2>
+            <button class="btn-primary-sm" id="generateCompareBtn">📊 Compare Sources</button>
+          </div>
+          <div class="compare-wrapper" id="compareWrapper">
+            <p class="tab-empty">Compare multiple uploaded sources in a structured matrix table with citations.</p>
+          </div>
+        </div>
+
+        <!-- TAB 7: Workspace Notes Board -->
+        <div class="tab-pane" id="tabNotes">
+          <div class="tab-pane-header">
+            <h2>Notes Pinboard</h2>
+            <button class="btn-primary-sm" id="newNoteBtn">+ New Note</button>
+          </div>
+          <div class="notes-grid" id="notesGrid">
+            <p class="tab-empty">No saved notes yet. Pin chat responses or create custom research notes.</p>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <h3>⚙️ AI Provider Settings</h3>
+      <button class="modal-close" id="closeSettingsModalBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <label style="font-size:0.85rem; font-weight:600; color:var(--text-main)">Google Gemini API Key</label>
+      <input type="password" id="geminiApiKeyInput" class="modal-input" placeholder="AIzaSy..." />
+      <p style="font-size:0.75rem; color:var(--text-sub)">Get a free API key from <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary-blue)">Google AI Studio</a>. Saved in your local browser.</p>
+
+      <label style="font-size:0.85rem; font-weight:600; color:var(--text-main); margin-top:0.8rem">Gemini Model Target</label>
+      <select id="geminiModelSelect" class="modal-input">
+        <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash (Fast & Balanced)</option>
+        <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning)</option>
+        <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental)</option>
+      </select>
+
+      <button class="btn-sparkle-lg" id="saveSettingsBtn" style="margin-top:0.5rem">Save AI Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- INTEGRATED PDF VIEWER MODAL -->
+<div class="modal-overlay" id="pdfModal">
+  <div class="modal-card modal-lg">
+    <div class="modal-header">
+      <div class="pdf-title-bar">
+        <span class="pdf-icon">📄</span>
+        <h3 id="pdfModalTitle">Document Viewer</h3>
+        <span class="pdf-page-indicator" id="pdfPageIndicator">Page 1</span>
+      </div>
+      <div class="pdf-nav-tools">
+        <button class="btn-ctrl" id="btnPdfPrev">← Prev Page</button>
+        <input type="number" id="pdfPageJumpInput" value="1" min="1" style="width:50px; text-align:center;" />
+        <button class="btn-ctrl" id="btnPdfNext">Next Page →</button>
+        <button class="modal-close" id="closePdfModalBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body pdf-body">
+      <div class="pdf-view-container" id="pdfViewContainer">
+        <canvas id="pdfCanvas"></canvas>
+        <div class="pdf-text-fallback" id="pdfTextFallback" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PASTE TEXT MODAL -->
+<div class="modal-overlay" id="pasteTextModal">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <h3>Paste Raw Text Source</h3>
+      <button class="modal-close" id="closePasteModalBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="pasteTextTitle" class="modal-input" placeholder="Document Title (e.g. Meeting Notes)" />
+      <textarea id="pasteTextContent" class="modal-textarea" rows="8" placeholder="Paste your research text or notes here..."></textarea>
+      <button class="btn-sparkle-lg" id="submitPasteBtn">Add Source</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCRAPE URL MODAL -->
+<div class="modal-overlay" id="urlModal">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <h3>Scrape Web URL Source</h3>
+      <button class="modal-close" id="closeUrlModalBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="url" id="urlInput" class="modal-input" placeholder="https://example.com/article" />
+      <button class="btn-sparkle-lg" id="submitUrlBtn">Scrape Page & Add Source</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAMPLE RESEARCH MODAL -->
+<div class="modal-overlay" id="sampleModal">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <h3>⚡ Load Sample Research Notebook</h3>
+      <button class="modal-close" id="closeSampleModalBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="sample-card-option" data-key="quantum">
+        <h4>⚛️ Quantum Computing & Encryption</h4>
+        <p>Research papers on superconducting qubits, Shor's algorithm, and post-quantum cryptography.</p>
+      </div>
+      <div class="sample-card-option" data-key="neuroscience">
+        <h4>🧠 AI, Neuroscience & Brain Architectures</h4>
+        <p>Comparative analysis of biological neurons, deep learning backpropagation, and neuromorphic chips.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- AUTH MODAL (Login / Register / Google Sign-In) -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal-card modal-auth">
+
+    <!-- Logo & Headline -->
+    <div class="auth-modal-brand">
+      <div class="auth-logo-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="url(#auth-grad)"/>
+          <defs><linearGradient id="auth-grad" x1="0" y1="0" x2="24" y2="24"><stop stop-color="#8AB4F8"/><stop offset="0.5" stop-color="#C58AF9"/><stop offset="1" stop-color="#78D9EC"/></linearGradient></defs>
+        </svg>
+      </div>
+      <h2 class="auth-modal-title">StudyVault</h2>
+      <p class="auth-modal-subtitle">AI-Powered Source-Grounded Learning</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-auth-tab="login" id="tabLoginBtn">Sign In</button>
+      <button class="auth-tab" data-auth-tab="register" id="tabRegisterBtn">Create Account</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <form class="auth-form active" id="loginForm">
+      <div class="auth-input-group">
+        <label class="auth-label">Email</label>
+        <input type="email" id="loginEmail" class="auth-input" placeholder="you@example.com" autocomplete="email" required />
+      </div>
+      <div class="auth-input-group">
+        <label class="auth-label">Password</label>
+        <input type="password" id="loginPassword" class="auth-input" placeholder="Your password" autocomplete="current-password" required />
+      </div>
+      <div class="auth-error" id="loginError" style="display:none"></div>
+      <button type="submit" class="btn-sparkle-lg" id="loginSubmitBtn">Sign In to StudyVault</button>
+    </form>
+
+    <!-- REGISTER FORM -->
+    <form class="auth-form" id="registerForm">
+      <div class="auth-input-group">
+        <label class="auth-label">Full Name</label>
+        <input type="text" id="registerName" class="auth-input" placeholder="Your full name" autocomplete="name" required />
+      </div>
+      <div class="auth-input-group">
+        <label class="auth-label">Email</label>
+        <input type="email" id="registerEmail" class="auth-input" placeholder="you@example.com" autocomplete="email" required />
+      </div>
+      <div class="auth-input-group">
+        <label class="auth-label">Password <span style="color:var(--text-muted);font-weight:400">(min 6 characters)</span></label>
+        <input type="password" id="registerPassword" class="auth-input" placeholder="Create a password" autocomplete="new-password" required />
+      </div>
+      <div class="auth-error" id="registerError" style="display:none"></div>
+      <button type="submit" class="btn-sparkle-lg" id="registerSubmitBtn">Create Account</button>
+    </form>
+
+    <!-- DIVIDER -->
+    <div class="auth-divider"><span>or continue with</span></div>
+
+    <!-- GOOGLE SIGN IN -->
+    <div class="google-signin-wrapper">
+      <div id="googleSignInBtn"></div>
+      <button class="btn-google-fallback" id="googleSignInFallback">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Sign in with Google
+      </button>
+    </div>
+
+    <button class="auth-modal-close" id="closeAuthModalBtn">✕</button>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════ -->
+<!-- ADMIN PANEL MODAL                       -->
+<!-- ═════════════════════════════════════════ -->
+<div class="modal-overlay" id="adminModal">
+  <div class="modal-card modal-admin">
+    <div class="modal-header">
+      <h3>🛡️ Admin Control Panel</h3>
+      <button class="modal-close" id="closeAdminModalBtn">✕</button>
+    </div>
+    <div class="admin-panel-body">
+
+      <!-- Stats Cards -->
+      <div class="admin-stats-grid" id="adminStatsGrid">
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon">👥</div>
+          <div class="admin-stat-value" id="statUsers">—</div>
+          <div class="admin-stat-label">Total Users</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon">📓</div>
+          <div class="admin-stat-value" id="statNotebooks">—</div>
+          <div class="admin-stat-label">Notebooks</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon">📄</div>
+          <div class="admin-stat-value" id="statDocuments">—</div>
+          <div class="admin-stat-label">Documents</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon">💾</div>
+          <div class="admin-stat-value" id="statStorage">—</div>
+          <div class="admin-stat-label">DB Mode</div>
+        </div>
+      </div>
+
+      <!-- Users Table -->
+      <div class="admin-section-header">
+        <h4>👥 User Management</h4>
+        <input type="text" class="admin-search-input" id="adminUserSearch" placeholder="Search users..." />
+      </div>
+      <div class="admin-table-wrapper">
+        <table class="admin-table" id="adminUsersTable">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminUsersBody">
+            <tr><td colspan="5" class="admin-table-empty">Loading users...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

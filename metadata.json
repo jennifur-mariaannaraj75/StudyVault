@@ -1,0 +1,6 @@
+{
+  "name": "StudyVault",
+  "description": "Upload PDFs, get AI-grounded answers with exact page citations, generate flashcards, quizzes, and exam notes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

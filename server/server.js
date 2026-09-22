@@ -30,18 +30,25 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "index.html"));
 });
 
-// Basic error handler
+// Database and basic error handler
 app.use((err, req, res, next) => {
+  if (err.name === "MongooseError" || err.name === "MongoNetworkError" || (err.message && err.message.includes("buffering timed out"))) {
+    console.warn("[AI Studio] Database offline — returning fallback response");
+    if (req.method === "GET") {
+      return res.json(req.path.endsWith("s") || req.path.endsWith("s/") ? [] : {});
+    }
+    return res.status(503).json({ error: "Service temporarily unavailable (database offline)" });
+  }
   console.error("[server] Unhandled error:", err);
   res.status(400).json({ error: err.message || "Something went wrong" });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = 3000;
 
 store.connectDB().then(() => {
-  app.listen(PORT, () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`\n======================================================`);
-    console.log(`🚀 NotebookLM Gemini Edition running at http://localhost:${PORT}`);
+    console.log(`🚀 StudyVault running at http://0.0.0.0:${PORT}`);
     console.log(`   Storage Mode: ${store.isMongoMode() ? "MongoDB Connected" : "Zero-Config In-Memory Storage"}`);
     console.log(`   Default Admin: admin@studyassistant.com (Pass: AdminPass123!)`);
     console.log(`======================================================\n`);

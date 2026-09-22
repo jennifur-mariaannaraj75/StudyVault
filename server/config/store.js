@@ -96,6 +96,7 @@ async function connectDB() {
   const uri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/notebooklm_clone";
   try {
     mongoose.set("strictQuery", false);
+    mongoose.set("bufferCommands", false);
     // Connect with 3-second timeout so app starts instantly if MongoDB is offline
     await mongoose.connect(uri, { serverSelectionTimeoutMS: 3000 });
     isMongo = true;

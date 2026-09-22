@@ -1007,8 +1007,23 @@ const AuthManager = {
     if (saved && token) {
       try { this.currentUser = JSON.parse(saved); } catch(e) {}
     }
+
+    // Show landing page OR main app
+    const landingEl = document.getElementById("landingPage");
+    const appEl = document.getElementById("app");
+    if (this.currentUser) {
+      if (landingEl) landingEl.style.display = "none";
+      if (appEl) appEl.style.display = "flex";
+    } else {
+      if (landingEl) landingEl.style.display = "flex";
+      if (appEl) appEl.style.display = "none";
+    }
+
     this.updateUI();
     this.bindEvents();
+    if (typeof LandingPage !== "undefined") {
+      LandingPage.init();
+    }
     this.initGoogleSignIn();
   },
 
@@ -1024,32 +1039,39 @@ const AuthManager = {
     localStorage.removeItem("studyvault_token");
     localStorage.removeItem("studyvault_user");
     this.updateUI();
+    if (typeof LandingPage !== "undefined") {
+      LandingPage.show();
+    }
   },
 
   updateUI() {
     const loginBtn  = document.getElementById("openAuthModalBtn");
     const userMenu  = document.getElementById("userMenu");
-    const nameLabel = document.getElementById("userNameLabel");
-    const avatarEl  = document.getElementById("userAvatarCircle");
-    const emailEl   = document.getElementById("dropdownUserEmail");
-    const roleEl    = document.getElementById("dropdownUserRole");
-    const adminBtn  = document.getElementById("adminPanelBtn");
+    if (!loginBtn || !userMenu) return;
 
     if (this.currentUser) {
+      const nameLabel = document.getElementById("userNameLabel");
+      const avatarEl  = document.getElementById("userAvatarCircle");
+      const emailEl   = document.getElementById("dropdownUserEmail");
+      const roleEl    = document.getElementById("dropdownUserRole");
+      const adminBtn  = document.getElementById("adminPanelBtn");
+
       loginBtn.style.display  = "none";
       userMenu.style.display  = "block";
-      nameLabel.textContent   = this.currentUser.name || "Student";
-      emailEl.textContent     = this.currentUser.email || "";
-      roleEl.textContent      = this.currentUser.role === "admin" ? "🛡️ Admin" : "🎓 Student";
-      adminBtn.style.display  = this.currentUser.role === "admin" ? "flex" : "none";
+      if (nameLabel) nameLabel.textContent = this.currentUser.name || "Student";
+      if (emailEl)   emailEl.textContent   = this.currentUser.email || "";
+      if (roleEl)    roleEl.textContent    = this.currentUser.role === "admin" ? "🛡️ Admin" : "🎓 Student";
+      if (adminBtn)  adminBtn.style.display = this.currentUser.role === "admin" ? "flex" : "none";
 
       // Avatar
-      if (this.currentUser.avatar && this.currentUser.avatar.startsWith("http")) {
-        avatarEl.innerHTML = `<img src="${this.currentUser.avatar}" alt="avatar" onerror="this.parentElement.textContent='${(this.currentUser.name||'S')[0].toUpperCase()}'">`;
-      } else if (this.currentUser.avatar && this.currentUser.avatar.length <= 3) {
-        avatarEl.textContent = this.currentUser.avatar;
-      } else {
-        avatarEl.textContent = (this.currentUser.name || "S")[0].toUpperCase();
+      if (avatarEl) {
+        if (this.currentUser.avatar && this.currentUser.avatar.startsWith("http")) {
+          avatarEl.innerHTML = `<img src="${this.currentUser.avatar}" alt="avatar" onerror="this.parentElement.textContent='${(this.currentUser.name||'S')[0].toUpperCase()}'">`;
+        } else if (this.currentUser.avatar && this.currentUser.avatar.length <= 3) {
+          avatarEl.textContent = this.currentUser.avatar;
+        } else {
+          avatarEl.textContent = (this.currentUser.name || "S")[0].toUpperCase();
+        }
       }
     } else {
       loginBtn.style.display = "inline-flex";
@@ -1058,13 +1080,26 @@ const AuthManager = {
   },
 
   bindEvents() {
-    // Open auth modal
-    document.getElementById("openAuthModalBtn").addEventListener("click", () => {
-      document.getElementById("authModal").classList.add("show");
-    });
-    document.getElementById("closeAuthModalBtn").addEventListener("click", () => {
-      document.getElementById("authModal").classList.remove("show");
-    });
+    // Open auth modal or show landing
+    const openAuthModalBtn = document.getElementById("openAuthModalBtn");
+    if (openAuthModalBtn) {
+      openAuthModalBtn.addEventListener("click", () => {
+        if (typeof LandingPage !== "undefined") {
+          LandingPage.show();
+        } else {
+          const authModal = document.getElementById("authModal");
+          if (authModal) authModal.classList.add("show");
+        }
+      });
+    }
+
+    const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
+    if (closeAuthModalBtn) {
+      closeAuthModalBtn.addEventListener("click", () => {
+        const authModal = document.getElementById("authModal");
+        if (authModal) authModal.classList.remove("show");
+      });
+    }
 
     // Auth tab switching
     document.querySelectorAll(".auth-tab").forEach(tab => {
@@ -1073,100 +1108,142 @@ const AuthManager = {
         document.querySelectorAll(".auth-form").forEach(f => f.classList.remove("active"));
         tab.classList.add("active");
         const target = tab.dataset.authTab === "login" ? "loginForm" : "registerForm";
-        document.getElementById(target).classList.add("active");
+        const targetEl = document.getElementById(target);
+        if (targetEl) targetEl.classList.add("active");
       });
     });
 
-    // Login form
-    document.getElementById("loginForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById("loginSubmitBtn");
-      const errEl = document.getElementById("loginError");
-      btn.textContent = "Signing in...";
-      btn.disabled = true;
-      errEl.style.display = "none";
-      try {
-        const { token, user } = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: document.getElementById("loginEmail").value,
-            password: document.getElementById("loginPassword").value
-          })
-        }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
-        this.saveSession(user, token);
-        document.getElementById("authModal").classList.remove("show");
-        showToast(`Welcome back, ${user.name}! 🎉`);
-        loadNotebooks();
-      } catch (err) {
-        errEl.textContent = err.message; errEl.style.display = "block";
-      } finally { btn.textContent = "Sign In to StudyVault"; btn.disabled = false; }
-    });
+    // Login form in modal
+    const loginForm = document.getElementById("loginForm");
+    if (loginForm) {
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("loginSubmitBtn");
+        const errEl = document.getElementById("loginError");
+        if (btn) { btn.textContent = "Signing in..."; btn.disabled = true; }
+        if (errEl) errEl.style.display = "none";
+        try {
+          const { token, user } = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: document.getElementById("loginEmail").value,
+              password: document.getElementById("loginPassword").value
+            })
+          }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
+          this.saveSession(user, token);
+          const authModal = document.getElementById("authModal");
+          if (authModal) authModal.classList.remove("show");
+          if (typeof LandingPage !== "undefined") {
+            LandingPage.hide(() => { loadNotebooks(); showToast(`Welcome back, ${user.name}! 🎉`); });
+          } else {
+            showToast(`Welcome back, ${user.name}! 🎉`);
+            loadNotebooks();
+          }
+        } catch (err) {
+          if (errEl) { errEl.textContent = err.message; errEl.style.display = "block"; }
+        } finally {
+          if (btn) { btn.textContent = "Sign In to StudyVault"; btn.disabled = false; }
+        }
+      });
+    }
 
-    // Register form
-    document.getElementById("registerForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById("registerSubmitBtn");
-      const errEl = document.getElementById("registerError");
-      btn.textContent = "Creating account...";
-      btn.disabled = true;
-      errEl.style.display = "none";
-      try {
-        const { token, user } = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: document.getElementById("registerName").value,
-            email: document.getElementById("registerEmail").value,
-            password: document.getElementById("registerPassword").value
-          })
-        }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
-        this.saveSession(user, token);
-        document.getElementById("authModal").classList.remove("show");
-        showToast(`Account created! Welcome, ${user.name}! 🎉`);
-        loadNotebooks();
-      } catch (err) {
-        errEl.textContent = err.message; errEl.style.display = "block";
-      } finally { btn.textContent = "Create Account"; btn.disabled = false; }
-    });
+    // Register form in modal
+    const registerForm = document.getElementById("registerForm");
+    if (registerForm) {
+      registerForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("registerSubmitBtn");
+        const errEl = document.getElementById("registerError");
+        if (btn) { btn.textContent = "Creating account..."; btn.disabled = true; }
+        if (errEl) errEl.style.display = "none";
+        try {
+          const { token, user } = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: document.getElementById("registerName").value,
+              email: document.getElementById("registerEmail").value,
+              password: document.getElementById("registerPassword").value
+            })
+          }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
+          this.saveSession(user, token);
+          const authModal = document.getElementById("authModal");
+          if (authModal) authModal.classList.remove("show");
+          if (typeof LandingPage !== "undefined") {
+            LandingPage.hide(() => { loadNotebooks(); showToast(`Account created! Welcome, ${user.name}! 🎉`); });
+          } else {
+            showToast(`Account created! Welcome, ${user.name}! 🎉`);
+            loadNotebooks();
+          }
+        } catch (err) {
+          if (errEl) { errEl.textContent = err.message; errEl.style.display = "block"; }
+        } finally {
+          if (btn) { btn.textContent = "Create Account"; btn.disabled = false; }
+        }
+      });
+    }
 
     // Google fallback button
-    document.getElementById("googleSignInFallback").addEventListener("click", () => {
-      showToast("Add your Google Client ID to .env to enable Google Sign-In 🔑");
-    });
+    const googleFallback = document.getElementById("googleSignInFallback");
+    if (googleFallback) {
+      googleFallback.addEventListener("click", () => {
+        showToast("Add your Google Client ID to .env to enable Google Sign-In 🔑");
+      });
+    }
 
     // User avatar dropdown toggle
-    document.getElementById("userAvatarBtn").addEventListener("click", (e) => {
-      e.stopPropagation();
-      document.getElementById("userDropdown").classList.toggle("show");
-    });
+    const userAvatarBtn = document.getElementById("userAvatarBtn");
+    if (userAvatarBtn) {
+      userAvatarBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const dd = document.getElementById("userDropdown");
+        if (dd) dd.classList.toggle("show");
+      });
+    }
     document.addEventListener("click", () => {
-      document.getElementById("userDropdown").classList.remove("show");
+      const dd = document.getElementById("userDropdown");
+      if (dd) dd.classList.remove("show");
     });
 
     // Logout
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      this.clearSession();
-      showToast("Logged out successfully.");
-      loadNotebooks();
-    });
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", () => {
+        this.clearSession();
+        showToast("Logged out. See you soon! 👋");
+      });
+    }
 
     // Admin Panel button
-    document.getElementById("adminPanelBtn").addEventListener("click", () => {
-      document.getElementById("userDropdown").classList.remove("show");
-      AdminPanel.open();
-    });
+    const adminPanelBtn = document.getElementById("adminPanelBtn");
+    if (adminPanelBtn) {
+      adminPanelBtn.addEventListener("click", () => {
+        const dd = document.getElementById("userDropdown");
+        if (dd) dd.classList.remove("show");
+        AdminPanel.open();
+      });
+    }
 
     // Settings from dropdown
-    document.getElementById("openSettingsBtnUser").addEventListener("click", () => {
-      document.getElementById("userDropdown").classList.remove("show");
-      document.getElementById("settingsModal").classList.add("show");
-    });
+    const openSettingsBtnUser = document.getElementById("openSettingsBtnUser");
+    if (openSettingsBtnUser) {
+      openSettingsBtnUser.addEventListener("click", () => {
+        const dd = document.getElementById("userDropdown");
+        if (dd) dd.classList.remove("show");
+        const sm = document.getElementById("settingsModal");
+        if (sm) sm.classList.add("show");
+      });
+    }
 
     // Close admin modal
-    document.getElementById("closeAdminModalBtn").addEventListener("click", () => {
-      document.getElementById("adminModal").classList.remove("show");
-    });
+    const closeAdminModalBtn = document.getElementById("closeAdminModalBtn");
+    if (closeAdminModalBtn) {
+      closeAdminModalBtn.addEventListener("click", () => {
+        const am = document.getElementById("adminModal");
+        if (am) am.classList.remove("show");
+      });
+    }
   },
 
   initGoogleSignIn() {
@@ -1183,16 +1260,31 @@ const AuthManager = {
               body: JSON.stringify({ credential: response.credential })
             }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
             this.saveSession(user, token);
-            document.getElementById("authModal").classList.remove("show");
-            showToast(`Welcome, ${user.name}! 🎉`);
-            loadNotebooks();
+            const authModal = document.getElementById("authModal");
+            if (authModal) authModal.classList.remove("show");
+            if (typeof LandingPage !== "undefined") {
+              LandingPage.hide(() => { loadNotebooks(); showToast(`Welcome, ${user.name}! 🎉`); });
+            } else {
+              showToast(`Welcome, ${user.name}! 🎉`);
+              loadNotebooks();
+            }
           } catch(err) { showToast(err.message); }
         }
       });
-      window.google.accounts.id.renderButton(
-        document.getElementById("googleSignInBtn"),
-        { theme: "outline", size: "large", width: 340 }
-      );
+      const landingGoogleBtn = document.getElementById("landingGoogleBtn");
+      if (landingGoogleBtn) {
+        window.google.accounts.id.renderButton(
+          landingGoogleBtn,
+          { theme: "outline", size: "large", width: 340 }
+        );
+      }
+      const googleSignInBtn = document.getElementById("googleSignInBtn");
+      if (googleSignInBtn) {
+        window.google.accounts.id.renderButton(
+          googleSignInBtn,
+          { theme: "outline", size: "large", width: 340 }
+        );
+      }
     } catch(e) { /* Google SDK not loaded */ }
   }
 };
@@ -1485,127 +1577,6 @@ const LandingPage = {
       showToast("Add GOOGLE_CLIENT_ID to .env to enable Google Sign-In 🔑");
     });
   }
-};
-
-// ══════════════════════════════════════════════════════════════════
-// UPDATED AUTH MANAGER — uses landing page for show/hide
-// ══════════════════════════════════════════════════════════════════
-const AuthManager = {
-  currentUser: null,
-
-  init() {
-    const saved = localStorage.getItem("studyvault_user");
-    const token = localStorage.getItem("studyvault_token");
-    if (saved && token) {
-      try { this.currentUser = JSON.parse(saved); } catch(e) {}
-    }
-
-    // Show landing page OR main app
-    if (this.currentUser) {
-      document.getElementById("landingPage").style.display = "none";
-      document.getElementById("app").style.display = "flex";
-    } else {
-      document.getElementById("landingPage").style.display = "flex";
-      document.getElementById("app").style.display = "none";
-    }
-
-    this.updateTopbarUI();
-    this.bindTopbarEvents();
-    LandingPage.init();
-  },
-
-  saveSession(user, token) {
-    this.currentUser = user;
-    localStorage.setItem("studyvault_token", token);
-    localStorage.setItem("studyvault_user", JSON.stringify(user));
-    this.updateTopbarUI();
-  },
-
-  clearSession() {
-    this.currentUser = null;
-    localStorage.removeItem("studyvault_token");
-    localStorage.removeItem("studyvault_user");
-    this.updateTopbarUI();
-    LandingPage.show();
-  },
-
-  updateTopbarUI() {
-    const loginBtn  = document.getElementById("openAuthModalBtn");
-    const userMenu  = document.getElementById("userMenu");
-    if (!loginBtn || !userMenu) return;
-
-    if (this.currentUser) {
-      const nameLabel = document.getElementById("userNameLabel");
-      const avatarEl  = document.getElementById("userAvatarCircle");
-      const emailEl   = document.getElementById("dropdownUserEmail");
-      const roleEl    = document.getElementById("dropdownUserRole");
-      const adminBtn  = document.getElementById("adminPanelBtn");
-
-      loginBtn.style.display = "none";
-      userMenu.style.display = "block";
-      if (nameLabel) nameLabel.textContent = this.currentUser.name || "Student";
-      if (emailEl)   emailEl.textContent   = this.currentUser.email || "";
-      if (roleEl)    roleEl.textContent    = this.currentUser.role === "admin" ? "🛡️ Admin" : "🎓 Student";
-      if (adminBtn)  adminBtn.style.display = this.currentUser.role === "admin" ? "flex" : "none";
-
-      if (avatarEl) {
-        if (this.currentUser.avatar && this.currentUser.avatar.startsWith("http")) {
-          avatarEl.innerHTML = `<img src="${this.currentUser.avatar}" alt="av" onerror="this.parentElement.textContent='${(this.currentUser.name||'S')[0].toUpperCase()}'">`;
-        } else {
-          avatarEl.textContent = (this.currentUser.name || "S")[0].toUpperCase();
-        }
-      }
-    } else {
-      loginBtn.style.display = "inline-flex";
-      userMenu.style.display = "none";
-    }
-  },
-
-  bindTopbarEvents() {
-    // Sign In button in topbar → go back to landing
-    const loginBtn = document.getElementById("openAuthModalBtn");
-    if (loginBtn) loginBtn.addEventListener("click", () => LandingPage.show());
-
-    // User avatar dropdown
-    const avatarBtn = document.getElementById("userAvatarBtn");
-    if (avatarBtn) avatarBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      document.getElementById("userDropdown").classList.toggle("show");
-    });
-    document.addEventListener("click", () => {
-      const dd = document.getElementById("userDropdown");
-      if (dd) dd.classList.remove("show");
-    });
-
-    // Logout → show landing
-    const logoutBtn = document.getElementById("logoutBtn");
-    if (logoutBtn) logoutBtn.addEventListener("click", () => {
-      this.clearSession();
-      showToast("Logged out. See you soon! 👋");
-    });
-
-    // Admin panel
-    const adminPanelBtn = document.getElementById("adminPanelBtn");
-    if (adminPanelBtn) adminPanelBtn.addEventListener("click", () => {
-      document.getElementById("userDropdown").classList.remove("show");
-      AdminPanel.open();
-    });
-
-    // Settings from dropdown
-    const settingsUserBtn = document.getElementById("openSettingsBtnUser");
-    if (settingsUserBtn) settingsUserBtn.addEventListener("click", () => {
-      document.getElementById("userDropdown").classList.remove("show");
-      document.getElementById("settingsModal").classList.add("show");
-    });
-
-    // Close admin modal
-    const closeAdmin = document.getElementById("closeAdminModalBtn");
-    if (closeAdmin) closeAdmin.addEventListener("click", () => {
-      document.getElementById("adminModal").classList.remove("show");
-    });
-  },
-
-  initGoogleSignIn() {} // handled by LandingPage
 };
 
 // Init everything

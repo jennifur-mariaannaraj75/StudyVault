@@ -93,18 +93,28 @@ async function ensureDefaultAdmin() {
 }
 
 async function connectDB() {
-  const uri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/notebooklm_clone";
+  const uri = process.env.MONGO_URI;
+  if (!uri) {
+    isMongo = false;
+    console.log("[db] No MONGO_URI provided in environment.");
+    console.log("[db] Running in Zero-Config Persistent Local Storage mode (persisted to server/data/local_db.json).");
+    loadLocalFile();
+    await ensureDefaultAdmin();
+    return;
+  }
+
+  const maskedUri = uri.replace(/:([^:@]+)@/, ":****@");
   try {
     mongoose.set("strictQuery", false);
     mongoose.set("bufferCommands", false);
-    // Connect with 3-second timeout so app starts instantly if MongoDB is offline
-    await mongoose.connect(uri, { serverSelectionTimeoutMS: 3000 });
+    console.log(`[db] Connecting to MongoDB: ${maskedUri}...`);
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
     isMongo = true;
-    console.log("[db] MongoDB connected successfully:", uri);
+    console.log("[db] ✅ MongoDB connected successfully!");
   } catch (err) {
     isMongo = false;
-    console.warn(`[db] MongoDB connection failed (${err.message}).`);
-    console.warn("[db] Running in Zero-Config In-Memory Storage mode (persisted to server/data/local_db.json).");
+    console.warn(`[db] ⚠️ MongoDB connection failed (${err.message}).`);
+    console.warn("[db] Falling back to Zero-Config Persistent Local Storage mode (server/data/local_db.json).");
     loadLocalFile();
   }
   await ensureDefaultAdmin();

@@ -1,7 +1,69 @@
 {
-  "users": [],
-  "notebooks": [],
-  "documents": [],
+  "users": [
+    {
+      "_id": "mucu29c9ppmwe",
+      "name": "Test Student",
+      "email": "student_test@example.com",
+      "password": "$2b$10$HnmOVIraJgGla4XuWV8tNeMOG4iWQHqMBxxel79fsjBBApU7h1Cam",
+      "googleId": null,
+      "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Test%20Student",
+      "role": "user",
+      "createdAt": "2026-09-22T15:32:48.201Z"
+    },
+    {
+      "_id": "mucsfqiggbpat",
+      "name": "System Admin",
+      "email": "admin@studyassistant.com",
+      "password": "$2b$10$VKcQHnqumiMfPEKYwZT6r.y8J0Yt3rw3zt7.OoLuGXkyRO7ibKHoa",
+      "role": "admin",
+      "avatar": "🛡️",
+      "createdAt": "2026-09-22T14:47:17.752Z"
+    }
+  ],
+  "notebooks": [
+    {
+      "_id": "mue831ucx03q9",
+      "title": "Computer Networks & Protocols",
+      "description": "",
+      "userId": "guest",
+      "createdAt": "2026-09-23T14:53:05.940Z",
+      "updatedAt": "2026-09-23T14:53:05.940Z"
+    },
+    {
+      "_id": "mue82otb99ykg",
+      "title": "Computer Networks & Protocols",
+      "description": "",
+      "userId": "guest",
+      "createdAt": "2026-09-23T14:52:49.055Z",
+      "updatedAt": "2026-09-23T14:52:49.055Z"
+    }
+  ],
+  "documents": [
+    {
+      "_id": "mue831umoxz70",
+      "notebookId": "mue831ucx03q9",
+      "filename": "Data-Link Layer & Ethernet",
+      "pageCount": 1,
+      "charCount": 241,
+      "extractedText": "IEEE 802 divides data-link into LLC and MAC sublayers. CSMA/CD controls transmission access on shared media. Truncated binary exponential backoff is invoked upon collision. Ethernet frames contain 6-byte destination and source MAC addresses.",
+      "summary": "Document analyzed successfully.",
+      "keyTopics": [
+        "Core Concepts"
+      ],
+      "suggestedQuestions": [
+        "Summarize main points."
+      ],
+      "status": "ready",
+      "createdAt": "2026-09-23T14:53:05.950Z",
+      "updatedAt": "2026-09-23T14:53:06.146Z",
+      "pages": [
+        {
+          "pageNumber": 1,
+          "text": "IEEE 802 divides data-link into LLC and MAC sublayers. CSMA/CD controls transmission access on shared media. Truncated binary exponential backoff is invoked upon collision. Ethernet frames contain 6-byte destination and source MAC addresses."
+        }
+      ]
+    }
+  ],
   "messages": [],
   "notes": [],
   "artifacts": [
@@ -53,6 +115,116 @@
         ]
       },
       "updatedAt": "2026-09-22T08:36:13.101Z"
+    },
+    {
+      "notebookId": "mue831ucx03q9",
+      "type": "images",
+      "data": [
+        {
+          "id": "img_mue832sk",
+          "title": "Visual: Ethernet Protocol Architecture",
+          "prompt": "Ethernet Protocol Architecture",
+          "style": "diagram",
+          "summary": "Structured visual concept map illustrating fundamental mechanisms, hierarchies, and protocols described in the notebook sources.",
+          "svgContent": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\">\n    <defs>\n      <linearGradient id=\"bg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#0b0e14\"/><stop offset=\"100%\" stop-color=\"#161b26\"/></linearGradient>\n      <linearGradient id=\"p1\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#8ab4f8\"/><stop offset=\"100%\" stop-color=\"#c58af9\"/></linearGradient>\n      <linearGradient id=\"p2\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0%\" stop-color=\"#78d9ec\"/><stop offset=\"100%\" stop-color=\"#81c995\"/></linearGradient>\n      <filter id=\"glow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\"><feGaussianBlur stdDeviation=\"6\" result=\"blur\"/><feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/></filter>\n    </defs>\n    <rect width=\"960\" height=\"540\" fill=\"url(#bg)\"/>\n    <circle cx=\"480\" cy=\"270\" r=\"180\" fill=\"none\" stroke=\"rgba(138,180,248,0.15)\" stroke-dasharray=\"6,6\"/>\n    <circle cx=\"480\" cy=\"270\" r=\"230\" fill=\"none\" stroke=\"rgba(197,138,249,0.1)\"/>\n    <line x1=\"480\" y1=\"270\" x2=\"240\" y2=\"170\" stroke=\"url(#p1)\" stroke-width=\"2.5\" stroke-dasharray=\"4,4\"/>\n    <line x1=\"480\" y1=\"270\" x2=\"720\" y2=\"170\" stroke=\"url(#p1)\" stroke-width=\"2.5\" stroke-dasharray=\"4,4\"/>\n    <line x1=\"480\" y1=\"270\" x2=\"280\" y2=\"400\" stroke=\"url(#p2)\" stroke-width=\"2.5\"/>\n    <line x1=\"480\" y1=\"270\" x2=\"680\" y2=\"400\" stroke=\"url(#p2)\" stroke-width=\"2.5\"/>\n    <!-- Center Node -->\n    <rect x=\"360\" y=\"225\" width=\"240\" height=\"90\" rx=\"16\" fill=\"#1e2433\" stroke=\"url(#p1)\" stroke-width=\"2.5\" filter=\"url(#glow)\"/>\n    <text x=\"480\" y=\"262\" fill=\"#ffffff\" font-family=\"system-ui, sans-serif\" font-size=\"17\" font-weight=\"700\" text-anchor=\"middle\">🎓 Computer Networks & Prot</text>\n    <text x=\"480\" y=\"288\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"12\" text-anchor=\"middle\">AI Conceptual Synthesis</text>\n    <!-- Node A -->\n    <rect x=\"140\" y=\"130\" width=\"200\" height=\"75\" rx=\"12\" fill=\"#181e2b\" stroke=\"#8ab4f8\" stroke-width=\"1.8\"/>\n    <text x=\"240\" y=\"162\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"14\" font-weight=\"600\" text-anchor=\"middle\">Layer Architecture</text>\n    <text x=\"240\" y=\"184\" fill=\"rgba(255,255,255,0.7)\" font-family=\"system-ui, sans-serif\" font-size=\"11\" text-anchor=\"middle\">LLC & MAC Hierarchy</text>\n    <!-- Node B -->\n    <rect x=\"620\" y=\"130\" width=\"200\" height=\"75\" rx=\"12\" fill=\"#181e2b\" stroke=\"#c58af9\" stroke-width=\"1.8\"/>\n    <text x=\"720\" y=\"162\" fill=\"#c58af9\" font-family=\"system-ui, sans-serif\" font-size=\"14\" font-weight=\"600\" text-anchor=\"middle\">Protocol Framing</text>\n    <text x=\"720\" y=\"184\" fill=\"rgba(255,255,255,0.7)\" font-family=\"system-ui, sans-serif\" font-size=\"11\" text-anchor=\"middle\">Headers, Preamble & CRC</text>\n    <!-- Node C -->\n    <rect x=\"180\" y=\"360\" width=\"200\" height=\"75\" rx=\"12\" fill=\"#181e2b\" stroke=\"#78d9ec\" stroke-width=\"1.8\"/>\n    <text x=\"280\" y=\"392\" fill=\"#78d9ec\" font-family=\"system-ui, sans-serif\" font-size=\"14\" font-weight=\"600\" text-anchor=\"middle\">Access Resolution</text>\n    <text x=\"280\" y=\"414\" fill=\"rgba(255,255,255,0.7)\" font-family=\"system-ui, sans-serif\" font-size=\"11\" text-anchor=\"middle\">Collision & Backoff Rules</text>\n    <!-- Node D -->\n    <rect x=\"580\" y=\"360\" width=\"200\" height=\"75\" rx=\"12\" fill=\"#181e2b\" stroke=\"#81c995\" stroke-width=\"1.8\"/>\n    <text x=\"680\" y=\"392\" fill=\"#81c995\" font-family=\"system-ui, sans-serif\" font-size=\"14\" font-weight=\"600\" text-anchor=\"middle\">Addressing & Cache</text>\n    <text x=\"680\" y=\"414\" fill=\"rgba(255,255,255,0.7)\" font-family=\"system-ui, sans-serif\" font-size=\"11\" text-anchor=\"middle\">48-bit MAC & ARP Tables</text>\n    <!-- Badge -->\n    <rect x=\"25\" y=\"25\" width=\"220\" height=\"34\" rx=\"8\" fill=\"rgba(138,180,248,0.1)\" stroke=\"rgba(138,180,248,0.3)\"/>\n    <text x=\"135\" y=\"47\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"12\" font-weight=\"600\" text-anchor=\"middle\">✨ StudyVault Visual Studio</text>\n  </svg>",
+          "previewUrl": "/assets/images/study_infographic_preview_1790174854345.jpg",
+          "tags": [
+            "Infographic",
+            "Conceptual Architecture",
+            "Study Blueprint"
+          ],
+          "createdAt": "2026-09-23T14:53:07.172Z"
+        }
+      ],
+      "updatedAt": "2026-09-23T14:53:07.172Z"
+    },
+    {
+      "notebookId": "mue831ucx03q9",
+      "type": "video",
+      "data": {
+        "id": "vid_mue832xu",
+        "title": "AI Video Explainer: Computer Networks & Protocols",
+        "topic": "Computer Networks & Protocols",
+        "style": "explainer",
+        "totalDuration": 68,
+        "posterUrl": "/assets/images/video_lecture_preview_1790174869587.jpg",
+        "scenes": [
+          {
+            "sceneNumber": 1,
+            "title": "1. Core Foundations & Scope",
+            "duration": 14,
+            "narration": "Welcome to this StudyVault video breakdown on Computer Networks & Protocols. In this opening module, we establish the core theoretical foundation, framing requirements, and operational context defined in your documents.",
+            "keyPoints": [
+              "Primary system architecture and scoping",
+              "Foundational design principles and layer separation",
+              "Core communication parameters"
+            ],
+            "colorTheme": "#8ab4f8",
+            "graphicType": "network_flow",
+            "subtitles": [
+              "Welcome to the AI Lecture Overview.",
+              "Analyzing primary system architecture.",
+              "Grounding concepts with document sources."
+            ]
+          },
+          {
+            "sceneNumber": 2,
+            "title": "2. Protocol Stack & Sublayer Dynamics",
+            "duration": 18,
+            "narration": "Moving into the protocol architecture. The documents emphasize strict demarcation between upper logical control and physical media transmission, ensuring resilient framing and deterministic packet dispatch.",
+            "keyPoints": [
+              "Logical Link Control (LLC) multiplexing",
+              "Media Access Control (MAC) packetization",
+              "Preamble synchronization and SFD alignment"
+            ],
+            "colorTheme": "#c58af9",
+            "graphicType": "protocol_stack",
+            "subtitles": [
+              "Examining sublayer dynamics.",
+              "LLC handles multiplexing and flow control.",
+              "MAC resolves media access and CRC verification."
+            ]
+          },
+          {
+            "sceneNumber": 3,
+            "title": "3. Collision Resolution & Addressing",
+            "duration": 18,
+            "narration": "Next, let's explore collision management and address resolution. When packets traverse shared segments, carrier sense multiple access with collision detection enforces random exponential backoff intervals to prevent network congestion.",
+            "keyPoints": [
+              "CSMA/CD access arbitration mechanisms",
+              "Truncated binary exponential backoff algorithm",
+              "48-bit global MAC addressing and broadcast domains"
+            ],
+            "colorTheme": "#78d9ec",
+            "graphicType": "state_machine",
+            "subtitles": [
+              "Carrier Sense Multiple Access mechanism active.",
+              "Exponential backoff calculates wait times.",
+              "Unicast, multicast, and broadcast address resolution."
+            ]
+          },
+          {
+            "sceneNumber": 4,
+            "title": "4. Synthesis & Exam Takeaways",
+            "duration": 18,
+            "narration": "In summary, mastering these core principles guarantees complete command over your exams and technical reviews. Focus on the relationship between frames, MAC address structures, and physical medium boundaries.",
+            "keyPoints": [
+              "Key formulas, timeouts, and framing headers",
+              "High-probability exam questions and definitions",
+              "Comprehensive document synthesis completed"
+            ],
+            "colorTheme": "#81c995",
+            "graphicType": "summary_dashboard",
+            "subtitles": [
+              "Reviewing final high-yield concepts.",
+              "Mastering key formulas and header bytes.",
+              "Lecture completed successfully."
+            ]
+          }
+        ],
+        "createdAt": "2026-09-23T14:53:07.362Z"
+      },
+      "updatedAt": "2026-09-23T14:53:07.362Z"
     }
   ]
 }

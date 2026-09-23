@@ -8,6 +8,8 @@ const {
   generateBriefingDocReport,
   generateMultiDocumentComparison,
   generateImportantQuestions,
+  generateStudyVisuals,
+  generateStudyVideoLecture,
 } = require("../utils/aiClient");
 
 const router = express.Router({ mergeParams: true });
@@ -193,6 +195,64 @@ router.delete("/notes/:noteId", async (req, res) => {
   try {
     await store.deleteNote(req.params.noteId);
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- AI Visual & Image Generation Studio ---
+router.get("/images", async (req, res) => {
+  try {
+    const artifact = await store.getArtifact(req.params.notebookId, "images");
+    res.json(artifact ? artifact.data : []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/images", async (req, res) => {
+  try {
+    const notebook = await store.getNotebookById(req.params.notebookId);
+    if (!notebook) return res.status(404).json({ error: "Notebook not found" });
+
+    const { prompt, style, aspectRatio } = req.body;
+    const { combinedText } = await getCombinedSourcesText(req.params.notebookId);
+
+    const visual = await generateStudyVisuals(combinedText, notebook.title, prompt, style, req.headers["x-gemini-key"]);
+
+    // Fetch existing images to keep a gallery
+    const existing = await store.getArtifact(req.params.notebookId, "images");
+    const list = existing && Array.isArray(existing.data) ? existing.data : [];
+    list.unshift(visual);
+
+    await store.saveArtifact(req.params.notebookId, "images", list);
+    res.status(201).json({ visual, list });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- AI Video Explainer Lecture Studio ---
+router.get("/video", async (req, res) => {
+  try {
+    const artifact = await store.getArtifact(req.params.notebookId, "video");
+    res.json(artifact ? artifact.data : null);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/video", async (req, res) => {
+  try {
+    const notebook = await store.getNotebookById(req.params.notebookId);
+    if (!notebook) return res.status(404).json({ error: "Notebook not found" });
+
+    const { style } = req.body;
+    const { combinedText } = await getCombinedSourcesText(req.params.notebookId);
+
+    const videoProject = await generateStudyVideoLecture(combinedText, notebook.title, style || "explainer", req.headers["x-gemini-key"]);
+    await store.saveArtifact(req.params.notebookId, "video", videoProject);
+    res.status(201).json(videoProject);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

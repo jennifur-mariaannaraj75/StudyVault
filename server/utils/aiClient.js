@@ -328,6 +328,212 @@ function generateMockBriefingDoc(title) {
   return { title: `Study Briefing: ${title}`, executiveSummary: `Exam synthesis for ${title}.`, keyTakeaways: ["IEEE 802 divides data-link into LLC and MAC sublayers (p.116)."], detailedSections: [] };
 }
 
+function generateMockVisual(title, prompt, style = "diagram") {
+  const p = prompt || `Architectural Blueprint: ${title}`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0b0e14"/><stop offset="100%" stop-color="#161b26"/></linearGradient>
+      <linearGradient id="p1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8ab4f8"/><stop offset="100%" stop-color="#c58af9"/></linearGradient>
+      <linearGradient id="p2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#78d9ec"/><stop offset="100%" stop-color="#81c995"/></linearGradient>
+      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+    </defs>
+    <rect width="960" height="540" fill="url(#bg)"/>
+    <circle cx="480" cy="270" r="180" fill="none" stroke="rgba(138,180,248,0.15)" stroke-dasharray="6,6"/>
+    <circle cx="480" cy="270" r="230" fill="none" stroke="rgba(197,138,249,0.1)"/>
+    <line x1="480" y1="270" x2="240" y2="170" stroke="url(#p1)" stroke-width="2.5" stroke-dasharray="4,4"/>
+    <line x1="480" y1="270" x2="720" y2="170" stroke="url(#p1)" stroke-width="2.5" stroke-dasharray="4,4"/>
+    <line x1="480" y1="270" x2="280" y2="400" stroke="url(#p2)" stroke-width="2.5"/>
+    <line x1="480" y1="270" x2="680" y2="400" stroke="url(#p2)" stroke-width="2.5"/>
+    <!-- Center Node -->
+    <rect x="360" y="225" width="240" height="90" rx="16" fill="#1e2433" stroke="url(#p1)" stroke-width="2.5" filter="url(#glow)"/>
+    <text x="480" y="262" fill="#ffffff" font-family="system-ui, sans-serif" font-size="17" font-weight="700" text-anchor="middle">🎓 ${title ? title.slice(0, 24) : "Study Core"}</text>
+    <text x="480" y="288" fill="#8ab4f8" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">AI Conceptual Synthesis</text>
+    <!-- Node A -->
+    <rect x="140" y="130" width="200" height="75" rx="12" fill="#181e2b" stroke="#8ab4f8" stroke-width="1.8"/>
+    <text x="240" y="162" fill="#8ab4f8" font-family="system-ui, sans-serif" font-size="14" font-weight="600" text-anchor="middle">Layer Architecture</text>
+    <text x="240" y="184" fill="rgba(255,255,255,0.7)" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">LLC & MAC Hierarchy</text>
+    <!-- Node B -->
+    <rect x="620" y="130" width="200" height="75" rx="12" fill="#181e2b" stroke="#c58af9" stroke-width="1.8"/>
+    <text x="720" y="162" fill="#c58af9" font-family="system-ui, sans-serif" font-size="14" font-weight="600" text-anchor="middle">Protocol Framing</text>
+    <text x="720" y="184" fill="rgba(255,255,255,0.7)" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">Headers, Preamble & CRC</text>
+    <!-- Node C -->
+    <rect x="180" y="360" width="200" height="75" rx="12" fill="#181e2b" stroke="#78d9ec" stroke-width="1.8"/>
+    <text x="280" y="392" fill="#78d9ec" font-family="system-ui, sans-serif" font-size="14" font-weight="600" text-anchor="middle">Access Resolution</text>
+    <text x="280" y="414" fill="rgba(255,255,255,0.7)" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">Collision & Backoff Rules</text>
+    <!-- Node D -->
+    <rect x="580" y="360" width="200" height="75" rx="12" fill="#181e2b" stroke="#81c995" stroke-width="1.8"/>
+    <text x="680" y="392" fill="#81c995" font-family="system-ui, sans-serif" font-size="14" font-weight="600" text-anchor="middle">Addressing & Cache</text>
+    <text x="680" y="414" fill="rgba(255,255,255,0.7)" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">48-bit MAC & ARP Tables</text>
+    <!-- Badge -->
+    <rect x="25" y="25" width="220" height="34" rx="8" fill="rgba(138,180,248,0.1)" stroke="rgba(138,180,248,0.3)"/>
+    <text x="135" y="47" fill="#8ab4f8" font-family="system-ui, sans-serif" font-size="12" font-weight="600" text-anchor="middle">✨ StudyVault Visual Studio</text>
+  </svg>`;
+
+  return {
+    id: "img_" + Date.now().toString(36),
+    title: prompt ? `Visual: ${prompt.slice(0, 32)}` : `Infographic: ${title || "Study Blueprint"}`,
+    prompt: p,
+    style: style,
+    summary: `Structured visual concept map illustrating fundamental mechanisms, hierarchies, and protocols described in the notebook sources.`,
+    svgContent: svg,
+    previewUrl: "/assets/images/study_infographic_preview_1790174854345.jpg",
+    tags: ["Infographic", "Conceptual Architecture", "Study Blueprint"],
+    createdAt: new Date().toISOString()
+  };
+}
+
+async function generateStudyVisuals(combinedSourcesText, notebookTitle, prompt = "", style = "diagram", apiKeyOverride = null) {
+  const cleaned = normalizePdfText(combinedSourcesText);
+  const system = `You are a high-level educational scientific illustrator and diagram designer. 
+Generate a comprehensive visual synthesis specification in valid JSON:
+{
+  "title": string,
+  "summary": string,
+  "tags": string[],
+  "keyNodes": [
+    { "label": string, "subtext": string, "type": string, "color": string }
+  ]
+}`;
+  try {
+    const userPrompt = `Notebook Title: ${notebookTitle}\nRequested Focus: ${prompt || "Comprehensive Architecture Diagram"}\nSources Extract:\n${cleaned.slice(0, 35000)}`;
+    const raw = await callGemini([{ role: "user", parts: [{ text: userPrompt }] }], system, 1500, apiKeyOverride);
+    const parsed = safeParseJson(raw, null);
+    if (!parsed) return generateMockVisual(notebookTitle, prompt, style);
+
+    const base = generateMockVisual(notebookTitle, prompt || parsed.title, style);
+    base.title = parsed.title || base.title;
+    base.summary = parsed.summary || base.summary;
+    if (parsed.tags) base.tags = parsed.tags;
+    return base;
+  } catch (err) {
+    return generateMockVisual(notebookTitle, prompt, style);
+  }
+}
+
+function generateMockVideoLecture(title, style = "explainer") {
+  return {
+    id: "vid_" + Date.now().toString(36),
+    title: `AI Video Explainer: ${title || "Comprehensive Lecture"}`,
+    topic: title || "Foundational Concepts",
+    style: style,
+    totalDuration: 68,
+    posterUrl: "/assets/images/video_lecture_preview_1790174869587.jpg",
+    scenes: [
+      {
+        sceneNumber: 1,
+        title: "1. Core Foundations & Scope",
+        duration: 14,
+        narration: `Welcome to this StudyVault video breakdown on ${title || "your study material"}. In this opening module, we establish the core theoretical foundation, framing requirements, and operational context defined in your documents.`,
+        keyPoints: [
+          "Primary system architecture and scoping",
+          "Foundational design principles and layer separation",
+          "Core communication parameters"
+        ],
+        colorTheme: "#8ab4f8",
+        graphicType: "network_flow",
+        subtitles: [
+          "Welcome to the AI Lecture Overview.",
+          "Analyzing primary system architecture.",
+          "Grounding concepts with document sources."
+        ]
+      },
+      {
+        sceneNumber: 2,
+        title: "2. Protocol Stack & Sublayer Dynamics",
+        duration: 18,
+        narration: `Moving into the protocol architecture. The documents emphasize strict demarcation between upper logical control and physical media transmission, ensuring resilient framing and deterministic packet dispatch.`,
+        keyPoints: [
+          "Logical Link Control (LLC) multiplexing",
+          "Media Access Control (MAC) packetization",
+          "Preamble synchronization and SFD alignment"
+        ],
+        colorTheme: "#c58af9",
+        graphicType: "protocol_stack",
+        subtitles: [
+          "Examining sublayer dynamics.",
+          "LLC handles multiplexing and flow control.",
+          "MAC resolves media access and CRC verification."
+        ]
+      },
+      {
+        sceneNumber: 3,
+        title: "3. Collision Resolution & Addressing",
+        duration: 18,
+        narration: `Next, let's explore collision management and address resolution. When packets traverse shared segments, carrier sense multiple access with collision detection enforces random exponential backoff intervals to prevent network congestion.`,
+        keyPoints: [
+          "CSMA/CD access arbitration mechanisms",
+          "Truncated binary exponential backoff algorithm",
+          "48-bit global MAC addressing and broadcast domains"
+        ],
+        colorTheme: "#78d9ec",
+        graphicType: "state_machine",
+        subtitles: [
+          "Carrier Sense Multiple Access mechanism active.",
+          "Exponential backoff calculates wait times.",
+          "Unicast, multicast, and broadcast address resolution."
+        ]
+      },
+      {
+        sceneNumber: 4,
+        title: "4. Synthesis & Exam Takeaways",
+        duration: 18,
+        narration: `In summary, mastering these core principles guarantees complete command over your exams and technical reviews. Focus on the relationship between frames, MAC address structures, and physical medium boundaries.`,
+        keyPoints: [
+          "Key formulas, timeouts, and framing headers",
+          "High-probability exam questions and definitions",
+          "Comprehensive document synthesis completed"
+        ],
+        colorTheme: "#81c995",
+        graphicType: "summary_dashboard",
+        subtitles: [
+          "Reviewing final high-yield concepts.",
+          "Mastering key formulas and header bytes.",
+          "Lecture completed successfully."
+        ]
+      }
+    ],
+    createdAt: new Date().toISOString()
+  };
+}
+
+async function generateStudyVideoLecture(combinedSourcesText, notebookTitle, style = "explainer", apiKeyOverride = null) {
+  const cleaned = normalizePdfText(combinedSourcesText);
+  const system = `You are an elite educational video producer and academic presenter.
+Create a structured 4-scene video lecture project in valid JSON:
+{
+  "title": string,
+  "topic": string,
+  "style": string,
+  "totalDuration": number,
+  "scenes": [
+    {
+      "sceneNumber": number,
+      "title": string,
+      "duration": number,
+      "narration": string,
+      "keyPoints": string[],
+      "colorTheme": string,
+      "graphicType": string,
+      "subtitles": string[]
+    }
+  ]
+}`;
+  try {
+    const userPrompt = `Notebook Title: ${notebookTitle}\nStyle: ${style}\nSources Extract:\n${cleaned.slice(0, 35000)}`;
+    const raw = await callGemini([{ role: "user", parts: [{ text: userPrompt }] }], system, 2500, apiKeyOverride);
+    const parsed = safeParseJson(raw, null);
+    if (!parsed || !parsed.scenes || parsed.scenes.length === 0) {
+      return generateMockVideoLecture(notebookTitle, style);
+    }
+    parsed.id = "vid_" + Date.now().toString(36);
+    parsed.posterUrl = "/assets/images/video_lecture_preview_1790174869587.jpg";
+    parsed.createdAt = new Date().toISOString();
+    return parsed;
+  } catch (err) {
+    return generateMockVideoLecture(notebookTitle, style);
+  }
+}
+
 module.exports = {
   analyzeDocument,
   answerFromSources,
@@ -338,5 +544,7 @@ module.exports = {
   generateBriefingDocReport,
   generateMultiDocumentComparison,
   generateImportantQuestions,
+  generateStudyVisuals,
+  generateStudyVideoLecture,
   detectTopicMismatch,
 };

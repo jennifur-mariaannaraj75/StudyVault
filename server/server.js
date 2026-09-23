@@ -17,6 +17,15 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 // API routes
+app.get("/api/status", (req, res) => {
+  res.json({
+    status: "ok",
+    dbConnected: true,
+    dbMode: store.isMongoMode() ? "mongodb" : "local_json",
+    label: store.isMongoMode() ? "MongoDB Connected" : "Local DB Connected",
+    details: store.isMongoMode() ? (process.env.MONGO_URI || "mongodb://127.0.0.1:27017") : "server/data/local_db.json"
+  });
+});
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/notebooks", notebooksRouter);

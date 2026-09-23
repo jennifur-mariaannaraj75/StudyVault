@@ -62,6 +62,25 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// POST /api/auth/guest
+router.post("/guest", async (req, res) => {
+  try {
+    const guestId = "guest_" + Math.random().toString(36).substring(2, 9);
+    const user = {
+      _id: guestId,
+      id: guestId,
+      name: "Guest Student",
+      email: `${guestId}@studyvault.local`,
+      role: "user",
+      avatar: "🎓"
+    };
+    const token = createToken(user);
+    res.json({ token, user });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create guest session" });
+  }
+});
+
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
   try {

@@ -22,6 +22,9 @@ const state = {
   briefing: null,
   compare: null,
   importantQuestions: null,
+  visuals: [],
+  activeVisual: null,
+  videoProject: null,
   activePdfDoc: null,
   currentPdfPage: 1,
   pollTimer: null,
@@ -96,6 +99,51 @@ const generateCompareBtn = document.getElementById("generateCompareBtn");
 const compareWrapper = document.getElementById("compareWrapper");
 const newNoteBtn = document.getElementById("newNoteBtn");
 const notesGrid = document.getElementById("notesGrid");
+
+// AI Visual & Image Studio DOM Elements
+const generateImageBtn = document.getElementById("generateImageBtn");
+const imagePromptInput = document.getElementById("imagePromptInput");
+const imageStyleSelect = document.getElementById("imageStyleSelect");
+const imageRatioSelect = document.getElementById("imageRatioSelect");
+const visualDisplayArea = document.getElementById("visualDisplayArea");
+const visualEmptyState = document.getElementById("visualEmptyState");
+const activeVisualCard = document.getElementById("activeVisualCard");
+const visualCardTitle = document.getElementById("visualCardTitle");
+const visualCardTags = document.getElementById("visualCardTags");
+const visualRenderStage = document.getElementById("visualRenderStage");
+const visualSummaryText = document.getElementById("visualSummaryText");
+const btnVisualDownload = document.getElementById("btnVisualDownload");
+const btnVisualPinNote = document.getElementById("btnVisualPinNote");
+const btnVisualZoom = document.getElementById("btnVisualZoom");
+const visualGallerySection = document.getElementById("visualGallerySection");
+const visualGalleryGrid = document.getElementById("visualGalleryGrid");
+const visualZoomModal = document.getElementById("visualZoomModal");
+const visualZoomTitle = document.getElementById("visualZoomTitle");
+const visualZoomContent = document.getElementById("visualZoomContent");
+const closeVisualZoomModalBtn = document.getElementById("closeVisualZoomModalBtn");
+
+// AI Video Explainer Studio DOM Elements
+const videoStyleSelect = document.getElementById("videoStyleSelect");
+const generateVideoBtn = document.getElementById("generateVideoBtn");
+const videoLectureContainer = document.getElementById("videoLectureContainer");
+const videoEmptyState = document.getElementById("videoEmptyState");
+const videoActiveStage = document.getElementById("videoActiveStage");
+const videoLectureCanvas = document.getElementById("videoLectureCanvas");
+const videoCanvasWrapper = document.getElementById("videoCanvasWrapper");
+const videoSubtitleBar = document.getElementById("videoSubtitleBar");
+const videoSubtitleText = document.getElementById("videoSubtitleText");
+const videoStagePlayOverlay = document.getElementById("videoStagePlayOverlay");
+const videoBigPlayBtn = document.getElementById("videoBigPlayBtn");
+const btnVideoPlayPause = document.getElementById("btnVideoPlayPause");
+const btnVideoPrevScene = document.getElementById("btnVideoPrevScene");
+const btnVideoNextScene = document.getElementById("btnVideoNextScene");
+const videoScrubber = document.getElementById("videoScrubber");
+const videoTimeDisplay = document.getElementById("videoTimeDisplay");
+const videoSpeedSelect = document.getElementById("videoSpeedSelect");
+const btnVideoVoiceToggle = document.getElementById("btnVideoVoiceToggle");
+const btnVideoFullscreen = document.getElementById("btnVideoFullscreen");
+const scenesTimelineGrid = document.getElementById("scenesTimelineGrid");
+const btnExportVideoScript = document.getElementById("btnExportVideoScript");
 
 // PDF Modal Elements
 const pdfModal = document.getElementById("pdfModal");
@@ -188,7 +236,24 @@ async function initApp() {
   setupEventListeners();
   setupDropdowns();
   setupSettingsModal();
+  checkDbStatus();
   await loadNotebooks();
+}
+
+async function checkDbStatus() {
+  try {
+    const res = await fetch("/api/status");
+    if (res.ok) {
+      const data = await res.json();
+      if (storagePill) {
+        storagePill.textContent = `🟢 ${data.label || "DB Connected"}`;
+        storagePill.title = `Storage: ${data.details}`;
+        storagePill.style.background = "rgba(52, 168, 83, 0.15)";
+        storagePill.style.color = "#81c995";
+        storagePill.style.borderColor = "rgba(52, 168, 83, 0.3)";
+      }
+    }
+  } catch (e) {}
 }
 
 function setupSettingsModal() {
@@ -243,6 +308,7 @@ function renderNotebookList() {
 async function selectNotebook(id) {
   state.currentId = id;
   stopAudioPlayback();
+  stopVideoPlayback();
   clearInterval(state.pollTimer);
   renderNotebookList();
 
@@ -859,6 +925,474 @@ newNoteBtn.addEventListener("click", async () => {
   } catch (err) { showToast(err.message); }
 });
 
+// ══════════════════════════════════════════════════════════════════
+// AI VISUAL & IMAGE STUDIO CONTROLLER
+// ══════════════════════════════════════════════════════════════════
+function renderVisual(visual) {
+  if (!visual) {
+    visualEmptyState.style.display = "block";
+    activeVisualCard.style.display = "none";
+    return;
+  }
+  state.activeVisual = visual;
+  visualEmptyState.style.display = "none";
+  activeVisualCard.style.display = "flex";
+
+  visualCardTitle.textContent = visual.title || "Visual Synthesis";
+  visualCardTags.innerHTML = (visual.tags || ["Infographic", "Concept"]).map(t => `<span class="visual-tag-badge">${escapeHtml(t)}</span>`).join("");
+  visualSummaryText.textContent = visual.summary || "Source-grounded concept illustration.";
+
+  if (visual.svgContent) {
+    visualRenderStage.innerHTML = visual.svgContent;
+  } else if (visual.previewUrl) {
+    visualRenderStage.innerHTML = `<img src="${visual.previewUrl}" alt="${escapeHtml(visual.title)}" style="max-width:100%; border-radius:8px;" referrerpolicy="no-referrer" />`;
+  }
+}
+
+function renderVisualGallery() {
+  if (!state.visuals || state.visuals.length === 0) {
+    visualGallerySection.style.display = "none";
+    return;
+  }
+  visualGallerySection.style.display = "block";
+  visualGalleryGrid.innerHTML = state.visuals.map((vis, idx) => `
+    <div class="visual-gallery-thumb" data-visidx="${idx}">
+      <div style="height:90px; overflow:hidden; border-radius:4px; display:flex; align-items:center; justify-content:center; background:#0b0e14;">
+        ${vis.svgContent ? vis.svgContent : `<img src="${vis.previewUrl || '/assets/images/study_infographic_preview_1790174854345.jpg'}" alt="Thumb" style="width:100%; height:100%; object-fit:cover;" referrerpolicy="no-referrer" />`}
+      </div>
+      <div class="visual-gallery-thumb-title">${escapeHtml(vis.title || 'Visual')}</div>
+    </div>
+  `).join("");
+
+  visualGalleryGrid.querySelectorAll(".visual-gallery-thumb").forEach(el => {
+    el.addEventListener("click", () => {
+      const idx = parseInt(el.dataset.visidx, 10);
+      if (state.visuals[idx]) renderVisual(state.visuals[idx]);
+    });
+  });
+}
+
+generateImageBtn.addEventListener("click", async () => {
+  if (!state.currentId) return showToast("Select a notebook first.");
+  generateImageBtn.disabled = true;
+  generateImageBtn.textContent = "⏳ Generating...";
+  try {
+    const prompt = imagePromptInput.value.trim();
+    const style = imageStyleSelect.value;
+    const aspectRatio = imageRatioSelect.value;
+    const res = await api(`/notebooks/${state.currentId}/studio/images`, {
+      method: "POST",
+      body: JSON.stringify({ prompt, style, aspectRatio })
+    });
+    state.visuals = res.list || [res.visual];
+    renderVisual(res.visual);
+    renderVisualGallery();
+    showToast("✨ AI Concept Visual Generated!");
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    generateImageBtn.disabled = false;
+    generateImageBtn.textContent = "✨ Generate Visual";
+  }
+});
+
+btnVisualDownload.addEventListener("click", () => {
+  if (!state.activeVisual) return;
+  const content = state.activeVisual.svgContent || `<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg"><text x="20" y="40">Visual</text></svg>`;
+  downloadFile(`${(state.activeVisual.title || 'study_visual').replace(/\s+/g, '_')}.svg`, content, "image/svg+xml");
+  showToast("SVG Vector Diagram Downloaded!");
+});
+
+btnVisualPinNote.addEventListener("click", async () => {
+  if (!state.activeVisual || !state.currentId) return;
+  const noteTitle = `Visual: ${state.activeVisual.title}`;
+  const noteContent = `**Summary:** ${state.activeVisual.summary}\n\n**Style:** ${state.activeVisual.style}\n**Tags:** ${(state.activeVisual.tags || []).join(", ")}`;
+  await api(`/notebooks/${state.currentId}/studio/notes`, {
+    method: "POST",
+    body: JSON.stringify({ title: noteTitle, content: noteContent, tag: "Visual Diagram" })
+  });
+  await loadNotes();
+  showToast("Pinned visual note to pinboard!");
+});
+
+btnVisualZoom.addEventListener("click", () => {
+  if (!state.activeVisual) return;
+  visualZoomTitle.textContent = state.activeVisual.title;
+  visualZoomContent.innerHTML = state.activeVisual.svgContent || `<img src="${state.activeVisual.previewUrl}" style="max-width:100%; border-radius:10px;" referrerpolicy="no-referrer" />`;
+  visualZoomModal.classList.add("show");
+});
+
+closeVisualZoomModalBtn.addEventListener("click", () => {
+  visualZoomModal.classList.remove("show");
+});
+
+// ══════════════════════════════════════════════════════════════════
+// AI VIDEO EXPLAINER LECTURE CONTROLLER
+// ══════════════════════════════════════════════════════════════════
+let videoPlayerState = {
+  project: null,
+  isPlaying: false,
+  currentSceneIdx: 0,
+  sceneElapsed: 0,
+  speed: 1.0,
+  voiceEnabled: true,
+  animInterval: null,
+  particles: []
+};
+
+function initVideoParticles() {
+  videoPlayerState.particles = [];
+  for (let i = 0; i < 45; i++) {
+    videoPlayerState.particles.push({
+      x: Math.random() * 960,
+      y: Math.random() * 540,
+      r: Math.random() * 2.5 + 1,
+      vx: (Math.random() - 0.5) * 0.8,
+      vy: (Math.random() - 0.5) * 0.8,
+      alpha: Math.random() * 0.6 + 0.2
+    });
+  }
+}
+initVideoParticles();
+
+function renderVideoProject(project) {
+  if (!project || !project.scenes || project.scenes.length === 0) {
+    videoEmptyState.style.display = "block";
+    videoActiveStage.style.display = "none";
+    return;
+  }
+  videoPlayerState.project = project;
+  videoEmptyState.style.display = "none";
+  videoActiveStage.style.display = "flex";
+
+  videoScrubber.max = project.totalDuration || 60;
+  videoScrubber.value = 0;
+  videoPlayerState.currentSceneIdx = 0;
+  videoPlayerState.sceneElapsed = 0;
+
+  renderStoryboardTimeline();
+  updateVideoDisplayTime();
+  drawCurrentVideoFrame();
+}
+
+function renderStoryboardTimeline() {
+  if (!videoPlayerState.project) return;
+  scenesTimelineGrid.innerHTML = videoPlayerState.project.scenes.map((scene, idx) => `
+    <div class="scene-card ${idx === videoPlayerState.currentSceneIdx ? 'active' : ''}" data-sceneidx="${idx}">
+      <div class="scene-card-top">
+        <span class="scene-badge" style="background:${scene.colorTheme}22; color:${scene.colorTheme}; border:1px solid ${scene.colorTheme}44">
+          Scene ${scene.sceneNumber || (idx + 1)}
+        </span>
+        <span class="scene-duration">⏱ ${scene.duration || 15}s</span>
+      </div>
+      <div class="scene-card-title">${escapeHtml(scene.title)}</div>
+      <ul class="scene-bullets">
+        ${(scene.keyPoints || []).slice(0, 2).map(pt => `<li class="scene-bullet">${escapeHtml(pt)}</li>`).join("")}
+      </ul>
+    </div>
+  `).join("");
+
+  scenesTimelineGrid.querySelectorAll(".scene-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const idx = parseInt(card.dataset.sceneidx, 10);
+      seekToScene(idx);
+    });
+  });
+}
+
+function drawCurrentVideoFrame() {
+  if (!videoLectureCanvas || !videoPlayerState.project) return;
+  const ctx = videoLectureCanvas.getContext("2d");
+  const scene = videoPlayerState.project.scenes[videoPlayerState.currentSceneIdx] || videoPlayerState.project.scenes[0];
+  if (!scene) return;
+
+  const w = 960, h = 540;
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, "#080b11");
+  grad.addColorStop(1, "#121722");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = "rgba(138, 180, 248, 0.05)";
+  ctx.lineWidth = 1;
+  const gridSize = 40;
+  for (let x = 0; x < w; x += gridSize) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y < h; y += gridSize) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  const themeColor = scene.colorTheme || "#8ab4f8";
+  videoPlayerState.particles.forEach(p => {
+    p.x += p.vx * videoPlayerState.speed;
+    p.y += p.vy * videoPlayerState.speed;
+    if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+    if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+
+    ctx.fillStyle = themeColor;
+    ctx.globalAlpha = p.alpha;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1.0;
+
+  // Header Bar
+  ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
+  ctx.fillRect(40, 30, w - 80, 48);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+  ctx.strokeRect(40, 30, w - 80, 48);
+
+  ctx.fillStyle = themeColor;
+  ctx.font = "bold 14px system-ui, sans-serif";
+  ctx.fillText(`MODULE ${scene.sceneNumber || (videoPlayerState.currentSceneIdx + 1)} • ${scene.title.toUpperCase()}`, 60, 60);
+
+  // Central Hologram Graphic Box
+  const cx = 280, cy = 270;
+  const pulse = Math.sin(Date.now() / 400) * 8;
+
+  ctx.strokeStyle = `${themeColor}33`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, cy, 110 + pulse, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = `${themeColor}22`;
+  ctx.beginPath(); ctx.arc(cx, cy, 140 - pulse, 0, Math.PI * 2); ctx.stroke();
+
+  const orbGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 65);
+  orbGrad.addColorStop(0, themeColor);
+  orbGrad.addColorStop(0.8, "rgba(20, 26, 38, 0.9)");
+  orbGrad.addColorStop(1, "transparent");
+  ctx.fillStyle = orbGrad;
+  ctx.beginPath(); ctx.arc(cx, cy, 65, 0, Math.PI * 2); ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 18px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("STUDYVAULT", cx, cy - 6);
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillStyle = themeColor;
+  ctx.fillText("AI EXPLAINER", cx, cy + 16);
+  ctx.textAlign = "left";
+
+  // Key highlights card
+  const cardX = 480, cardY = 120, cardW = 430, cardH = 290;
+  ctx.fillStyle = "rgba(18, 24, 36, 0.85)";
+  ctx.fillRect(cardX, cardY, cardW, cardH);
+  ctx.strokeStyle = `${themeColor}55`;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(cardX, cardY, cardW, cardH);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 16px system-ui, sans-serif";
+  ctx.fillText("KEY CONCEPT HIGHLIGHTS", cardX + 24, cardY + 36);
+
+  const pts = scene.keyPoints || [];
+  pts.forEach((pt, i) => {
+    const py = cardY + 80 + (i * 65);
+    ctx.fillStyle = themeColor;
+    ctx.beginPath(); ctx.arc(cardX + 30, py - 6, 5, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = "14px system-ui, sans-serif";
+    ctx.fillText(pt.length > 42 ? pt.slice(0, 42) + "..." : pt, cardX + 46, py);
+  });
+
+  const sceneProgress = Math.min(1, videoPlayerState.sceneElapsed / (scene.duration || 15));
+  ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+  ctx.fillRect(40, 500, w - 80, 6);
+  ctx.fillStyle = themeColor;
+  ctx.fillRect(40, 500, (w - 80) * sceneProgress, 6);
+
+  if (videoSubtitleText) {
+    const subs = scene.subtitles || [scene.narration];
+    const subIdx = Math.min(subs.length - 1, Math.floor(sceneProgress * subs.length));
+    videoSubtitleText.textContent = subs[subIdx] || scene.narration;
+  }
+}
+
+function startVideoAnimationLoop() {
+  if (videoPlayerState.animInterval) clearInterval(videoPlayerState.animInterval);
+  videoPlayerState.animInterval = setInterval(() => {
+    if (!videoPlayerState.isPlaying) return;
+    const scene = videoPlayerState.project.scenes[videoPlayerState.currentSceneIdx];
+    const sceneDuration = (scene && scene.duration) || 15;
+    videoPlayerState.sceneElapsed += 0.1 * videoPlayerState.speed;
+
+    let totalSecs = 0;
+    for (let i = 0; i < videoPlayerState.currentSceneIdx; i++) {
+      totalSecs += videoPlayerState.project.scenes[i].duration || 15;
+    }
+    totalSecs += videoPlayerState.sceneElapsed;
+
+    videoScrubber.value = Math.min(totalSecs, videoPlayerState.project.totalDuration || 60);
+    updateVideoDisplayTime();
+    drawCurrentVideoFrame();
+
+    if (videoPlayerState.sceneElapsed >= sceneDuration) {
+      if (videoPlayerState.currentSceneIdx < videoPlayerState.project.scenes.length - 1) {
+        seekToScene(videoPlayerState.currentSceneIdx + 1);
+      } else {
+        stopVideoPlayback();
+        showToast("🎬 Lecture Finished!");
+      }
+    }
+  }, 100);
+}
+
+function toggleVideoPlay() {
+  if (!videoPlayerState.project) return;
+  if (videoPlayerState.isPlaying) {
+    pauseVideoPlayback();
+  } else {
+    playVideoPlayback();
+  }
+}
+
+function playVideoPlayback() {
+  stopAudioPlayback();
+  videoPlayerState.isPlaying = true;
+  videoStagePlayOverlay.style.display = "none";
+  btnVideoPlayPause.textContent = "❚❚ Pause";
+  startVideoAnimationLoop();
+
+  if (videoPlayerState.voiceEnabled && 'speechSynthesis' in window) {
+    speakCurrentScene();
+  }
+}
+
+function pauseVideoPlayback() {
+  videoPlayerState.isPlaying = false;
+  videoStagePlayOverlay.style.display = "flex";
+  btnVideoPlayPause.textContent = "▶ Play";
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+}
+
+function stopVideoPlayback() {
+  videoPlayerState.isPlaying = false;
+  if (videoStagePlayOverlay) videoStagePlayOverlay.style.display = "flex";
+  if (btnVideoPlayPause) btnVideoPlayPause.textContent = "▶ Play";
+  if (videoPlayerState.animInterval) clearInterval(videoPlayerState.animInterval);
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+}
+
+function speakCurrentScene() {
+  if (!videoPlayerState.voiceEnabled || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const scene = videoPlayerState.project.scenes[videoPlayerState.currentSceneIdx];
+  if (!scene || !scene.narration) return;
+
+  const utter = new SpeechSynthesisUtterance(scene.narration);
+  utter.rate = videoPlayerState.speed;
+  const voices = window.speechSynthesis.getVoices();
+  const naturalVoice = voices.find(v => v.lang.startsWith("en") && (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Samantha")));
+  if (naturalVoice) utter.voice = naturalVoice;
+
+  window.speechSynthesis.speak(utter);
+}
+
+function seekToScene(sceneIdx) {
+  if (!videoPlayerState.project || !videoPlayerState.project.scenes[sceneIdx]) return;
+  videoPlayerState.currentSceneIdx = sceneIdx;
+  videoPlayerState.sceneElapsed = 0;
+
+  renderStoryboardTimeline();
+  drawCurrentVideoFrame();
+
+  if (videoPlayerState.isPlaying) {
+    speakCurrentScene();
+  }
+}
+
+function updateVideoDisplayTime() {
+  if (!videoPlayerState.project) return;
+  let cur = 0;
+  for (let i = 0; i < videoPlayerState.currentSceneIdx; i++) {
+    cur += videoPlayerState.project.scenes[i].duration || 15;
+  }
+  cur += Math.floor(videoPlayerState.sceneElapsed);
+  const total = videoPlayerState.project.totalDuration || 60;
+
+  const fmt = (s) => `${Math.floor(s / 60)}:${(Math.floor(s % 60)).toString().padStart(2, '0')}`;
+  videoTimeDisplay.textContent = `${fmt(cur)} / ${fmt(total)}`;
+}
+
+btnVideoPlayPause.addEventListener("click", toggleVideoPlay);
+videoBigPlayBtn.addEventListener("click", toggleVideoPlay);
+videoStagePlayOverlay.addEventListener("click", (e) => {
+  if (e.target === videoStagePlayOverlay) toggleVideoPlay();
+});
+
+btnVideoPrevScene.addEventListener("click", () => {
+  if (videoPlayerState.currentSceneIdx > 0) seekToScene(videoPlayerState.currentSceneIdx - 1);
+});
+btnVideoNextScene.addEventListener("click", () => {
+  if (videoPlayerState.project && videoPlayerState.currentSceneIdx < videoPlayerState.project.scenes.length - 1) {
+    seekToScene(videoPlayerState.currentSceneIdx + 1);
+  }
+});
+
+videoSpeedSelect.addEventListener("change", () => {
+  videoPlayerState.speed = parseFloat(videoSpeedSelect.value) || 1.0;
+  if (videoPlayerState.isPlaying && videoPlayerState.voiceEnabled) {
+    speakCurrentScene();
+  }
+});
+
+btnVideoVoiceToggle.addEventListener("click", () => {
+  videoPlayerState.voiceEnabled = !videoPlayerState.voiceEnabled;
+  btnVideoVoiceToggle.textContent = videoPlayerState.voiceEnabled ? "🔊 Voice: On" : "🔇 Voice: Off";
+  if (!videoPlayerState.voiceEnabled && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  } else if (videoPlayerState.voiceEnabled && videoPlayerState.isPlaying) {
+    speakCurrentScene();
+  }
+});
+
+btnVideoFullscreen.addEventListener("click", () => {
+  if (!document.fullscreenElement) {
+    videoCanvasWrapper.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+});
+
+btnExportVideoScript.addEventListener("click", () => {
+  if (!videoPlayerState.project) return;
+  const p = videoPlayerState.project;
+  let md = `# 🎬 ${p.title}\n\n**Topic:** ${p.topic}\n**Total Duration:** ${p.totalDuration}s\n**Style:** ${p.style}\n\n---\n\n`;
+  p.scenes.forEach(s => {
+    md += `### Scene ${s.sceneNumber}: ${s.title} (${s.duration}s)\n\n`;
+    md += `**Narration Script:**\n> "${s.narration}"\n\n`;
+    md += `**Key Highlights:**\n${(s.keyPoints || []).map(k => `- ${k}`).join("\n")}\n\n---\n\n`;
+  });
+  downloadFile(`${p.title.replace(/\s+/g, '_')}_Script.md`, md, "text/markdown");
+  showToast("Exported Video Lecture Script!");
+});
+
+generateVideoBtn.addEventListener("click", async () => {
+  if (!state.currentId) return showToast("Select a notebook first.");
+  generateVideoBtn.disabled = true;
+  generateVideoBtn.textContent = "⏳ Generating...";
+  try {
+    const style = videoStyleSelect.value;
+    const project = await api(`/notebooks/${state.currentId}/studio/video`, {
+      method: "POST",
+      body: JSON.stringify({ style })
+    });
+    renderVideoProject(project);
+    showToast("🎬 AI Video Lecture Generated!");
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    generateVideoBtn.disabled = false;
+    generateVideoBtn.textContent = "🎬 Generate Video";
+  }
+});
+
 // --- CACHED ARTIFACTS LOADING ---
 async function loadCachedArtifacts() {
   try {
@@ -870,6 +1404,25 @@ async function loadCachedArtifacts() {
     if (fc) { state.flashcards = fc.cards; renderFlashcards(); }
     const q = await api(`/notebooks/${state.currentId}/studio/quiz`);
     if (q) { state.quiz = q.questions; renderQuiz(); }
+
+    const imgs = await api(`/notebooks/${state.currentId}/studio/images`);
+    state.visuals = Array.isArray(imgs) ? imgs : [];
+    if (state.visuals.length > 0) {
+      renderVisual(state.visuals[0]);
+      renderVisualGallery();
+    } else {
+      visualEmptyState.style.display = "block";
+      activeVisualCard.style.display = "none";
+      visualGallerySection.style.display = "none";
+    }
+
+    const vid = await api(`/notebooks/${state.currentId}/studio/video`);
+    if (vid) {
+      renderVideoProject(vid);
+    } else {
+      videoEmptyState.style.display = "block";
+      videoActiveStage.style.display = "none";
+    }
   } catch (err) { console.error("Error loading cached artifacts:", err); }
 }
 
@@ -1490,19 +2043,93 @@ const LandingPage = {
 
   // ── Tab switching ───────────────────────────────────────────
   bindTabs() {
+    const switchTab = (tabName) => {
+      document.querySelectorAll(".lat").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".lat-form").forEach(f => f.classList.remove("active"));
+      const tabBtn = document.querySelector(`.lat[data-lat="${tabName}"]`);
+      if (tabBtn) tabBtn.classList.add("active");
+      const target = tabName === "signin" ? "latSigninForm" : "latSignupForm";
+      const targetEl = document.getElementById(target);
+      if (targetEl) targetEl.classList.add("active");
+    };
+
     document.querySelectorAll(".lat").forEach(btn => {
       btn.addEventListener("click", () => {
-        document.querySelectorAll(".lat").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll(".lat-form").forEach(f => f.classList.remove("active"));
-        btn.classList.add("active");
-        const target = btn.dataset.lat === "signin" ? "latSigninForm" : "latSignupForm";
-        document.getElementById(target).classList.add("active");
+        switchTab(btn.dataset.lat);
       });
     });
+
+    const toSignup = document.getElementById("toSignupLink");
+    if (toSignup) toSignup.addEventListener("click", () => switchTab("signup"));
+
+    const toSignin = document.getElementById("toSigninLink");
+    if (toSignin) toSignin.addEventListener("click", () => switchTab("signin"));
   },
 
   // ── Form handlers ───────────────────────────────────────────
   bindForms() {
+    // 1-Click Demo Login
+    const demoBtn = document.getElementById("latDemoBtn");
+    if (demoBtn) {
+      demoBtn.addEventListener("click", async () => {
+        const emailEl = document.getElementById("latEmail");
+        const passEl  = document.getElementById("latPassword");
+        if (emailEl) emailEl.value = "admin@studyassistant.com";
+        if (passEl)  passEl.value  = "AdminPass123!";
+
+        const btn = document.getElementById("latSigninBtn");
+        const err = document.getElementById("latSigninError");
+        if (btn) {
+          btn.disabled = true;
+          const span = btn.querySelector("span");
+          if (span) span.textContent = "Logging in demo…";
+        }
+        if (err) err.style.display = "none";
+        try {
+          const { token, user } = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: "admin@studyassistant.com", password: "AdminPass123!" })
+          }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
+
+          AuthManager.saveSession(user, token);
+          this.hide(() => { loadNotebooks(); showToast(`Welcome back, ${user.name}! 🎉`); });
+        } catch (ex) {
+          if (err) { err.textContent = ex.message; err.style.display = "block"; }
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            const span = btn.querySelector("span");
+            if (span) span.textContent = "Sign In";
+          }
+        }
+      });
+    }
+
+    // Guest Access
+    const guestBtn = document.getElementById("latGuestBtn");
+    if (guestBtn) {
+      guestBtn.addEventListener("click", async () => {
+        guestBtn.disabled = true;
+        const span = guestBtn.querySelector("span");
+        if (span) span.textContent = "Entering as Guest…";
+        try {
+          const { token, user } = await fetch("/api/auth/guest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+          }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
+
+          AuthManager.saveSession(user, token);
+          this.hide(() => { loadNotebooks(); showToast(`Welcome, Guest Student! 🎓`); });
+        } catch (ex) {
+          showToast(ex.message || "Failed to start guest session");
+        } finally {
+          guestBtn.disabled = false;
+          if (span) span.textContent = "👤 Explore as Guest (No sign up needed)";
+        }
+      });
+    }
+
     // Sign In
     document.getElementById("latSigninForm").addEventListener("submit", async (e) => {
       e.preventDefault();

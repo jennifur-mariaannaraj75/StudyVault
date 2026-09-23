@@ -1,6 +1,6 @@
 const express = require("express");
 const store = require("../config/store");
-const { retrieveRelevantChunks } = require("../utils/textChunker");
+const { hybridRetrieve } = require("../utils/vectorEngine");
 const { answerFromSources } = require("../utils/aiClient");
 
 const router = express.Router({ mergeParams: true });
@@ -15,7 +15,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Ask question
+// Ask question with Hybrid Vector RAG
 router.post("/", async (req, res) => {
   try {
     const { question, mode } = req.body;
@@ -39,23 +39,42 @@ router.post("/", async (req, res) => {
 
     const history = await store.getMessages(req.params.notebookId);
 
-    const relevantChunks = retrieveRelevantChunks(
-      docs.map((d) => ({ _id: d._id, filename: d.filename, text: d.extractedText, pages: d.pages })),
-      question,
-      8
-    );
+    // Hybrid Vector RAG Retrieval
+    const relevantChunks = await hybridRetrieve({
+      documents: docs,
+      query: question.trim(),
+      topK: 8,
+      alpha: 0.65,
+      apiKeyOverride,
+    });
 
-    const answer = await answerFromSources(question, relevantChunks, history.slice(0, -1), mode || "chat", apiKeyOverride);
+    const answer = await answerFromSources(question.trim(), relevantChunks, history.slice(0, -1), mode || "chat", apiKeyOverride);
     const sources = [...new Set(relevantChunks.map((c) => `${c.filename} (p.${c.pageNumber || 1})`))];
+    const citations = relevantChunks.map((c) => ({
+      filename: c.filename,
+      pageNumber: c.pageNumber || 1,
+      chunkId: c.chunkId,
+      semanticScore: c.semanticScore,
+      lexicalScore: c.lexicalScore,
+      hybridScore: c.hybridScore,
+    }));
 
     const assistantMsg = await store.createMessage({
       notebookId: req.params.notebookId,
       role: "assistant",
       content: answer,
       sources,
+      citations,
     });
 
-    res.json({ userMessage: userMsg, assistantMessage: assistantMsg });
+    res.json({
+      userMessage: userMsg,
+      assistantMessage: assistantMsg,
+      retrieval: {
+        sourcesRetrieved: relevantChunks.length,
+        topScore: relevantChunks[0]?.hybridScore || 0,
+      },
+    });
   } catch (err) {
     console.error("[chat] Error:", err.message);
     res.status(500).json({ error: err.message });

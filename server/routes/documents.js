@@ -6,6 +6,7 @@ const { extractPdfPages } = require("../utils/pdfExtractor");
 const { ocrPdfBuffer } = require("../utils/ocrExtractor");
 const { analyzeDocument } = require("../utils/aiClient");
 const { chunkDocument } = require("../utils/textChunker");
+const { generateBatchEmbeddings, hybridRetrieve } = require("../utils/vectorEngine");
 
 const router = express.Router({ mergeParams: true });
 
@@ -14,7 +15,23 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 },
 });
 
-// Search across all sources in notebook
+// Helper: chunk document and generate semantic vector embeddings
+async function buildDocumentChunks(docId, filename, pages, text) {
+  const rawChunks = chunkDocument({ _id: docId, filename, pages, extractedText: text });
+  const chunkTexts = rawChunks.map((c) => c.chunk);
+  const embeddings = await generateBatchEmbeddings(chunkTexts);
+  return rawChunks.map((c, idx) => ({
+    chunkId: c.chunkId,
+    pageNumber: c.pageNumber || 1,
+    chunkIndex: idx,
+    text: c.chunk,
+    charCount: c.chunk.length,
+    embedding: embeddings[idx] || [],
+    metadata: { filename, pageNumber: c.pageNumber || 1 },
+  }));
+}
+
+// Search across all sources in notebook using Semantic + Vector Hybrid Retrieval
 router.get("/search", async (req, res) => {
   try {
     const q = req.query.q;
@@ -23,26 +40,95 @@ router.get("/search", async (req, res) => {
     const docs = await store.getDocuments(req.params.notebookId);
     const readyDocs = docs.filter((d) => d.status === "ready");
 
-    const queryLower = q.toLowerCase();
-    const results = [];
+    if (readyDocs.length === 0) return res.json([]);
 
-    for (const doc of readyDocs) {
-      const chunks = chunkDocument(doc);
-      for (const item of chunks) {
-        if (item.chunk.toLowerCase().includes(queryLower)) {
-          results.push({
-            filename: item.filename,
-            pageNumber: item.pageNumber,
-            chunkId: item.chunkId,
-            snippet: item.chunk.slice(0, 300),
-          });
-          if (results.length >= 20) break;
-        }
-      }
-      if (results.length >= 20) break;
+    const results = await hybridRetrieve({
+      documents: readyDocs,
+      query: q.trim(),
+      topK: 15,
+      alpha: 0.6,
+    });
+
+    res.json(
+      results.map((item) => ({
+        filename: item.filename,
+        pageNumber: item.pageNumber,
+        chunkId: item.chunkId,
+        snippet: item.chunk.slice(0, 300),
+        semanticScore: item.semanticScore,
+        lexicalScore: item.lexicalScore,
+        hybridScore: item.hybridScore,
+      }))
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// RAG Retrieval inspection & diagnostic endpoint
+router.post("/rag/retrieve", async (req, res) => {
+  try {
+    const { query, topK = 8, alpha = 0.65 } = req.body;
+    if (!query || !query.trim()) {
+      return res.status(400).json({ error: "Query is required" });
     }
 
-    res.json(results);
+    const docs = await store.getDocuments(req.params.notebookId);
+    const readyDocs = docs.filter((d) => d.status === "ready");
+
+    if (readyDocs.length === 0) {
+      return res.json({
+        query,
+        totalSources: 0,
+        chunksRetrieved: [],
+        message: "No ready sources in notebook.",
+      });
+    }
+
+    const retrieved = await hybridRetrieve({
+      documents: readyDocs,
+      query: query.trim(),
+      topK: Number(topK) || 8,
+      alpha: Number(alpha) || 0.65,
+    });
+
+    res.json({
+      query: query.trim(),
+      totalSources: readyDocs.length,
+      chunksRetrieved: retrieved.map((c) => ({
+        chunkId: c.chunkId,
+        filename: c.filename,
+        pageNumber: c.pageNumber,
+        semanticScore: c.semanticScore,
+        lexicalScore: c.lexicalScore,
+        hybridScore: c.hybridScore,
+        snippet: c.chunk.slice(0, 250),
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Re-index all documents in notebook to ensure fresh vector embeddings
+router.post("/rag/reindex", async (req, res) => {
+  try {
+    const docs = await store.getDocuments(req.params.notebookId);
+    const updated = [];
+
+    for (const doc of docs) {
+      if (!doc.extractedText) continue;
+      const chunks = await buildDocumentChunks(
+        doc._id,
+        doc.filename,
+        doc.pages || [{ pageNumber: 1, text: doc.extractedText }],
+        doc.extractedText
+      );
+      await store.updateDocument(doc._id, { chunks });
+      updated.push({ id: doc._id, filename: doc.filename, chunkCount: chunks.length });
+    }
+
+    res.json({ success: true, reindexed: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -174,15 +260,17 @@ async function processPdfDocument(docId, buffer, filename) {
       pageCount,
       pages,
       charCount: text.length,
-      summary: "Analyzing document...",
+      summary: "Vectorizing document chunks...",
     });
 
+    const chunks = await buildDocumentChunks(docId, filename, pages, text);
     const analysis = await analyzeDocument(text, filename);
 
     await store.updateDocument(docId, {
       summary: analysis.summary,
       keyTopics: analysis.keyTopics,
       suggestedQuestions: analysis.suggestedQuestions,
+      chunks,
       status: "ready",
     });
   } catch (err) {
@@ -202,15 +290,17 @@ async function processTextDocument(docId, text, filename) {
       pageCount: estimatedPages,
       pages,
       charCount,
-      summary: "Analyzing text source...",
+      summary: "Vectorizing text chunks...",
     });
 
+    const chunks = await buildDocumentChunks(docId, filename, pages, text);
     const analysis = await analyzeDocument(text, filename);
 
     await store.updateDocument(docId, {
       summary: analysis.summary,
       keyTopics: analysis.keyTopics,
       suggestedQuestions: analysis.suggestedQuestions,
+      chunks,
       status: "ready",
     });
   } catch (err) {

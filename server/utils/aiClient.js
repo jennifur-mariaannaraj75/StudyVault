@@ -1,45 +1,65 @@
-const axios = require("axios");
+const { GoogleGenAI } = require("@google/genai");
 
-function getModel() {
-  return process.env.GEMINI_MODEL || "gemini-1.5-flash";
+function getAiClient(apiKeyOverride = null) {
+  const apiKey = apiKeyOverride || process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey === "...your key from aistudio.google.com...") {
+    return null;
+  }
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        "User-Agent": "aistudio-build",
+      },
+    },
+  });
 }
 
-function getApiUrl() {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${getModel()}:generateContent`;
+function getPrimaryModel() {
+  return process.env.GEMINI_MODEL || "gemini-3.8-flash";
 }
 
 async function callGemini(contents, system, maxTokens = 2500, apiKeyOverride = null) {
-  const apiKey = apiKeyOverride || process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey === "...your key from aistudio.google.com...") {
+  const ai = getAiClient(apiKeyOverride);
+  if (!ai) {
     throw new Error(
       "GEMINI_API_KEY is not configured. Please add your key in Settings (⚙️) or in the .env file."
     );
   }
 
-  let response;
-  try {
-    response = await axios.post(
-      getApiUrl(),
-      {
-        contents,
-        systemInstruction: { parts: [{ text: system }] },
-        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.5 },
-      },
-      {
-        headers: { "content-type": "application/json" },
-        params: { key: apiKey },
-        timeout: 120000,
+  const modelsToTry = [getPrimaryModel(), "gemini-flash-latest", "gemini-3.1-flash-lite"];
+  let lastError = null;
+
+  for (const model of modelsToTry) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents,
+          config: {
+            systemInstruction: system,
+            maxOutputTokens: maxTokens,
+            temperature: 0.3,
+          },
+        });
+
+        if (response && response.text) {
+          return response.text.trim();
+        }
+      } catch (err) {
+        lastError = err;
+        const msg = err.message || "";
+        console.warn(`[aiClient] Model ${model} attempt ${attempt} failed: ${msg.slice(0, 120)}`);
+        if (msg.includes("429") || msg.includes("503") || msg.includes("UNAVAILABLE")) {
+          await new Promise((r) => setTimeout(r, 1000));
+        } else {
+          break; // Try next model if fatal
+        }
       }
-    );
-  } catch (err) {
-    const apiMessage = err.response?.data?.error?.message;
-    console.error("[aiClient] Gemini API error:", err.response?.status, apiMessage || err.message);
-    throw new Error(apiMessage ? `Gemini API: ${apiMessage}` : err.message);
+    }
   }
 
-  const candidate = response.data.candidates?.[0];
-  const parts = candidate?.content?.parts || [];
-  return parts.map((p) => p.text || "").join("\n").trim();
+  throw new Error(lastError ? lastError.message : "Gemini API unavailable");
 }
 
 function normalizePdfText(text) {

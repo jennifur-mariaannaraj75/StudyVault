@@ -168,8 +168,9 @@
     </div>
 
     <div class="notebook-active-info">
+      <div class="notebook-header-badge">📓 STUDY WORKSPACE</div>
       <h1 id="notebookTitle">Select or create a notebook</h1>
-      <span class="storage-status-pill" id="storagePill">Zero-Config Mode</span>
+      <span class="storage-status-pill" id="storagePill" style="display:none">Zero-Config Mode</span>
     </div>
 
     <div class="topbar-actions">
@@ -206,20 +207,38 @@
 
     <!-- LEFT PANEL: Shelf & Sources -->
     <aside class="left-panel">
+      <!-- Create Notebook Primary Action -->
+      <div class="sidebar-header-action">
+        <button class="btn-create-notebook-primary" id="newNotebookBtn">
+          <span class="btn-icon-plus">+</span>
+          <span>New Notebook</span>
+        </button>
+      </div>
+
       <div class="panel-section-header">
-        <h2>Notebooks</h2>
-        <button class="btn-icon" id="newNotebookBtn" title="Create New Notebook">+</button>
+        <span class="section-title">Notebooks</span>
       </div>
       
       <div class="shelf-list" id="notebookList"></div>
 
       <div class="panel-section-header" style="margin-top: 1.25rem;">
-        <h2>Sources (<span id="sourceCount">0</span>)</h2>
-        <button class="btn-icon" id="searchSourcesBtn" title="Search Across Sources">🔍</button>
+        <span class="section-title">Sources in Notebook (<span id="sourceCount">0</span>)</span>
+        <button class="btn-icon-subtle" id="searchSourcesBtn" title="Search Across Sources">🔍</button>
       </div>
 
       <div class="source-search-box" id="sourceSearchBox" style="display:none">
         <input type="text" id="sourceSearchInput" placeholder="Search across all sources..." />
+      </div>
+
+      <!-- Prominent Drag & Drop Area for PDF / Text in Sidebar -->
+      <div class="sidebar-dropzone" id="sidebarDropzone" title="Click or drag files here to upload">
+        <div class="dropzone-sparkle-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9m-4-4 4-4 4 4"/>
+          </svg>
+        </div>
+        <div class="dropzone-label">Drop PDF / Docs here</div>
+        <div class="dropzone-sub">or click to upload (.pdf, .txt, .md)</div>
       </div>
 
       <div class="sources-list" id="sourcesRailInner">
@@ -228,7 +247,7 @@
 
       <div class="add-source-group">
         <button class="btn-add-source" id="addSourceMenuBtn">
-          <span>＋ Add Source</span>
+          <span>＋ Add Source Options</span>
         </button>
         <div class="add-source-dropdown" id="addSourceDropdown">
           <button id="optUploadPdf">📄 Upload PDF / Text file</button>
@@ -244,49 +263,124 @@
     <main class="center-panel">
       <div class="chat-header">
         <div class="chat-title-group">
-          <h3>Grounded Learning Chat</h3>
-          <span class="grounded-tag">🛡️ Page-Level Citations</span>
+          <div class="chat-badge-row">
+            <span class="chat-primary-badge">🧠 GROUNDED STUDY CHAT</span>
+            <span class="grounded-tag" id="chatSourceBadge">🛡️ Citing Uploaded Sources</span>
+          </div>
+          <h2 class="chat-main-heading">Ask Questions & Explore Concepts</h2>
         </div>
         <div class="action-mode-bar">
-          <button class="chip-mode active" data-mode="chat">💬 Chat</button>
-          <button class="chip-mode" data-mode="explain">📖 Explain</button>
-          <button class="chip-mode" data-mode="2-mark">✍️ 2-Mark</button>
-          <button class="chip-mode" data-mode="5-mark">📝 5-Mark</button>
-          <button class="chip-mode" data-mode="10-mark">🏆 10-Mark</button>
+          <button class="chip-mode active" data-mode="chat" title="Free-form exploratory Q&A with citations">💬 Chat</button>
+          <button class="chip-mode" data-mode="explain" title="Beginner-friendly conceptual breakdown">📖 Explain</button>
+          <button class="chip-mode" data-mode="2-mark" title="Concise exam definition & 2-4 key points">✍️ 2-Mark</button>
+          <button class="chip-mode" data-mode="5-mark" title="Structured 5-part academic breakdown">📝 5-Mark</button>
+          <button class="chip-mode" data-mode="10-mark" title="Comprehensive essay & diagram blueprint">🏆 10-Mark</button>
         </div>
+      </div>
+
+      <!-- Contextual Exam Mode Banner -->
+      <div class="exam-mode-banner" id="examModeBanner" style="display:none">
+        <span class="exam-banner-icon">✍️</span>
+        <span class="exam-banner-text" id="examBannerText">Active Mode: 2-Mark Answer (Concise definition & key bullet points)</span>
       </div>
 
       <div class="chat-container" id="chatSection">
         <div class="chat-log" id="chatLog">
           <div class="chat-empty" id="chatEmpty">
-            <div class="empty-sparkle-icon">✨</div>
-            <h3>Source-Grounded Study Workspace</h3>
-            <p>Ask source-grounded questions, generate 2-Mark / 5-Mark exam answers, flip study flashcards, or take interactive quizzes with exact page citations.</p>
+            <div class="empty-hero-card">
+              <div class="empty-sparkle-logo">✨</div>
+              <h3>What would you like to study today?</h3>
+              <p class="empty-hero-sub">
+                StudyVault analyzes your documents to answer questions with verifiable page citations. Ask questions, generate exam answers, or review key takeaways.
+              </p>
+
+              <!-- Prominent Center Dropzone (Shown when no sources in notebook) -->
+              <div class="center-dropzone" id="centerDropzone">
+                <div class="center-dropzone-icon">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="18" x2="12" y2="12"/>
+                    <line x1="9" y1="15" x2="12" y2="12"/>
+                    <line x1="15" y1="15" x2="12" y2="12"/>
+                  </svg>
+                </div>
+                <h4>Drag & Drop your PDF study materials here</h4>
+                <p>Supports lecture slides, textbook chapters, and research papers (.pdf, .txt, .md)</p>
+                <div class="center-dropzone-actions">
+                  <button type="button" class="btn-primary-sm" id="btnCenterUpload">📁 Browse Files</button>
+                  <button type="button" class="btn-ghost-sm" id="btnCenterSample">⚡ Load Sample Material</button>
+                  <button type="button" class="btn-ghost-sm" id="btnCenterPaste">📝 Paste Notes</button>
+                </div>
+              </div>
+
+              <!-- Suggested Questions Grid (Populated dynamically when documents are ready) -->
+              <div class="suggested-questions-section" id="suggestedQuestionsSection" style="display:none">
+                <div class="suggested-header">
+                  <span class="suggested-sparkle">💡</span>
+                  <span>Suggested Study Prompts</span>
+                </div>
+                <div class="suggested-grid" id="suggestedGrid">
+                  <!-- Injected by app.js -->
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
 
         <form class="chat-input-wrapper" id="chatForm">
-          <textarea id="chatInput" placeholder="Ask a question about your uploaded study sources..." rows="2"></textarea>
-          <button type="submit" class="btn-send-gemini" id="sendBtn">
-            <span>Ask</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </button>
+          <div class="chat-input-inner">
+            <textarea id="chatInput" placeholder="Ask a question about your uploaded study sources..." rows="2"></textarea>
+            <div class="chat-input-bottom-bar">
+              <span class="chat-input-hint" id="chatInputHint">Press Enter to ask • Citations included automatically</span>
+              <button type="submit" class="btn-send-gemini" id="sendBtn">
+                <span>Ask</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
         </form>
       </div>
     </main>
 
-    <!-- RIGHT PANEL: Studio Suite & Artifacts -->
+    <!-- RIGHT PANEL: Categorized Studio Suite -->
     <aside class="right-panel">
-      <div class="studio-tabs">
-        <button class="tab-btn active" data-tab="tabOverview">🎧 Podcast</button>
-        <button class="tab-btn" data-tab="tabBriefing">📄 Briefing</button>
-        <button class="tab-btn" data-tab="tabFlashcards">🃏 Flashcards</button>
-        <button class="tab-btn" data-tab="tabQuiz">🧪 Quiz</button>
-        <button class="tab-btn" data-tab="tabImportant">🔥 Questions</button>
-        <button class="tab-btn" data-tab="tabCompare">📊 Compare</button>
-        <button class="tab-btn" data-tab="tabNotes">📌 Notes</button>
-        <button class="tab-btn" data-tab="tabImages">🖼️ Images</button>
-        <button class="tab-btn" data-tab="tabVideo">🎬 Video</button>
+      <!-- Studio Category Switcher -->
+      <div class="studio-category-bar">
+        <button class="cat-btn active" data-cat="study">
+          <span>🧠 Active Study</span>
+        </button>
+        <button class="cat-btn" data-cat="synthesis">
+          <span>📄 Synthesis</span>
+        </button>
+        <button class="cat-btn" data-cat="media">
+          <span>🎨 Visual Studio</span>
+        </button>
+      </div>
+
+      <!-- Categorized Tool Tabs -->
+      <div class="studio-tabs-categorized">
+        <!-- Group 1: Active Study Tools -->
+        <div class="cat-tool-group active" id="catGroupStudy">
+          <button class="tab-btn active" data-tab="tabFlashcards">🃏 Flashcards</button>
+          <button class="tab-btn" data-tab="tabQuiz">🧪 Quiz</button>
+          <button class="tab-btn" data-tab="tabImportant">🔥 Questions</button>
+          <button class="tab-btn" data-tab="tabNotes">📌 Notes</button>
+        </div>
+
+        <!-- Group 2: Synthesis Tools -->
+        <div class="cat-tool-group" id="catGroupSynthesis" style="display:none">
+          <button class="tab-btn" data-tab="tabOverview">🎧 AI Podcast</button>
+          <button class="tab-btn" data-tab="tabBriefing">📄 Briefing</button>
+          <button class="tab-btn" data-tab="tabCompare">📊 Compare</button>
+        </div>
+
+        <!-- Group 3: Visual & Media Tools -->
+        <div class="cat-tool-group" id="catGroupMedia" style="display:none">
+          <button class="tab-btn" data-tab="tabImages">🖼️ AI Diagram</button>
+          <button class="tab-btn" data-tab="tabVideo">🎬 Video Lecture</button>
+        </div>
       </div>
 
       <div class="studio-tab-content">

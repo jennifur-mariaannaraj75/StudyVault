@@ -236,6 +236,8 @@ async function initApp() {
   setupEventListeners();
   setupDropdowns();
   setupSettingsModal();
+  setupDropzones();
+  setupCategorizedTabs();
   checkDbStatus();
   await loadNotebooks();
 }
@@ -287,15 +289,26 @@ async function loadNotebooks() {
 
 function renderNotebookList() {
   if (state.notebooks.length === 0) {
-    notebookList.innerHTML = `<p class="sources-empty" style="padding:0.5rem">No notebooks yet. Tap “+” to start one.</p>`;
+    notebookList.innerHTML = `
+      <div style="padding: 1.25rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
+        <div style="font-size: 1.6rem; margin-bottom: 0.35rem;">📓</div>
+        <p style="font-weight: 600; color: var(--text-sub); margin-bottom: 0.25rem;">No notebooks yet</p>
+        <span style="font-size: 0.72rem;">Click "+ New Notebook" above to create your first study workspace.</span>
+      </div>`;
     return;
   }
   notebookList.innerHTML = state.notebooks
     .map(
       (nb) => `
       <div class="notebook-item ${nb._id === state.currentId ? "active" : ""}" data-id="${nb._id}">
-        <div class="notebook-item-title">${escapeHtml(nb.title)}</div>
-        <div class="notebook-item-meta">${new Date(nb.updatedAt || nb.createdAt).toLocaleDateString()}</div>
+        <div style="display: flex; align-items: center; gap: 0.45rem;">
+          <span style="font-size: 0.95rem;">📓</span>
+          <div class="notebook-item-title" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(nb.title)}</div>
+        </div>
+        <div class="notebook-item-meta" style="margin-top: 0.25rem; display: flex; justify-content: space-between; align-items: center;">
+          <span>${new Date(nb.updatedAt || nb.createdAt).toLocaleDateString()}</span>
+          ${nb._id === state.currentId ? `<span style="font-size: 0.65rem; color: var(--primary-purple); font-weight: 700; letter-spacing: 0.05em;">ACTIVE</span>` : ""}
+        </div>
       </div>`
     )
     .join("");
@@ -328,28 +341,52 @@ async function selectNotebook(id) {
 
 function showEmptyState() {
   notebookTitle.textContent = "Select or create a notebook";
-  sourcesRailInner.innerHTML = `<p class="sources-empty">No sources added yet.</p>`;
+  sourcesRailInner.innerHTML = `
+    <div style="padding: 1.25rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.78rem;">
+      <div style="font-size: 1.4rem; margin-bottom: 0.35rem;">📄</div>
+      <p style="font-weight: 600; color: var(--text-sub); margin-bottom: 0.2rem;">No sources attached</p>
+      <span>Create a notebook to begin.</span>
+    </div>`;
   document.getElementById("renameBtn").style.display = "none";
   document.getElementById("deleteNotebookBtn").style.display = "none";
+  renderChat();
 }
 
 // --- Sources ---
 function renderSources() {
   sourceCount.textContent = state.documents.length;
+  const chatSourceBadge = document.getElementById("chatSourceBadge");
+  if (chatSourceBadge) {
+    chatSourceBadge.textContent = state.documents.length > 0
+      ? `🛡️ Citing ${state.documents.length} Source${state.documents.length > 1 ? "s" : ""}`
+      : "🛡️ 0 Sources (Add docs to start)";
+  }
+
   if (state.documents.length === 0) {
-    sourcesRailInner.innerHTML = `<p class="sources-empty">No sources added yet.</p>`;
+    sourcesRailInner.innerHTML = `
+      <div style="padding: 1.25rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.78rem;">
+        <div style="font-size: 1.4rem; margin-bottom: 0.35rem;">📄</div>
+        <p style="font-weight: 600; color: var(--text-sub); margin-bottom: 0.2rem;">No sources attached</p>
+        <span>Drop a PDF or paste notes to begin grounded learning.</span>
+      </div>`;
     return;
   }
 
   sourcesRailInner.innerHTML = state.documents
     .map(
       (doc) => `
-      <div class="source-card" data-docid="${doc._id}">
+      <div class="source-card" data-docid="${doc._id}" title="Click to open in Document Viewer">
         <div class="source-info">
-          <div class="source-name">${escapeHtml(doc.filename)}</div>
-          <div class="source-meta">${doc.status === 'processing' ? '⚡ Processing...' : (doc.pageCount ? doc.pageCount + ' pages' : 'Ready')}</div>
+          <div class="source-name" style="display: flex; align-items: center; gap: 0.35rem;">
+            <span>📄</span>
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(doc.filename)}</span>
+          </div>
+          <div class="source-meta" style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem;">
+            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: ${doc.status === 'processing' ? 'var(--warning)' : 'var(--success)'};"></span>
+            <span>${doc.status === 'processing' ? '⚡ Processing...' : (doc.pageCount ? doc.pageCount + ' pages' : 'Ready')}</span>
+          </div>
         </div>
-        <button class="source-card-remove" data-remove="${doc._id}">✕</button>
+        <button class="source-card-remove" data-remove="${doc._id}" title="Remove source">✕</button>
       </div>`
     )
     .join("");
@@ -369,6 +406,7 @@ function renderSources() {
         await api(`/notebooks/${state.currentId}/documents/${docId}`, { method: "DELETE" });
         state.documents = state.documents.filter((d) => d._id !== docId);
         renderSources();
+        renderChat();
       } catch (err) {
         showToast(err.message);
       }
@@ -457,6 +495,7 @@ function renderChat() {
     chatLog.innerHTML = "";
     chatLog.appendChild(chatEmpty);
     chatEmpty.style.display = "block";
+    renderSuggestedQuestions();
     return;
   }
 
@@ -503,6 +542,72 @@ function renderChat() {
   });
 }
 
+function renderSuggestedQuestions() {
+  const centerDropzone = document.getElementById("centerDropzone");
+  const suggestedSection = document.getElementById("suggestedQuestionsSection");
+  const suggestedGrid = document.getElementById("suggestedGrid");
+  const chatSourceBadge = document.getElementById("chatSourceBadge");
+
+  const hasDocs = state.documents && state.documents.length > 0;
+
+  if (chatSourceBadge) {
+    chatSourceBadge.textContent = hasDocs
+      ? `🛡️ Citing ${state.documents.length} Source${state.documents.length > 1 ? "s" : ""}`
+      : "🛡️ 0 Sources (Add docs to start)";
+  }
+
+  if (!hasDocs) {
+    if (centerDropzone) centerDropzone.style.display = "block";
+    if (suggestedSection) suggestedSection.style.display = "none";
+    return;
+  }
+
+  // Documents exist! Show suggested questions grid
+  if (centerDropzone) centerDropzone.style.display = "none";
+  if (suggestedSection) suggestedSection.style.display = "block";
+
+  // Gather questions from documents or smart academic defaults
+  let questions = [];
+  state.documents.forEach((doc) => {
+    if (doc.suggestedQuestions && Array.isArray(doc.suggestedQuestions)) {
+      questions.push(...doc.suggestedQuestions);
+    }
+  });
+
+  if (questions.length === 0) {
+    const docTitle = state.documents[0]?.filename ? state.documents[0].filename.replace(/\.[^/.]+$/, "") : "uploaded material";
+    questions = [
+      `Summarize the key concepts and architecture of ${docTitle}`,
+      `Explain the primary mechanisms in simple terms with examples`,
+      `Generate a 5-mark structured exam answer with page citations`,
+      `What are the most important definitions, formulas, or protocols?`
+    ];
+  } else {
+    questions = [...new Set(questions)].slice(0, 4);
+  }
+
+  const icons = ["💡", "📖", "✍️", "🔍"];
+  if (suggestedGrid) {
+    suggestedGrid.innerHTML = questions
+      .map((q, idx) => `
+        <button type="button" class="suggested-chip" data-prompt="${escapeHtml(q)}">
+          <span class="suggested-chip-icon">${icons[idx % icons.length]}</span>
+          <span class="suggested-chip-text">${escapeHtml(q)}</span>
+        </button>
+      `)
+      .join("");
+
+    suggestedGrid.querySelectorAll(".suggested-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const prompt = chip.dataset.prompt;
+        if (!prompt) return;
+        chatInput.value = prompt;
+        chatForm.dispatchEvent(new Event("submit", { cancelable: true }));
+      });
+    });
+  }
+}
+
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const question = chatInput.value.trim();
@@ -536,6 +641,27 @@ chipModes.forEach((chip) => {
     chipModes.forEach((c) => c.classList.remove("active"));
     chip.classList.add("active");
     state.activeMode = chip.dataset.mode;
+    
+    // Update exam mode banner
+    const examModeBanner = document.getElementById("examModeBanner");
+    const examBannerText = document.getElementById("examBannerText");
+    const examDescriptions = {
+      "chat": "",
+      "explain": "📖 Explanatory Mode: Simplified conceptual breakdown with intuitive analogies.",
+      "2-mark": "✍️ 2-Mark Exam Mode: Crisp 1-2 sentence core definition followed by 2-4 key points with citations.",
+      "5-mark": "📝 5-Mark Exam Mode: Structured academic breakdown (Definition, Key Components, Working, Example, and Citations).",
+      "10-mark": "🏆 10-Mark Exam Mode: Comprehensive university-level essay, architectural layout, mechanisms, and citations."
+    };
+
+    if (examModeBanner && examBannerText) {
+      if (examDescriptions[state.activeMode]) {
+        examModeBanner.style.display = "flex";
+        examBannerText.textContent = examDescriptions[state.activeMode];
+      } else {
+        examModeBanner.style.display = "none";
+      }
+    }
+
     showToast(`Switched mode: ${chip.textContent}`);
   });
 });
@@ -1492,14 +1618,9 @@ function setupDropdowns() {
   document.getElementById("optSampleData").addEventListener("click", () => sampleModal.classList.add("show"));
 
   fileInput.addEventListener("change", async () => {
-    if (!fileInput.files.length || !state.currentId) return;
-    const formData = new FormData();
-    [...fileInput.files].forEach((f) => formData.append("files", f));
-    try {
-      const created = await api(`/notebooks/${state.currentId}/documents`, { method: "POST", body: formData });
-      state.documents.push(...created); renderSources(); maybePollDocs();
-    } catch (err) { showToast(err.message); }
-    finally { fileInput.value = ""; }
+    if (!fileInput.files.length) return;
+    await uploadFiles(fileInput.files);
+    fileInput.value = "";
   });
 
   document.getElementById("submitPasteBtn").addEventListener("click", async () => {
@@ -1511,6 +1632,7 @@ function setupDropdowns() {
       state.documents.push(doc); renderSources(); pasteTextModal.classList.remove("show");
       document.getElementById("pasteTextTitle").value = ""; document.getElementById("pasteTextContent").value = "";
       maybePollDocs();
+      renderChat();
     } catch (err) { showToast(err.message); }
   });
 
@@ -1521,6 +1643,7 @@ function setupDropdowns() {
       const doc = await api(`/notebooks/${state.currentId}/documents/url`, { method: "POST", body: JSON.stringify({ url }) });
       state.documents.push(doc); renderSources(); urlModal.classList.remove("show");
       document.getElementById("urlInput").value = ""; maybePollDocs();
+      renderChat();
     } catch (err) { showToast(err.message); }
   });
 
@@ -1535,13 +1658,159 @@ function setupDropdowns() {
     });
   });
 
-  tabBtns.forEach((btn) => {
+  // Category and tool tabs
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      tabBtns.forEach((b) => b.classList.remove("active"));
-      tabPanes.forEach((p) => p.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".tab-pane").forEach((p) => p.classList.remove("active"));
       btn.classList.add("active");
       const targetPane = document.getElementById(btn.dataset.tab);
       if (targetPane) targetPane.classList.add("active");
+    });
+  });
+}
+
+/**
+ * Reusable helper to upload one or more files and attach them to the active notebook
+ */
+async function uploadFiles(files) {
+  if (!files || !files.length) return;
+
+  if (!state.currentId) {
+    try {
+      const firstFileName = files[0].name.replace(/\.[^/.]+$/, "") || "New Study Notebook";
+      const nb = await api("/notebooks", { method: "POST", body: JSON.stringify({ title: firstFileName }) });
+      state.notebooks.unshift(nb);
+      renderNotebookList();
+      await selectNotebook(nb._id);
+    } catch (err) {
+      showToast("Please create or select a notebook first.");
+      return;
+    }
+  }
+
+  const formData = new FormData();
+  [...files].forEach((f) => formData.append("files", f));
+  try {
+    showToast(`Uploading ${files.length} document(s)...`);
+    const created = await api(`/notebooks/${state.currentId}/documents`, { method: "POST", body: formData });
+    state.documents.push(...created);
+    renderSources();
+    renderChat();
+    maybePollDocs();
+    showToast(`Uploaded ${created.length} document(s) successfully!`);
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+/**
+ * Drag and Drop & Dropzone Listeners
+ */
+function setupDropzones() {
+  const sidebarDropzone = document.getElementById("sidebarDropzone");
+  const centerDropzone = document.getElementById("centerDropzone");
+  const btnCenterUpload = document.getElementById("btnCenterUpload");
+  const btnCenterSample = document.getElementById("btnCenterSample");
+  const btnCenterPaste = document.getElementById("btnCenterPaste");
+
+  if (sidebarDropzone) {
+    sidebarDropzone.addEventListener("click", () => fileInput.click());
+    ["dragenter", "dragover"].forEach((evt) => {
+      sidebarDropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        sidebarDropzone.classList.add("dragover");
+      });
+    });
+    ["dragleave", "drop"].forEach((evt) => {
+      sidebarDropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        sidebarDropzone.classList.remove("dragover");
+      });
+    });
+    sidebarDropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files.length > 0) uploadFiles(files);
+    });
+  }
+
+  if (centerDropzone) {
+    centerDropzone.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      fileInput.click();
+    });
+    ["dragenter", "dragover"].forEach((evt) => {
+      centerDropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        centerDropzone.classList.add("dragover");
+      });
+    });
+    ["dragleave", "drop"].forEach((evt) => {
+      centerDropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        centerDropzone.classList.remove("dragover");
+      });
+    });
+    centerDropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files.length > 0) uploadFiles(files);
+    });
+  }
+
+  if (btnCenterUpload) {
+    btnCenterUpload.addEventListener("click", (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+  }
+
+  if (btnCenterSample) {
+    btnCenterSample.addEventListener("click", (e) => {
+      e.stopPropagation();
+      sampleModal.classList.add("show");
+    });
+  }
+
+  if (btnCenterPaste) {
+    btnCenterPaste.addEventListener("click", (e) => {
+      e.stopPropagation();
+      pasteTextModal.classList.add("show");
+    });
+  }
+}
+
+/**
+ * 3-Tier Categorized Studio Tabs Manager
+ */
+function setupCategorizedTabs() {
+  const catBtns = document.querySelectorAll(".cat-btn");
+  const catGroups = {
+    study: document.getElementById("catGroupStudy"),
+    synthesis: document.getElementById("catGroupSynthesis"),
+    media: document.getElementById("catGroupMedia"),
+  };
+
+  catBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      catBtns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      const cat = btn.dataset.cat;
+      Object.entries(catGroups).forEach(([key, el]) => {
+        if (el) el.style.display = key === cat ? "flex" : "none";
+      });
+
+      const activeGroup = catGroups[cat];
+      if (activeGroup) {
+        const firstTab = activeGroup.querySelector(".tab-btn");
+        if (firstTab) firstTab.click();
+      }
     });
   });
 }

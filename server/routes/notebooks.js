@@ -2,6 +2,8 @@ const express = require("express");
 const store = require("../config/store");
 const sampleNotebooks = require("../utils/sampleData");
 const { analyzeDocument } = require("../utils/aiClient");
+const { chunkDocument } = require("../utils/textChunker");
+const { generateBatchEmbeddings } = require("../utils/vectorEngine");
 const { authenticateToken } = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -21,7 +23,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Load sample notebook
+// Load sample notebook with pre-vectorized RAG chunks
 router.post("/sample/:sampleKey", async (req, res) => {
   try {
     const sample = sampleNotebooks[req.params.sampleKey];
@@ -33,26 +35,47 @@ router.post("/sample/:sampleKey", async (req, res) => {
     for (const d of sample.documents) {
       const charCount = d.text.length;
       const estimatedPages = Math.max(1, Math.ceil(charCount / 2500));
+      const pages = [{ pageNumber: 1, text: d.text }];
+
       const doc = await store.createDocument({
         notebookId: notebook._id,
         filename: d.filename,
         extractedText: d.text,
         pageCount: estimatedPages,
+        pages,
         charCount,
         status: "processing",
       });
 
-      // Analyze document
-      analyzeDocument(d.text, d.filename).then(async (analysis) => {
-        await store.updateDocument(doc._id, {
-          summary: analysis.summary,
-          keyTopics: analysis.keyTopics,
-          suggestedQuestions: analysis.suggestedQuestions,
-          status: "ready",
-        });
-      }).catch(async (err) => {
-        await store.updateDocument(doc._id, { status: "ready", summary: "Analysis complete." });
-      });
+      // Asynchronously chunk, embed and analyze
+      (async () => {
+        try {
+          const rawChunks = chunkDocument({ _id: doc._id, filename: d.filename, pages, extractedText: d.text });
+          const embeddings = await generateBatchEmbeddings(rawChunks.map((c) => c.chunk));
+          const chunks = rawChunks.map((c, idx) => ({
+            chunkId: c.chunkId,
+            pageNumber: c.pageNumber || 1,
+            chunkIndex: idx,
+            text: c.chunk,
+            charCount: c.chunk.length,
+            embedding: embeddings[idx] || [],
+            metadata: { filename: d.filename, pageNumber: c.pageNumber || 1 },
+          }));
+
+          const analysis = await analyzeDocument(d.text, d.filename);
+
+          await store.updateDocument(doc._id, {
+            summary: analysis.summary,
+            keyTopics: analysis.keyTopics,
+            suggestedQuestions: analysis.suggestedQuestions,
+            chunks,
+            status: "ready",
+          });
+        } catch (err) {
+          console.error("[sample] Embedding error:", err.message);
+          await store.updateDocument(doc._id, { status: "ready", summary: "Analysis complete." });
+        }
+      })();
     }
 
     res.status(201).json(notebook);

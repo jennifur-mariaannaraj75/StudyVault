@@ -14,12 +14,20 @@ function createToken(user) {
       name: user.name,
       email: user.email,
       role: user.role || "user",
+      status: user.status || "active",
       avatar: user.avatar || ""
     },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
 }
+
+// GET /api/auth/config (Exposes public Google Client ID if set on server)
+router.get("/config", (req, res) => {
+  res.json({
+    googleClientId: process.env.GOOGLE_CLIENT_ID || ""
+  });
+});
 
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
@@ -69,7 +77,7 @@ router.post("/guest", async (req, res) => {
     const user = {
       _id: guestId,
       id: guestId,
-      name: "Guest Student",
+      name: "Guest",
       email: `${guestId}@studyvault.local`,
       role: "user",
       avatar: "🎓"
@@ -94,6 +102,10 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
+    if (user.status === "disabled") {
+      return res.status(403).json({ error: "Your account has been disabled by an administrator. Please contact support." });
+    }
+
     if (!user.password) {
       return res.status(400).json({ error: "This account uses Google Sign-In. Please click 'Sign in with Google'." });
     }
@@ -101,6 +113,15 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid email or password." });
+    }
+
+    if (user.role === "admin") {
+      store.createAuditLog({
+        adminUser: { id: user._id || user.id, email: user.email, name: user.name },
+        action: "admin_login",
+        affectedEntity: "auth",
+        metadata: { method: "password_login", ip: req.ip }
+      }).catch(err => console.warn("[auth] Failed to record admin login audit:", err.message));
     }
 
     const token = createToken(user);
@@ -111,6 +132,7 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        status: user.status || "active",
         avatar: user.avatar
       }
     });

@@ -1,6 +1,17 @@
 {
   "users": [
     {
+      "_id": "mujez1l0mwohe",
+      "name": "Test Student",
+      "email": "test_student_1790489087068@test.local",
+      "password": "$2b$10$9VWhnVMEZBSo.7uATUqeIunvDtUxkExhkVcr3IiHqRdNOZAUM66zq",
+      "googleId": null,
+      "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Test%20Student",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-09-27T06:04:47.171Z"
+    },
+    {
       "_id": "mucu29c9ppmwe",
       "name": "Test Student",
       "email": "student_test@example.com",
@@ -17,10 +28,39 @@
       "password": "$2b$10$VKcQHnqumiMfPEKYwZT6r.y8J0Yt3rw3zt7.OoLuGXkyRO7ibKHoa",
       "role": "admin",
       "avatar": "🛡️",
-      "createdAt": "2026-09-22T14:47:17.752Z"
+      "createdAt": "2026-09-22T14:47:17.752Z",
+      "status": "active"
     }
   ],
   "notebooks": [
+    {
+      "_id": "mujfqpyw1vjsz",
+      "title": "Computer Networks Test Vault",
+      "description": "Grounded generation test suite",
+      "userId": "test_user_123",
+      "createdAt": "2026-09-27T06:26:18.487Z",
+      "updatedAt": "2026-09-27T06:26:18.487Z"
+    },
+    {
+      "_id": "muear1w7h2u26",
+      "title": {
+        "title": "Audit Test Notebook",
+        "userId": "audit_tester",
+        "description": "Temporary notebook for audit verification"
+      },
+      "description": "",
+      "userId": null,
+      "createdAt": "2026-09-23T16:07:44.982Z",
+      "updatedAt": "2026-09-23T16:07:44.982Z"
+    },
+    {
+      "_id": "mueaqz9c7dzzy",
+      "title": "Audit Test Notebook - Biology",
+      "description": "Testing photosynthesis RAG",
+      "userId": null,
+      "createdAt": "2026-09-23T16:07:41.568Z",
+      "updatedAt": "2026-09-23T16:07:41.568Z"
+    },
     {
       "_id": "mue831ucx03q9",
       "title": "Computer Networks & Protocols",
@@ -3149,6 +3189,106 @@
           }
         }
       ]
+    },
+    {
+      "_id": "mueaqzlp5v54p",
+      "notebookId": "mueaqz9c7dzzy",
+      "filename": "Biology_Chapter1.pdf",
+      "pageCount": 1,
+      "charCount": 153,
+      "extractedText": "Photosynthesis is the process by which green plants convert light energy into chemical energy. Chlorophyll absorbs light energy, primarily from sunlight.",
+      "summary": "",
+      "keyTopics": [],
+      "suggestedQuestions": [],
+      "status": "ready",
+      "createdAt": "2026-09-23T16:07:42.013Z",
+      "updatedAt": "2026-09-23T16:07:42.013Z"
+    },
+    {
+      "_id": "muear29m9msis",
+      "notebookId": "muear1w7h2u26",
+      "filename": "photosynthesis.pdf",
+      "pageCount": 1,
+      "charCount": 153,
+      "extractedText": "Photosynthesis is the process by which green plants convert light energy into chemical energy. Chlorophyll absorbs light energy, primarily from sunlight.",
+      "summary": "",
+      "keyTopics": [],
+      "suggestedQuestions": [],
+      "status": "ready",
+      "createdAt": "2026-09-23T16:07:45.466Z",
+      "updatedAt": "2026-09-23T16:07:45.466Z"
+    },
+    {
+      "_id": "mujfqpyxadvqe",
+      "notebookId": "mujfqpyw1vjsz",
+      "filename": "Unit1_DataLink_Framing.pdf",
+      "pageCount": 3,
+      "pages": [
+        {
+          "pageNumber": 1,
+          "text": "The Data-Link Layer in computer networks is divided into two IEEE 802 sublayers: Logical Link Control (LLC) and Media Access Control (MAC)."
+        },
+        {
+          "pageNumber": 2,
+          "text": "LLC provides multiplexing, flow control, and error management across link boundaries."
+        },
+        {
+          "pageNumber": 3,
+          "text": "MAC framing formats packets with a preamble, start frame delimiter, 48-bit source and destination MAC addresses, and a 32-bit CRC Frame Check Sequence."
+        }
+      ],
+      "chunks": [],
+      "charCount": 420,
+      "extractedText": "The Data-Link Layer in computer networks is divided into two IEEE 802 sublayers: Logical Link Control (LLC) and Media Access Control (MAC). LLC provides multiplexing, flow control, and error management. MAC framing formats packets with a preamble, start frame delimiter, 48-bit source and destination MAC addresses, type field, payload, and a 32-bit cyclic redundancy check (CRC) Frame Check Sequence for detecting transmission corruption.",
+      "summary": "",
+      "keyTopics": [
+        "Data Link Layer",
+        "LLC Sublayer",
+        "MAC Framing",
+        "CRC Checksum"
+      ],
+      "suggestedQuestions": [],
+      "status": "ready",
+      "createdAt": "2026-09-27T06:26:18.489Z",
+      "updatedAt": "2026-09-27T06:26:18.489Z"
+    },
+    {
+      "_id": "mujfqpyyzir8j",
+      "notebookId": "mujfqpyw1vjsz",
+      "filename": "Unit2_Deadlock_Arbitration.pdf",
+      "pageCount": 4,
+      "pages": [
+        {
+          "pageNumber": 1,
+          "text": "In resource allocation, Deadlock occurs when a set of concurrent processes are permanently blocked waiting for resources."
+        },
+        {
+          "pageNumber": 2,
+          "text": "The four Coffman conditions necessary for deadlock are Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait."
+        },
+        {
+          "pageNumber": 3,
+          "text": "Deadlock prevention dismantles at least one Coffman condition to prevent circular waits."
+        },
+        {
+          "pageNumber": 4,
+          "text": "The Banker's algorithm utilizes maximum demand matrices and allocation vectors to verify safe states for deadlock avoidance."
+        }
+      ],
+      "chunks": [],
+      "charCount": 480,
+      "extractedText": "In resource allocation and distributed synchronization, Deadlock occurs when a set of concurrent processes are permanently blocked because each process holds a resource and waits for another resource held by another process. The four Coffman conditions necessary and sufficient for deadlock are Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait. Deadlock prevention dismantles one of these conditions, while the Banker's algorithm utilizes resource allocation matrices for deadlock avoidance by verifying safe states.",
+      "summary": "",
+      "keyTopics": [
+        "Deadlock",
+        "Coffman Conditions",
+        "Bankers Algorithm",
+        "Resource Allocation"
+      ],
+      "suggestedQuestions": [],
+      "status": "ready",
+      "createdAt": "2026-09-27T06:26:18.490Z",
+      "updatedAt": "2026-09-27T06:26:18.490Z"
     }
   ],
   "messages": [
@@ -3169,6 +3309,24 @@
         "Data-Link Layer & Ethernet (p.1)"
       ],
       "createdAt": "2026-09-23T15:49:47.962Z"
+    },
+    {
+      "_id": "muealps7n2vij",
+      "notebookId": "mue831ucx03q9",
+      "role": "user",
+      "content": "CSMA",
+      "sources": [],
+      "createdAt": "2026-09-23T16:03:36.007Z"
+    },
+    {
+      "_id": "muealzm8rzi1w",
+      "notebookId": "mue831ucx03q9",
+      "role": "assistant",
+      "content": "### Simple Explanation\n\nCSMA refers to the operational mechanism described in your uploaded research [Data-Link Layer & Ethernet, p.1].\n\n### Key Idea\nIEEE 802 divides data-link into LLC and MAC sublayers. CSMA/CD controls transmission access on shared media. Truncated binary exponential backoff is invoked upon collision. Etherne... [Data-Link Layer & Ethernet, p.1]\n\n### Example & Exam Point\n- **Example**: Standard system implementation as specified on Page 1 [Data-Link Layer & Ethernet, p.1].\n- **Exam Point**: Remember that CSMA resolves access and frame management [Data-Link Layer & Ethernet, p.1].",
+      "sources": [
+        "Data-Link Layer & Ethernet (p.1)"
+      ],
+      "createdAt": "2026-09-23T16:03:48.752Z"
     }
   ],
   "notes": [],
@@ -3331,6 +3489,301 @@
         "createdAt": "2026-09-23T14:53:07.362Z"
       },
       "updatedAt": "2026-09-23T14:53:07.362Z"
+    },
+    {
+      "notebookId": "mujfqpyw1vjsz",
+      "type": "flashcards",
+      "data": {
+        "cards": [
+          {
+            "id": "card_1790490394873_1",
+            "question": "How is deadlock defined in the context of resource allocation?",
+            "answer": "Deadlock occurs when a set of concurrent processes are permanently blocked while waiting for resources.",
+            "source": {
+              "filename": "Unit2_Deadlock_Arbitration.pdf",
+              "pageNumber": 1
+            },
+            "sourceRef": "Unit2_Deadlock_Arbitration.pdf, p.1"
+          },
+          {
+            "id": "card_1790490394873_2",
+            "question": "What are the four Coffman conditions required for deadlock to occur?",
+            "answer": "The four conditions are Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait.",
+            "source": {
+              "filename": "Unit2_Deadlock_Arbitration.pdf",
+              "pageNumber": 2
+            },
+            "sourceRef": "Unit2_Deadlock_Arbitration.pdf, p.2"
+          },
+          {
+            "id": "card_1790490394873_3",
+            "question": "What is the fundamental strategy used for deadlock prevention?",
+            "answer": "Deadlock prevention works by dismantling at least one of the Coffman conditions to prevent circular waits.",
+            "source": {
+              "filename": "Unit2_Deadlock_Arbitration.pdf",
+              "pageNumber": 3
+            },
+            "sourceRef": "Unit2_Deadlock_Arbitration.pdf, p.3"
+          },
+          {
+            "id": "card_1790490394873_4",
+            "question": "Which algorithm is used for deadlock avoidance by verifying safe states?",
+            "answer": "The Banker's algorithm is used to verify safe states for deadlock avoidance.",
+            "source": {
+              "filename": "Unit2_Deadlock_Arbitration.pdf",
+              "pageNumber": 4
+            },
+            "sourceRef": "Unit2_Deadlock_Arbitration.pdf, p.4"
+          },
+          {
+            "id": "card_1790490394873_5",
+            "question": "What specific data structures does the Banker's algorithm utilize to perform its analysis?",
+            "answer": "It utilizes maximum demand matrices and allocation vectors.",
+            "source": {
+              "filename": "Unit2_Deadlock_Arbitration.pdf",
+              "pageNumber": 4
+            },
+            "sourceRef": "Unit2_Deadlock_Arbitration.pdf, p.4"
+          }
+        ],
+        "scope": {
+          "scopeType": "topic",
+          "topic": "Deadlock"
+        }
+      },
+      "updatedAt": "2026-09-27T06:26:34.874Z"
+    },
+    {
+      "notebookId": "mujfqpyw1vjsz",
+      "type": "images",
+      "data": [
+        {
+          "id": "img_mujfrcg9",
+          "title": "IEEE 802 Data-Link Layer and MAC Framing Architecture",
+          "prompt": "MAC Framing",
+          "style": "diagram",
+          "summary": "The Data-Link Layer is organized into the Logical Link Control (LLC) and Media Access Control (MAC) sublayers [Unit1_DataLink_Framing.pdf, Page 1]. While LLC manages flow control, multiplexing, and error handling across links, MAC framing handles packet encapsulation using physical addressing and frame check sequences [Unit1_DataLink_Framing.pdf, Page 2, Page 3].",
+          "svgContent": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\">\n    <defs>\n      <linearGradient id=\"canvasBg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n        <stop offset=\"0%\" stop-color=\"#080b11\"/>\n        <stop offset=\"100%\" stop-color=\"#141824\"/>\n      </linearGradient>\n      <linearGradient id=\"centerGrad\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n        <stop offset=\"0%\" stop-color=\"#8ab4f8\"/>\n        <stop offset=\"100%\" stop-color=\"#c58af9\"/>\n      </linearGradient>\n      <marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"5\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\">\n        <path d=\"M 0 1.5 L 8 5 L 0 8.5 z\" fill=\"#8ab4f8\" />\n      </marker>\n    </defs>\n    <rect width=\"960\" height=\"540\" fill=\"url(#canvasBg)\"/>\n    \n    <g stroke=\"rgba(255,255,255,0.03)\" stroke-width=\"1\">\n      <line x1=\"50\" y1=\"0\" x2=\"50\" y2=\"540\"/><line x1=\"100\" y1=\"0\" x2=\"100\" y2=\"540\"/><line x1=\"150\" y1=\"0\" x2=\"150\" y2=\"540\"/><line x1=\"200\" y1=\"0\" x2=\"200\" y2=\"540\"/><line x1=\"250\" y1=\"0\" x2=\"250\" y2=\"540\"/><line x1=\"300\" y1=\"0\" x2=\"300\" y2=\"540\"/><line x1=\"350\" y1=\"0\" x2=\"350\" y2=\"540\"/><line x1=\"400\" y1=\"0\" x2=\"400\" y2=\"540\"/><line x1=\"450\" y1=\"0\" x2=\"450\" y2=\"540\"/><line x1=\"500\" y1=\"0\" x2=\"500\" y2=\"540\"/><line x1=\"550\" y1=\"0\" x2=\"550\" y2=\"540\"/><line x1=\"600\" y1=\"0\" x2=\"600\" y2=\"540\"/><line x1=\"650\" y1=\"0\" x2=\"650\" y2=\"540\"/><line x1=\"700\" y1=\"0\" x2=\"700\" y2=\"540\"/><line x1=\"750\" y1=\"0\" x2=\"750\" y2=\"540\"/><line x1=\"800\" y1=\"0\" x2=\"800\" y2=\"540\"/><line x1=\"850\" y1=\"0\" x2=\"850\" y2=\"540\"/><line x1=\"900\" y1=\"0\" x2=\"900\" y2=\"540\"/><line x1=\"0\" y1=\"50\" x2=\"960\" y2=\"50\"/><line x1=\"0\" y1=\"100\" x2=\"960\" y2=\"100\"/><line x1=\"0\" y1=\"150\" x2=\"960\" y2=\"150\"/><line x1=\"0\" y1=\"200\" x2=\"960\" y2=\"200\"/><line x1=\"0\" y1=\"250\" x2=\"960\" y2=\"250\"/><line x1=\"0\" y1=\"300\" x2=\"960\" y2=\"300\"/><line x1=\"0\" y1=\"350\" x2=\"960\" y2=\"350\"/><line x1=\"0\" y1=\"400\" x2=\"960\" y2=\"400\"/><line x1=\"0\" y1=\"450\" x2=\"960\" y2=\"450\"/><line x1=\"0\" y1=\"500\" x2=\"960\" y2=\"500\"/>\n    </g>\n\n    <circle cx=\"480\" cy=\"270\" r=\"150\" fill=\"none\" stroke=\"#8ab4f8\" stroke-opacity=\"0.12\" stroke-dasharray=\"6,6\"/>\n    <circle cx=\"480\" cy=\"270\" r=\"210\" fill=\"none\" stroke=\"#c58af9\" stroke-opacity=\"0.08\"/>\n\n    <line x1=\"480\" y1=\"270\" x2=\"230\" y2=\"160\" stroke=\"#8ab4f8\" stroke-opacity=\"0.4\" stroke-width=\"2\" stroke-dasharray=\"4,4\" marker-end=\"url(#arrow)\"/>\n    <line x1=\"480\" y1=\"270\" x2=\"730\" y2=\"160\" stroke=\"#c58af9\" stroke-opacity=\"0.4\" stroke-width=\"2\" stroke-dasharray=\"4,4\" marker-end=\"url(#arrow)\"/>\n    <line x1=\"480\" y1=\"270\" x2=\"230\" y2=\"400\" stroke=\"#8ab4f8\" stroke-opacity=\"0.4\" stroke-width=\"2\" stroke-dasharray=\"4,4\" marker-end=\"url(#arrow)\"/>\n    <line x1=\"480\" y1=\"270\" x2=\"730\" y2=\"400\" stroke=\"#c58af9\" stroke-opacity=\"0.4\" stroke-width=\"2\" stroke-dasharray=\"4,4\" marker-end=\"url(#arrow)\"/>\n\n    <rect x=\"360\" y=\"220\" width=\"240\" height=\"100\" rx=\"16\" fill=\"#1b2130\" stroke=\"url(#centerGrad)\" stroke-width=\"2.5\"/>\n    <text x=\"480\" y=\"258\" fill=\"#ffffff\" font-family=\"system-ui, sans-serif\" font-size=\"16\" font-weight=\"800\" text-anchor=\"middle\">🎓 IEEE 802 Data-Link Layer a</text>\n    <text x=\"480\" y=\"280\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"11.5\" font-weight=\"600\" text-anchor=\"middle\">Grounded Architectural Blueprint</text>\n    <text x=\"480\" y=\"300\" fill=\"rgba(255,255,255,0.6)\" font-family=\"system-ui, sans-serif\" font-size=\"10\" text-anchor=\"middle\">StudyVault Knowledge Vector</text>\n\n    \n    <g transform=\"translate(120, 110)\">\n      <rect width=\"220\" height=\"100\" rx=\"12\" fill=\"#141822\" stroke=\"#8ab4f8\" stroke-width=\"1.8\"/>\n      <rect x=\"0\" y=\"0\" width=\"220\" height=\"4\" rx=\"2\" fill=\"#8ab4f8\"/>\n      <text x=\"14\" y=\"24\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"13\" font-weight=\"700\">Logical Link Control (</text>\n      <text x=\"14\" y=\"42\" fill=\"#e2e8f0\" font-family=\"system-ui, sans-serif\" font-size=\"11\" font-weight=\"600\">Upper Data-Link Sublayer</text>\n      <text x=\"14\" y=\"62\" fill=\"rgba(255,255,255,0.7)\" font-family=\"system-ui, sans-serif\" font-size=\"10.5\">Responsible for multiplexing, flow control, and erro</text>\n      <rect x=\"14\" y=\"74\" width=\"190\" height=\"16\" rx=\"4\" fill=\"rgba(255,255,255,0.06)\"/>\n      <text x=\"20\" y=\"86\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"9.5\" font-weight=\"600\">Unit1_DataLink_Framing.pdf</text>\n    </g>\n    <g transform=\"translate(620, 110)\">\n      <rect width=\"220\" height=\"100\" rx=\"12\" fill=\"#141822\" stroke=\"#c58af9\" stroke-width=\"1.8\"/>\n      <rect x=\"0\" y=\"0\" width=\"220\" height=\"4\" rx=\"2\" fill=\"#c58af9\"/>\n      <text x=\"14\" y=\"24\" fill=\"#c58af9\" font-family=\"system-ui, sans-serif\" font-size=\"13\" font-weight=\"700\">Media Access Control (</text>\n      <text x=\"14\" y=\"42\" fill=\"#e2e8f0\" font-family=\"system-ui, sans-serif\" font-size=\"11\" font-weight=\"600\">Lower Data-Link Sublayer</text>\n      <text x=\"14\" y=\"62\" fill=\"rgba(255,255,255,0.7)\" font-family=\"system-ui, sans-serif\" font-size=\"10.5\">One of the two primary IEEE 802 Data-Link sublayers </text>\n      <rect x=\"14\" y=\"74\" width=\"190\" height=\"16\" rx=\"4\" fill=\"rgba(255,255,255,0.06)\"/>\n      <text x=\"20\" y=\"86\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"9.5\" font-weight=\"600\">Unit1_DataLink_Framing.pdf</text>\n    </g>\n    <g transform=\"translate(120, 350)\">\n      <rect width=\"220\" height=\"100\" rx=\"12\" fill=\"#141822\" stroke=\"#8ab4f8\" stroke-width=\"1.8\"/>\n      <rect x=\"0\" y=\"0\" width=\"220\" height=\"4\" rx=\"2\" fill=\"#8ab4f8\"/>\n      <text x=\"14\" y=\"24\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"13\" font-weight=\"700\">Frame Header &amp; Del</text>\n      <text x=\"14\" y=\"42\" fill=\"#e2e8f0\" font-family=\"system-ui, sans-serif\" font-size=\"11\" font-weight=\"600\">Preamble &amp; SFD Synchro</text>\n      <text x=\"14\" y=\"62\" fill=\"rgba(255,255,255,0.7)\" font-family=\"system-ui, sans-serif\" font-size=\"10.5\">Formats outgoing packets starting with a preamble an</text>\n      <rect x=\"14\" y=\"74\" width=\"190\" height=\"16\" rx=\"4\" fill=\"rgba(255,255,255,0.06)\"/>\n      <text x=\"20\" y=\"86\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"9.5\" font-weight=\"600\">Unit1_DataLink_Framing.pdf</text>\n    </g>\n    <g transform=\"translate(620, 350)\">\n      <rect width=\"220\" height=\"100\" rx=\"12\" fill=\"#141822\" stroke=\"#c58af9\" stroke-width=\"1.8\"/>\n      <rect x=\"0\" y=\"0\" width=\"220\" height=\"4\" rx=\"2\" fill=\"#c58af9\"/>\n      <text x=\"14\" y=\"24\" fill=\"#c58af9\" font-family=\"system-ui, sans-serif\" font-size=\"13\" font-weight=\"700\">Addressing &amp; Verif</text>\n      <text x=\"14\" y=\"42\" fill=\"#e2e8f0\" font-family=\"system-ui, sans-serif\" font-size=\"11\" font-weight=\"600\">MAC Addresses &amp; 32-bit</text>\n      <text x=\"14\" y=\"62\" fill=\"rgba(255,255,255,0.7)\" font-family=\"system-ui, sans-serif\" font-size=\"10.5\">Encapsulates frames using 48-bit source and destinat</text>\n      <rect x=\"14\" y=\"74\" width=\"190\" height=\"16\" rx=\"4\" fill=\"rgba(255,255,255,0.06)\"/>\n      <text x=\"20\" y=\"86\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"9.5\" font-weight=\"600\">Unit1_DataLink_Framing.pdf</text>\n    </g>\n\n    <g transform=\"translate(30, 25)\">\n      <rect width=\"250\" height=\"34\" rx=\"8\" fill=\"rgba(138,180,248,0.1)\" stroke=\"rgba(138,180,248,0.3)\"/>\n      <circle cx=\"18\" cy=\"17\" r=\"5\" fill=\"#8ab4f8\"/>\n      <text x=\"32\" y=\"21\" fill=\"#8ab4f8\" font-family=\"system-ui, sans-serif\" font-size=\"11.5\" font-weight=\"700\">StudyVault Visual Architecture</text>\n    </g>\n\n    <g transform=\"translate(720, 502)\">\n      <rect width=\"210\" height=\"24\" rx=\"6\" fill=\"rgba(0,0,0,0.6)\" stroke=\"rgba(255,255,255,0.1)\"/>\n      <text x=\"105\" y=\"16\" fill=\"#94a3b8\" font-family=\"system-ui, sans-serif\" font-size=\"10\" text-anchor=\"middle\">📄 Grounded in Notebook Sources</text>\n    </g>\n  </svg>",
+          "previewUrl": "/assets/images/study_infographic_preview_1790174854345.jpg",
+          "tags": [
+            "Computer Networks",
+            "Data-Link Layer",
+            "MAC Framing",
+            "IEEE 802"
+          ],
+          "nodes": [
+            {
+              "title": "Logical Link Control (LLC)",
+              "subtitle": "Upper Data-Link Sublayer",
+              "detail": "Responsible for multiplexing, flow control, and error management across link boundaries.",
+              "sourceCitation": "Unit1_DataLink_Framing.pdf, Page 2"
+            },
+            {
+              "title": "Media Access Control (MAC)",
+              "subtitle": "Lower Data-Link Sublayer",
+              "detail": "One of the two primary IEEE 802 Data-Link sublayers responsible for packet formatting and frame delimitation.",
+              "sourceCitation": "Unit1_DataLink_Framing.pdf, Page 1"
+            },
+            {
+              "title": "Frame Header & Delimiters",
+              "subtitle": "Preamble & SFD Synchronization",
+              "detail": "Formats outgoing packets starting with a preamble and a start frame delimiter prior to physical address fields.",
+              "sourceCitation": "Unit1_DataLink_Framing.pdf, Page 3"
+            },
+            {
+              "title": "Addressing & Verification",
+              "subtitle": "MAC Addresses & 32-bit CRC",
+              "detail": "Encapsulates frames using 48-bit source and destination MAC addresses and terminates with a 32-bit CRC Frame Check Sequence.",
+              "sourceCitation": "Unit1_DataLink_Framing.pdf, Page 3"
+            }
+          ],
+          "citations": [
+            "Unit1_DataLink_Framing.pdf, Page 2",
+            "Unit1_DataLink_Framing.pdf, Page 1",
+            "Unit1_DataLink_Framing.pdf, Page 3",
+            "Unit1_DataLink_Framing.pdf, Page 3"
+          ],
+          "imageProviderStatus": {
+            "rasterImageSupported": false,
+            "provider": "gemini-vector-synthesis",
+            "notice": "Direct raster image generation (Imagen) is not enabled on this Gemini API key (requires Gemini Enterprise/Vertex AI). Generated source-grounded vector architectural diagram."
+          },
+          "createdAt": "2026-09-27T06:26:47.625Z"
+        }
+      ],
+      "updatedAt": "2026-09-27T06:26:47.625Z"
+    },
+    {
+      "notebookId": "mujfqpyw1vjsz",
+      "type": "video",
+      "data": {
+        "id": "vid_mujfrl16",
+        "title": "Data Link Sublayers and Resource Deadlock Synchronization",
+        "topic": "Computer Networking and Resource Synchronization",
+        "style": "explainer",
+        "totalDuration": 75,
+        "posterUrl": "/assets/images/video_lecture_preview_1790174869587.jpg",
+        "scenes": [
+          {
+            "sceneNumber": 1,
+            "title": "Architectural Foundations of the Data-Link Layer",
+            "duration": 18,
+            "narration": "Welcome to our analysis of network layers and resource synchronization. As noted on page 1 of Unit 1 Data Link Framing, the Data-Link Layer in computer networks is formally divided into two distinct IEEE 802 sublayers: Logical Link Control, or LLC, and Media Access Control, commonly known as MAC. Establishing this boundary allows lower-level physical transmission to remain separate from higher-level logical flow management.",
+            "keyPoints": [
+              "Data-Link Layer structured under IEEE 802 specifications",
+              "Divided into Logical Link Control (LLC) sublayer",
+              "Separated into Media Access Control (MAC) sublayer"
+            ],
+            "citations": [
+              {
+                "filename": "Unit1_DataLink_Framing.pdf",
+                "pageNumber": 1
+              }
+            ],
+            "colorTheme": "#4a90e2",
+            "graphicType": "network_flow",
+            "subtitles": [
+              "The Data-Link Layer is divided into two IEEE 802 sublayers.",
+              "These are Logical Link Control (LLC) and Media Access Control (MAC).",
+              "This architectural split decouples framing and access management."
+            ]
+          },
+          {
+            "sceneNumber": 2,
+            "title": "LLC Protocols and MAC Frame Mechanics",
+            "duration": 20,
+            "narration": "Diving deeper into sublayer mechanics, page 2 of Unit 1 points out that the LLC sublayer oversees multiplexing, flow control, and error management across link boundaries. Meanwhile, on page 3, we observe how MAC framing formats data packets: standard frames assemble a preamble, a start frame delimiter, 48-bit source and destination MAC addresses, and a 32-bit CRC Frame Check Sequence for validation.",
+            "keyPoints": [
+              "LLC manages multiplexing, flow control, and error handling",
+              "MAC frames incorporate 48-bit source and destination addresses",
+              "32-bit CRC Frame Check Sequence ensures frame integrity"
+            ],
+            "citations": [
+              {
+                "filename": "Unit1_DataLink_Framing.pdf",
+                "pageNumber": 2
+              },
+              {
+                "filename": "Unit1_DataLink_Framing.pdf",
+                "pageNumber": 3
+              }
+            ],
+            "colorTheme": "#50e3c2",
+            "graphicType": "network_flow",
+            "subtitles": [
+              "LLC delivers multiplexing, flow control, and error management.",
+              "MAC framing includes preambles, delimiters, and 48-bit addresses.",
+              "Integrity is verified with a 32-bit CRC Frame Check Sequence."
+            ]
+          },
+          {
+            "sceneNumber": 3,
+            "title": "Deadlock States and Coffman Conditions",
+            "duration": 19,
+            "narration": "Transitioning to system synchronization, page 1 of Unit 2 Deadlock Arbitration defines deadlock as a state where concurrent processes are permanently blocked while waiting for locked resources. Furthermore, page 2 specifies the four indispensable Coffman conditions that produce this impasse: Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait.",
+            "keyPoints": [
+              "Deadlock permanently blocks concurrent processes waiting on resources",
+              "Requires Mutual Exclusion and Hold and Wait conditions",
+              "Sustained by No Preemption and Circular Wait states"
+            ],
+            "citations": [
+              {
+                "filename": "Unit2_Deadlock_Arbitration.pdf",
+                "pageNumber": 1
+              },
+              {
+                "filename": "Unit2_Deadlock_Arbitration.pdf",
+                "pageNumber": 2
+              }
+            ],
+            "colorTheme": "#e67e22",
+            "graphicType": "process_tree",
+            "subtitles": [
+              "Deadlock occurs when concurrent processes are permanently blocked.",
+              "Four Coffman conditions are required for deadlock to exist.",
+              "These include Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait."
+            ]
+          },
+          {
+            "sceneNumber": 4,
+            "title": "Arbitration: Prevention and Banker's Algorithm",
+            "duration": 18,
+            "narration": "To maintain reliable resource execution, we apply prevention and avoidance strategies. As highlighted on page 3 of Unit 2, deadlock prevention functions by proactively dismantling at least one Coffman condition to prevent circular chains. Finally, page 4 demonstrates that the Banker's algorithm evaluates maximum demand matrices and allocation vectors to verify safe states, ensuring total deadlock avoidance.",
+            "keyPoints": [
+              "Deadlock prevention invalidates at least one Coffman condition",
+              "Elimination of circular wait guarantees structural progress",
+              "Banker's algorithm checks safe states via demand matrices and allocation vectors"
+            ],
+            "citations": [
+              {
+                "filename": "Unit2_Deadlock_Arbitration.pdf",
+                "pageNumber": 3
+              },
+              {
+                "filename": "Unit2_Deadlock_Arbitration.pdf",
+                "pageNumber": 4
+              }
+            ],
+            "colorTheme": "#2ecc71",
+            "graphicType": "decision_matrix",
+            "subtitles": [
+              "Deadlock prevention breaks at least one Coffman condition.",
+              "The Banker's algorithm utilizes maximum demand matrices.",
+              "Allocation vectors verify safe states for complete avoidance."
+            ]
+          }
+        ],
+        "scopeSummary": "Grounded in 7 excerpts from Unit1_DataLink_Framing.pdf, Unit2_Deadlock_Arbitration.pdf",
+        "createdAt": "2026-09-27T06:26:58.746Z"
+      },
+      "updatedAt": "2026-09-27T06:26:58.746Z"
+    }
+  ],
+  "auditLogs": [
+    {
+      "_id": "mujf4z60rxwnq",
+      "timestamp": "2026-09-27T06:09:23.976Z",
+      "adminUser": {
+        "id": "mucsfqiggbpat",
+        "email": "admin@studyassistant.com",
+        "name": "System Admin"
+      },
+      "action": "admin_login",
+      "affectedEntity": "auth",
+      "metadata": {
+        "method": "password_login",
+        "ip": "127.0.0.1"
+      }
+    },
+    {
+      "_id": "mujez5mtg673i",
+      "timestamp": "2026-09-27T06:04:52.421Z",
+      "adminUser": {
+        "id": "mucsfqiggbpat",
+        "email": "admin@studyassistant.com",
+        "name": "System Admin"
+      },
+      "action": "admin_login",
+      "affectedEntity": "auth",
+      "metadata": {
+        "method": "password_login",
+        "ip": "127.0.0.1"
+      }
+    },
+    {
+      "_id": "mujez1hzc2e9d",
+      "timestamp": "2026-09-27T06:04:47.063Z",
+      "adminUser": {
+        "id": "mucsfqiggbpat",
+        "email": "admin@studyassistant.com",
+        "name": "System Admin"
+      },
+      "action": "admin_login",
+      "affectedEntity": "auth",
+      "metadata": {
+        "method": "password_login",
+        "ip": "127.0.0.1"
+      }
     }
   ]
 }

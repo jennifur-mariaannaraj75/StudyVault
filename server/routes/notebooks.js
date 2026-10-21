@@ -17,7 +17,21 @@ router.get("/", async (req, res) => {
     const userId = req.user ? req.user.id : null;
     const role = req.user ? req.user.role : "user";
     const notebooks = await store.getNotebooks(userId, role);
-    res.json(notebooks);
+    const notebooksWithDocs = await Promise.all(
+      notebooks.map(async (nb) => {
+        const nbObj = typeof nb.toObject === "function" ? nb.toObject() : { ...nb };
+        const docs = await store.getDocuments(nb._id);
+        nbObj.documentCount = docs ? docs.length : 0;
+        return nbObj;
+      })
+    );
+    notebooksWithDocs.sort((a, b) => {
+      if ((b.documentCount > 0) !== (a.documentCount > 0)) {
+        return (b.documentCount > 0) ? 1 : -1;
+      }
+      return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+    });
+    res.json(notebooksWithDocs);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -87,10 +101,24 @@ router.post("/sample/:sampleKey", async (req, res) => {
 // Create a notebook
 router.post("/", async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, description, icon, color } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: "Notebook title is required" });
+    }
     const userId = req.user ? req.user.id : null;
-    const notebook = await store.createNotebook(title, description, userId);
+    const notebook = await store.createNotebook(title.trim(), description || "", userId, icon || "📓", color || "#8ab4f8");
     res.status(201).json(notebook);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Duplicate a notebook
+router.post("/:id/duplicate", async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : null;
+    const duplicated = await store.duplicateNotebook(req.params.id, userId);
+    res.status(201).json(duplicated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -101,6 +129,14 @@ router.get("/:id", async (req, res) => {
   try {
     const notebook = await store.getNotebookById(req.params.id);
     if (!notebook) return res.status(404).json({ error: "Notebook not found" });
+
+    // Authorization: if notebook is private to a user, block guests and other users
+    if (notebook.userId && req.user?.role !== "admin") {
+      if (!req.user || String(notebook.userId) !== String(req.user.id)) {
+        return res.status(403).json({ error: "Access denied. This notebook belongs to a registered user." });
+      }
+    }
+
     const documents = await store.getDocuments(notebook._id);
     res.json({ notebook, documents });
   } catch (err) {
@@ -111,8 +147,16 @@ router.get("/:id", async (req, res) => {
 // Rename / update a notebook
 router.put("/:id", async (req, res) => {
   try {
+    const existing = await store.getNotebookById(req.params.id);
+    if (!existing) return res.status(404).json({ error: "Notebook not found" });
+
+    if (existing.userId && req.user?.role !== "admin") {
+      if (!req.user || String(existing.userId) !== String(req.user.id)) {
+        return res.status(403).json({ error: "Access denied. You do not own this notebook." });
+      }
+    }
+
     const notebook = await store.updateNotebook(req.params.id, req.body);
-    if (!notebook) return res.status(404).json({ error: "Notebook not found" });
     res.json(notebook);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -122,6 +166,15 @@ router.put("/:id", async (req, res) => {
 // Delete a notebook and everything inside it
 router.delete("/:id", async (req, res) => {
   try {
+    const existing = await store.getNotebookById(req.params.id);
+    if (!existing) return res.status(404).json({ error: "Notebook not found" });
+
+    if (existing.userId && req.user?.role !== "admin") {
+      if (!req.user || String(existing.userId) !== String(req.user.id)) {
+        return res.status(403).json({ error: "Access denied. You do not own this notebook." });
+      }
+    }
+
     await store.deleteNotebook(req.params.id);
     res.json({ success: true });
   } catch (err) {

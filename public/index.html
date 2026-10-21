@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>StudyVault — AI-Powered Source-Grounded Study Assistant</title>
 <meta name="description" content="StudyVault: Upload PDFs, get AI-grounded answers with exact page citations, generate flashcards, quizzes, and exam notes.">
+<meta property="og:title" content="StudyVault — AI-Powered Source-Grounded Study Assistant" />
+<meta property="og:description" content="Upload PDFs, get AI-grounded answers with exact page citations, generate flashcards, quizzes, and exam notes." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/vendor/katex/katex.min.css" />
 <link rel="stylesheet" href="css/style.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="/js/pdf.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -36,7 +39,7 @@
         </svg>
       </div>
       <span class="landing-logo-name">StudyVault</span>
-      <span class="landing-logo-badge">BETA</span>
+      <span class="landing-logo-badge">Beta</span>
     </div>
 
     <h1 class="landing-headline">
@@ -50,20 +53,20 @@
     </p>
 
     <div class="landing-features">
-      <div class="lf-chip">📄 Page-Level Citations</div>
-      <div class="lf-chip">🃏 Spaced Repetition</div>
-      <div class="lf-chip">🧪 Interactive Quiz</div>
-      <div class="lf-chip">✍️ Exam Mode Answers</div>
-      <div class="lf-chip">🎧 AI Podcast</div>
-      <div class="lf-chip">🛡️ Admin Panel</div>
+      <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Page-level citations</div>
+      <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> Spaced repetition</div>
+      <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Interactive quiz</div>
+      <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Deep study answers</div>
+      <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> AI podcast</div>
+      <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Admin panel</div>
     </div>
 
     <div class="landing-stats">
-      <div class="landing-stat"><span class="ls-num">100%</span><span class="ls-label">Source-Grounded</span></div>
+      <div class="landing-stat"><span class="ls-num">100%</span><span class="ls-label">Source-grounded</span></div>
       <div class="landing-stat-divider"></div>
-      <div class="landing-stat"><span class="ls-num">5+</span><span class="ls-label">Study Modes</span></div>
+      <div class="landing-stat"><span class="ls-num">5+</span><span class="ls-label">Study modes</span></div>
       <div class="landing-stat-divider"></div>
-      <div class="landing-stat"><span class="ls-num">Free</span><span class="ls-label">To Get Started</span></div>
+      <div class="landing-stat"><span class="ls-num">Free</span><span class="ls-label">To get started</span></div>
     </div>
   </div>
 
@@ -72,8 +75,8 @@
 
     <!-- Tab switcher -->
     <div class="landing-auth-tabs">
-      <button class="lat active" data-lat="signin" id="latSignin">Sign In</button>
-      <button class="lat" data-lat="signup" id="latSignup">Create Account</button>
+      <button class="lat active" data-lat="signin" id="latSignin">Sign in</button>
+      <button class="lat" data-lat="signup" id="latSignup">Create account</button>
     </div>
 
     <!-- SIGN IN FORM -->
@@ -86,16 +89,19 @@
         <label>Password</label>
         <div class="lat-pw-wrap">
           <input type="password" id="latPassword" class="lat-input" placeholder="Your password" autocomplete="current-password" required />
-          <button type="button" class="lat-pw-toggle" id="latPwToggle" tabindex="-1">👁</button>
+          <button type="button" class="lat-pw-toggle" id="latPwToggle" tabindex="-1" title="Toggle password visibility">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
         </div>
       </div>
       <div class="lat-error" id="latSigninError" style="display:none"></div>
       <button type="submit" class="lat-submit" id="latSigninBtn">
-        <span>Sign In</span>
+        <span>Sign in</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
       <button type="button" class="lat-demo-btn" id="latDemoBtn">
-        <span>⚡ 1-Click Demo Login (Auto-fill)</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span>1-Click demo login (Auto-fill)</span>
       </button>
       <div class="lat-switch-text">
         Don't have an account? <a href="javascript:void(0)" class="lat-switch-link" id="toSignupLink">Create an account</a>
@@ -118,11 +124,11 @@
       </div>
       <div class="lat-error" id="latSignupError" style="display:none"></div>
       <button type="submit" class="lat-submit" id="latSignupBtn">
-        <span>Create Free Account</span>
+        <span>Create free account</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
       <div class="lat-switch-text">
-        Already have an account? <a href="javascript:void(0)" class="lat-switch-link" id="toSigninLink">Sign In</a>
+        Already have an account? <a href="javascript:void(0)" class="lat-switch-link" id="toSigninLink">Sign in</a>
       </div>
     </form>
 
@@ -136,7 +142,8 @@
       Continue with Google
     </button>
     <button type="button" class="lat-demo-btn" id="latGuestBtn" style="margin-top:0.4rem; margin-bottom:1rem;">
-      <span>👤 Explore as Guest (No sign up needed)</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Explore as guest (No sign up needed)</span>
     </button>
 
     <p class="lat-footer">By signing in you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a>.</p>
@@ -145,14 +152,262 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
-<!--  MAIN APP  (hidden until logged in)                         -->
+<!--  MAIN NOTEBOOK LIBRARY & COLLECTIONS (Post-Login)           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="libraryPage" class="library-page" style="display:none">
+
+  <!-- LIBRARY TOP NAVIGATION (Gemini Notebook Inspired) -->
+  <header class="library-nav">
+    <div class="library-nav-left">
+      <div class="library-brand-wrap" id="libraryBrandLogo" title="StudyVault Library">
+        <div class="sparkle-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 0C12 6.62742 6.62742 12 0 12C6.62742 12 12 17.3726 12 24C12 17.3726 17.3726 12 24 12C17.3726 12 12 6.62742 12 0Z" fill="url(#gemini-grad-lib)"/>
+            <defs>
+              <linearGradient id="gemini-grad-lib" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#8AB4F8"/>
+                <stop offset="0.5" stop-color="#C58AF9"/>
+                <stop offset="1" stop-color="#78D9EC"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="library-brand-name">StudyVault</span>
+        <span class="library-brand-pill">Library</span>
+      </div>
+    </div>
+
+    <!-- Center Navigation Tabs -->
+    <nav class="library-nav-center" aria-label="Library Navigation">
+      <button class="lib-nav-tab active" data-tab="all" id="libTabAll">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>All</span>
+        <span class="lib-tab-count" id="libCountAll">0</span>
+      </button>
+      <button class="lib-nav-tab" data-tab="my" id="libTabMy">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>My Notebooks</span>
+        <span class="lib-tab-count" id="libCountMy">0</span>
+      </button>
+      <button class="lib-nav-tab" data-tab="collections" id="libTabCollections">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span>Collections</span>
+        <span class="lib-tab-count" id="libCountCollections">0</span>
+      </button>
+    </nav>
+
+    <!-- Right Controls -->
+    <div class="library-nav-right">
+      <!-- Search Input -->
+      <div class="lib-search-box">
+        <svg class="lib-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="libSearchInput" placeholder="Search notebooks and collections..." autocomplete="off" />
+        <button class="lib-search-clear" id="libSearchClear" style="display:none" title="Clear search">✕</button>
+        <span class="lib-search-shortcut"><kbd>/</kbd></span>
+      </div>
+
+      <!-- Sorting dropdown -->
+      <div class="lib-sort-wrap">
+        <select id="libSortSelect" class="lib-sort-select" title="Sort order">
+          <option value="recent">Recently modified</option>
+          <option value="created">Recently created</option>
+          <option value="alpha">Alphabetical (A-Z)</option>
+        </select>
+      </div>
+
+      <!-- View Mode Toggles (Grid / List) -->
+      <div class="lib-view-toggles" role="group" aria-label="View Mode">
+        <button class="lib-view-btn active" id="libViewGridBtn" title="Grid view">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+        </button>
+        <button class="lib-view-btn" id="libViewListBtn" title="List view">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Settings button -->
+      <button class="btn-icon" id="libSettingsBtn" title="AI Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+
+      <!-- User Profile Menu -->
+      <div class="user-menu" id="libUserMenu">
+        <button class="user-avatar-btn" id="libUserAvatarBtn">
+          <div class="user-avatar-circle" id="libUserAvatarCircle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <span class="user-name-label" id="libUserNameLabel">Student</span>
+          <svg class="user-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="user-dropdown" id="libUserDropdown">
+          <div class="user-dropdown-header">
+            <div class="dropdown-user-email" id="libDropdownUserEmail">user@email.com</div>
+            <div class="dropdown-user-role" id="libDropdownUserRole">Student</div>
+          </div>
+          <button class="dropdown-item" id="libAdminPanelBtn" style="display:none">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Admin panel</span>
+          </button>
+          <button class="dropdown-item" id="libSettingsBtnDropdown">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>AI settings</span>
+          </button>
+          <button class="dropdown-item dropdown-item-danger" id="libLogoutBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Log out</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN SCROLLABLE LIBRARY CONTAINER -->
+  <main class="library-container">
+
+    <!-- HERO HEADER WITH CALLS TO ACTION & GENERATED VISUAL -->
+    <section class="library-hero">
+      <div class="library-hero-content">
+        <div class="library-hero-text">
+          <div class="library-hero-badge">
+            <span class="lib-badge-dot"></span>
+            <span>AI Knowledge Engine</span>
+          </div>
+          <h1 class="library-hero-title">
+            <span>Welcome to</span> <span class="gradient-text">StudyVault</span>
+          </h1>
+          <p class="library-hero-subtitle">
+            Organize your research, grounded in textbooks, slides, and multi-modal study notes. Cites exact pages and generates dynamic study tools.
+          </p>
+          <div class="library-hero-actions">
+            <button class="btn-create-notebook-hero" id="heroNewNotebookBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              <span>New notebook</span>
+            </button>
+            <button class="btn-create-collection-hero" id="heroNewCollectionBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+              <span>Create collection</span>
+            </button>
+          </div>
+        </div>
+        <div class="library-hero-art">
+          <img src="/assets/images/studyvault_library_hero_1791821384725.jpg" alt="StudyVault AI Notebooks and Knowledge Graphic" class="library-hero-image" referrerpolicy="no-referrer" />
+          <div class="hero-art-glow"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUICK COLLECTIONS CAROUSEL (Visible in All tab) -->
+    <section class="library-collections-row" id="quickCollectionsRow" style="display:none">
+      <div class="section-row-header">
+        <div class="row-header-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <h3>Collections</h3>
+        </div>
+        <button class="btn-link" id="viewAllCollectionsLink">View all collections →</button>
+      </div>
+      <div class="collections-carousel" id="quickCollectionsCarousel"></div>
+    </section>
+
+    <!-- ACTIVE TAB CONTENT WRAPPER -->
+    <section class="library-content-section">
+
+      <!-- Section Title & Counter Bar -->
+      <div class="library-section-bar">
+        <div class="section-bar-left">
+          <h2 class="library-section-title" id="librarySectionTitle">All Notebooks</h2>
+          <span class="library-item-counter" id="libraryItemCounter">0 items</span>
+        </div>
+        <div class="section-bar-right" id="activeFilterTags"></div>
+      </div>
+
+      <!-- SKELETON LOADER -->
+      <div class="library-grid skeleton-grid" id="librarySkeletonLoader" style="display:none">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+
+      <!-- MAIN CARDS GRID / LIST -->
+      <div class="library-grid" id="libraryCardsGrid">
+        <!-- Dynamically rendered notebook or collection cards -->
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div class="library-empty" id="libraryEmptyState" style="display:none">
+        <div class="empty-icon-circle">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <h3 id="libraryEmptyTitle">No notebooks found</h3>
+        <p id="libraryEmptyText">Get started by creating your first study notebook or try our sample research.</p>
+        <div class="empty-action-btns">
+          <button class="btn-primary" id="emptyCreateNotebookBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Create notebook</span>
+          </button>
+          <button class="btn-ghost" id="emptySampleBtn">Load sample research</button>
+        </div>
+      </div>
+
+      <!-- COLLECTION DETAIL VIEW (Rendered when viewing a single collection) -->
+      <div class="collection-detail-container" id="collectionDetailContainer" style="display:none">
+        <div class="collection-detail-header">
+          <button class="btn-back-collections" id="backToCollectionsBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            <span>Back to Collections</span>
+          </button>
+          
+          <div class="collection-hero-card">
+            <div class="col-hero-icon" id="colDetailIcon">📁</div>
+            <div class="col-hero-info">
+              <div class="col-hero-top-row">
+                <h1 class="col-hero-title" id="colDetailTitle">Collection Name</h1>
+                <span class="col-badge" id="colDetailCountBadge">0 notebooks</span>
+              </div>
+              <p class="col-hero-desc" id="colDetailDesc">Collection description goes here...</p>
+            </div>
+            <div class="col-hero-actions">
+              <button class="btn-primary-sm" id="colDetailAddNotebooksBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                <span>Add notebooks</span>
+              </button>
+              <button class="btn-ghost" id="colDetailEditBtn">Edit</button>
+              <button class="btn-ghost btn-danger" id="colDetailDeleteBtn">Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="collection-notebooks-list-header">
+          <h3>Notebooks in this collection</h3>
+        </div>
+
+        <div class="library-grid" id="collectionNotebooksGrid">
+          <!-- Notebook cards in this collection -->
+        </div>
+
+        <div class="collection-empty" id="collectionEmptyState" style="display:none">
+          <p>No notebooks have been added to this collection yet.</p>
+          <button class="btn-primary-sm" id="colEmptyAddBtn">+ Add notebooks now</button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  MAIN APP  (hidden until logged in and notebook selected)   -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div class="app" id="app" style="display:none">
 
   <!-- TOP BAR / HEADER -->
   <header class="topbar">
     <div class="brand-group">
-      <div class="sparkle-logo">
+      <button class="btn-back-library" id="backToLibraryBtn" title="Back to Notebook Library">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+        <span>Library</span>
+      </button>
+      <div class="sparkle-logo" id="workspaceLogoClickable" style="cursor:pointer;" title="Go to Library">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 0C12 6.62742 6.62742 12 0 12C6.62742 12 12 17.3726 12 24C12 17.3726 17.3726 12 24 12C17.3726 12 12 6.62742 12 0Z" fill="url(#gemini-grad)"/>
           <defs>
@@ -164,39 +419,61 @@
           </defs>
         </svg>
       </div>
-      <span class="brand-title">StudyVault <span class="brand-badge">AI Study Assistant</span></span>
+      <span class="brand-title" id="workspaceBrandTitleClickable" style="cursor:pointer;" title="Go to Library">StudyVault <span class="brand-badge">Workspace</span></span>
     </div>
 
     <div class="notebook-active-info">
-      <div class="notebook-header-badge">📓 STUDY WORKSPACE</div>
+      <div class="notebook-header-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>Workspace</span>
+      </div>
       <h1 id="notebookTitle">Select or create a notebook</h1>
-      <span class="storage-status-pill" id="storagePill" style="display:none">Zero-Config Mode</span>
+      <span class="storage-status-pill" id="storagePill" style="display:none">Zero-config mode</span>
     </div>
 
     <div class="topbar-actions">
-      <button class="btn-primary-sm" id="sampleNotebooksBtn">✨ Sample Research</button>
-      <button class="btn-icon" id="openSettingsBtn" title="AI Settings">⚙️</button>
+      <button class="btn-primary-sm" id="sampleNotebooksBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
+        <span>Sample research</span>
+      </button>
+      <button class="btn-icon" id="openSettingsBtn" title="AI Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
       <button class="btn-ghost" id="renameBtn" style="display:none">Rename</button>
       <button class="btn-ghost btn-danger" id="deleteNotebookBtn" style="display:none">Delete</button>
 
       <!-- Auth: Logged Out -->
-      <button class="btn-auth-login" id="openAuthModalBtn">🔑 Sign In</button>
+      <button class="btn-auth-login" id="openAuthModalBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        <span>Sign in</span>
+      </button>
 
       <!-- Auth: Logged In (hidden until authed) -->
       <div class="user-menu" id="userMenu" style="display:none">
         <button class="user-avatar-btn" id="userAvatarBtn">
-          <div class="user-avatar-circle" id="userAvatarCircle">👤</div>
+          <div class="user-avatar-circle" id="userAvatarCircle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
           <span class="user-name-label" id="userNameLabel">Student</span>
-          <span class="user-chevron">▾</span>
+          <svg class="user-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="user-dropdown" id="userDropdown">
           <div class="user-dropdown-header">
             <div class="dropdown-user-email" id="dropdownUserEmail">user@email.com</div>
             <div class="dropdown-user-role" id="dropdownUserRole">Student</div>
           </div>
-          <button class="dropdown-item" id="adminPanelBtn" style="display:none">🛡️ Admin Panel</button>
-          <button class="dropdown-item" id="openSettingsBtnUser">⚙️ AI Settings</button>
-          <button class="dropdown-item dropdown-item-danger" id="logoutBtn">🚪 Logout</button>
+          <button class="dropdown-item" id="adminPanelBtn" style="display:none">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Admin panel</span>
+          </button>
+          <button class="dropdown-item" id="openSettingsBtnUser">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>AI settings</span>
+          </button>
+          <button class="dropdown-item dropdown-item-danger" id="logoutBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Log out</span>
+          </button>
         </div>
       </div>
     </div>
@@ -210,8 +487,8 @@
       <!-- Create Notebook Primary Action -->
       <div class="sidebar-header-action">
         <button class="btn-create-notebook-primary" id="newNotebookBtn">
-          <span class="btn-icon-plus">+</span>
-          <span>New Notebook</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          <span>New notebook</span>
         </button>
       </div>
 
@@ -221,42 +498,38 @@
       
       <div class="shelf-list" id="notebookList"></div>
 
-      <div class="panel-section-header" style="margin-top: 1.25rem;">
-        <span class="section-title">Sources in Notebook (<span id="sourceCount">0</span>)</span>
-        <button class="btn-icon-subtle" id="searchSourcesBtn" title="Search Across Sources">🔍</button>
+      <!-- Sources Section with clean Add Source Header -->
+      <div class="panel-section-header sources-header">
+        <div class="sources-title-group">
+          <span class="section-title">Sources</span>
+          <span class="source-count-badge" id="sourceCount">0</span>
+        </div>
+        <div class="sources-header-btns">
+          <button class="btn-icon-subtle" id="searchSourcesBtn" title="Search across sources">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button class="btn-add-source-compact" id="addSourceMenuBtn" title="Add source">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Add source</span>
+          </button>
+        </div>
       </div>
 
       <div class="source-search-box" id="sourceSearchBox" style="display:none">
         <input type="text" id="sourceSearchInput" placeholder="Search across all sources..." />
       </div>
-
-      <!-- Prominent Drag & Drop Area for PDF / Text in Sidebar -->
-      <div class="sidebar-dropzone" id="sidebarDropzone" title="Click or drag files here to upload">
-        <div class="dropzone-sparkle-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9m-4-4 4-4 4 4"/>
-          </svg>
-        </div>
-        <div class="dropzone-label">Drop PDF / Docs here</div>
-        <div class="dropzone-sub">or click to upload (.pdf, .txt, .md)</div>
+      <div class="sources-quick-actions-bar" id="sourcesQuickActionsBar">
+        <button type="button" class="btn-view-sources-primary" id="btnViewAllSources" title="Open PDF & Presentation Slide Reader">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span>Open PDF & Slide Reader</span>
+        </button>
       </div>
 
       <div class="sources-list" id="sourcesRailInner">
         <p class="sources-empty">No sources added yet.</p>
       </div>
 
-      <div class="add-source-group">
-        <button class="btn-add-source" id="addSourceMenuBtn">
-          <span>＋ Add Source Options</span>
-        </button>
-        <div class="add-source-dropdown" id="addSourceDropdown">
-          <button id="optUploadPdf">📄 Upload PDF / Text file</button>
-          <button id="optPasteText">📝 Paste Text Note</button>
-          <button id="optAddUrl">🌐 Scrape Web URL</button>
-          <button id="optSampleData">⚡ Load Sample Research</button>
-        </div>
-        <input type="file" id="fileInput" accept=".pdf,.txt,.md" multiple hidden />
-      </div>
+      <input type="file" id="fileInput" accept=".pdf,.pptx,.ppt,.docx,.doc,.txt,.md,.rtf,.csv" multiple hidden />
     </aside>
 
     <!-- CENTER PANEL: Grounded Gemini Chat -->
@@ -264,64 +537,77 @@
       <div class="chat-header">
         <div class="chat-title-group">
           <div class="chat-badge-row">
-            <span class="chat-primary-badge">🧠 GROUNDED STUDY CHAT</span>
-            <span class="grounded-tag" id="chatSourceBadge">🛡️ Citing Uploaded Sources</span>
+            <span class="chat-primary-badge">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span>Source-grounded chat</span>
+            </span>
+            <span class="grounded-tag" id="chatSourceBadge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Citing uploaded sources</span>
+            </span>
           </div>
-          <h2 class="chat-main-heading">Ask Questions & Explore Concepts</h2>
+          <h2 class="chat-main-heading">Ask Questions & Explore Sources</h2>
         </div>
-        <div class="action-mode-bar">
-          <button class="chip-mode active" data-mode="chat" title="Free-form exploratory Q&A with citations">💬 Chat</button>
-          <button class="chip-mode" data-mode="explain" title="Beginner-friendly conceptual breakdown">📖 Explain</button>
-          <button class="chip-mode" data-mode="2-mark" title="Concise exam definition & 2-4 key points">✍️ 2-Mark</button>
-          <button class="chip-mode" data-mode="5-mark" title="Structured 5-part academic breakdown">📝 5-Mark</button>
-          <button class="chip-mode" data-mode="10-mark" title="Comprehensive essay & diagram blueprint">🏆 10-Mark</button>
+        <div class="chat-header-actions">
+          <button type="button" class="btn-chat-view-sources" id="btnChatViewSources" title="Open PDF & Presentation Slide Reader">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>Read Sources / PDF</span>
+          </button>
         </div>
       </div>
 
-      <!-- Contextual Exam Mode Banner -->
-      <div class="exam-mode-banner" id="examModeBanner" style="display:none">
-        <span class="exam-banner-icon">✍️</span>
-        <span class="exam-banner-text" id="examBannerText">Active Mode: 2-Mark Answer (Concise definition & key bullet points)</span>
-      </div>
+      
 
       <div class="chat-container" id="chatSection">
         <div class="chat-log" id="chatLog">
           <div class="chat-empty" id="chatEmpty">
             <div class="empty-hero-card">
-              <div class="empty-sparkle-logo">✨</div>
-              <h3>What would you like to study today?</h3>
-              <p class="empty-hero-sub">
-                StudyVault analyzes your documents to answer questions with verifiable page citations. Ask questions, generate exam answers, or review key takeaways.
-              </p>
 
-              <!-- Prominent Center Dropzone (Shown when no sources in notebook) -->
-              <div class="center-dropzone" id="centerDropzone">
-                <div class="center-dropzone-icon">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="12" y1="18" x2="12" y2="12"/>
-                    <line x1="9" y1="15" x2="12" y2="12"/>
-                    <line x1="15" y1="15" x2="12" y2="12"/>
-                  </svg>
+              <!-- Shown when NO sources exist in notebook: friendly hero with ONE BIG "Add source" CTA -->
+              <div class="center-empty-state" id="centerEmptyState">
+                <div class="empty-state-badge">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  <span>Workspace</span>
                 </div>
-                <h4>Drag & Drop your PDF study materials here</h4>
-                <p>Supports lecture slides, textbook chapters, and research papers (.pdf, .txt, .md)</p>
-                <div class="center-dropzone-actions">
-                  <button type="button" class="btn-primary-sm" id="btnCenterUpload">📁 Browse Files</button>
-                  <button type="button" class="btn-ghost-sm" id="btnCenterSample">⚡ Load Sample Material</button>
-                  <button type="button" class="btn-ghost-sm" id="btnCenterPaste">📝 Paste Notes</button>
+                <h2 class="empty-state-headline">What would you like to explore?</h2>
+                <p class="empty-state-sub">
+                  Upload your documents, reports, research papers, manuals, or articles. StudyVault grounds every response with exact page citations.
+                </p>
+
+                <!-- One big “Add source” CTA -->
+                <div class="empty-state-cta-box">
+                  <button type="button" class="btn-cta-big-add-source" id="btnBigAddSource">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+                    <span>Add source</span>
+                  </button>
+                  <span class="empty-state-cta-hint">Supports PDF, TXT, and Markdown documents</span>
+                </div>
+
+                <!-- Quick Starter Samples -->
+                <div class="starter-sample-wrapper" id="starterSampleWrapper">
+                  <span class="starter-sample-label">Or explore with sample research:</span>
+                  <div class="starter-sample-chips">
+                    <button type="button" class="starter-sample-chip" data-sample="quantum">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                      <span>Quantum Computing & Encryption</span>
+                    </button>
+                    <button type="button" class="starter-sample-chip" data-sample="neuroscience">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                      <span>AI & Biological Neural Networks</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <!-- Suggested Questions Grid (Populated dynamically when documents are ready) -->
-              <div class="suggested-questions-section" id="suggestedQuestionsSection" style="display:none">
-                <div class="suggested-header">
-                  <span class="suggested-sparkle">💡</span>
-                  <span>Suggested Study Prompts</span>
+              <!-- Shown when sources exist: starter prompts grid -->
+              <div class="starter-prompts-section" id="starterPromptsSection" style="display:none">
+                <div class="starter-prompts-header">
+                  <span class="starter-prompts-tag">Starter prompts</span>
+                  <h3 class="starter-prompts-title">Explore your sources</h3>
+                  <p class="starter-prompts-sub">Select any prompt below to get an instant answer with verifiable page citations:</p>
                 </div>
-                <div class="suggested-grid" id="suggestedGrid">
-                  <!-- Injected by app.js -->
+                <div class="starter-prompts-grid" id="starterPromptsGrid">
+                  <!-- Populated by app.js -->
                 </div>
               </div>
 
@@ -330,8 +616,26 @@
         </div>
 
         <form class="chat-input-wrapper" id="chatForm">
+          <div class="chat-answer-styles-bar" id="chatAnswerStylesBar" role="radiogroup" aria-label="Answer Style">
+            <span class="answer-style-label">Answer Style:</span>
+            <button type="button" class="answer-style-chip active" data-style="study-notes" title="Structured study notes with definitions, key concepts, formulas, and revision">
+              <span>📝 Study Notes</span>
+            </button>
+            <button type="button" class="answer-style-chip" data-style="quick-summary" title="Concise, high-impact overview of key points">
+              <span>⚡ Quick Summary</span>
+            </button>
+            <button type="button" class="answer-style-chip" data-style="exam-prep" title="Exam-focused structure with definitions, marks breakdown, and exam tips">
+              <span>🎯 Exam Preparation</span>
+            </button>
+            <button type="button" class="answer-style-chip" data-style="step-by-step" title="Clear sequential stages and procedural breakdown">
+              <span>🔢 Step-by-Step</span>
+            </button>
+            <button type="button" class="answer-style-chip" data-style="compare-topics" title="Side-by-side comparison tables, distinctions, and trade-offs">
+              <span>⚖️ Compare Topics</span>
+            </button>
+          </div>
           <div class="chat-input-inner">
-            <textarea id="chatInput" placeholder="Ask a question about your uploaded study sources..." rows="2"></textarea>
+            <textarea id="chatInput" placeholder="Ask a question about your uploaded sources..." rows="2"></textarea>
             <div class="chat-input-bottom-bar">
               <span class="chat-input-hint" id="chatInputHint">Press Enter to ask • Citations included automatically</span>
               <button type="submit" class="btn-send-gemini" id="sendBtn">
@@ -341,21 +645,57 @@
             </div>
           </div>
         </form>
+        <div class="chat-starter-chips" id="chatStarterChips">
+          <button type="button" class="chat-starter-chip" data-prompt="Summarize this document">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="15" y1="18" x2="3" y2="18"/></svg>
+            <span>Summarize this document</span>
+          </button>
+          <button type="button" class="chat-starter-chip" data-prompt="Explain the key idea in simple words">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Explain the key idea in simple words</span>
+          </button>
+          <button type="button" class="chat-starter-chip" data-prompt="What are the main points?">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>What are the main points?</span>
+          </button>
+          <button type="button" class="chat-starter-chip" data-prompt="Compare these sources">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            <span>Compare these sources</span>
+          </button>
+        </div>
       </div>
     </main>
 
     <!-- RIGHT PANEL: Categorized Studio Suite -->
     <aside class="right-panel">
+      <!-- Locked Tools State (Shown when 0 sources exist) -->
+      <div class="studio-locked-state" id="studioLockedState" style="display:none">
+        <div class="locked-icon-badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h3 class="locked-title">Study tools locked</h3>
+        <p class="locked-desc">
+          Add a source to unlock AI flashcards, interactive quizzes, exam breakdowns, and audio podcasts grounded in your documents.
+        </p>
+        <button type="button" class="btn-unlock-cta" id="btnUnlockAddSource">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Add source to unlock</span>
+        </button>
+      </div>
+
       <!-- Studio Category Switcher -->
       <div class="studio-category-bar">
         <button class="cat-btn active" data-cat="study">
-          <span>🧠 Active Study</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a9 9 0 0 0-9 9c0 3.6 2.1 6.7 5.2 8.1.4.2.8.5.8.9v1c0 .6.4 1 1 1h4c.6 0 1-.4 1-1v-1c0-.4.4-.7.8-.9A9.01 9.01 0 0 0 21 11a9 9 0 0 0-9-9z"/><path d="M9 18h6"/></svg>
+          <span>Active study</span>
         </button>
         <button class="cat-btn" data-cat="synthesis">
-          <span>📄 Synthesis</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>Synthesis</span>
         </button>
         <button class="cat-btn" data-cat="media">
-          <span>🎨 Visual Studio</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Visual studio</span>
         </button>
       </div>
 
@@ -363,35 +703,77 @@
       <div class="studio-tabs-categorized">
         <!-- Group 1: Active Study Tools -->
         <div class="cat-tool-group active" id="catGroupStudy">
-          <button class="tab-btn active" data-tab="tabFlashcards">🃏 Flashcards</button>
-          <button class="tab-btn" data-tab="tabQuiz">🧪 Quiz</button>
-          <button class="tab-btn" data-tab="tabImportant">🔥 Questions</button>
-          <button class="tab-btn" data-tab="tabNotes">📌 Notes</button>
+          <button class="tab-btn active" data-tab="tabFlashcards">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            <span>Flashcards</span>
+          </button>
+          <button class="tab-btn" data-tab="tabQuiz">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+            <span>Quiz</span>
+          </button>
+          <button class="tab-btn" data-tab="tabImportant">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Practice questions</span>
+          </button>
+          <button class="tab-btn" data-tab="tabMindMap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span>Mind map</span>
+          </button>
+          <button class="tab-btn" data-tab="tabNotes">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+            <span>Notes</span>
+          </button>
         </div>
 
         <!-- Group 2: Synthesis Tools -->
         <div class="cat-tool-group" id="catGroupSynthesis" style="display:none">
-          <button class="tab-btn" data-tab="tabOverview">🎧 AI Podcast</button>
-          <button class="tab-btn" data-tab="tabBriefing">📄 Briefing</button>
-          <button class="tab-btn" data-tab="tabCompare">📊 Compare</button>
+          <button class="tab-btn" data-tab="tabOverview">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+            <span>AI podcast</span>
+          </button>
+          <button class="tab-btn" data-tab="tabBriefing">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>Briefing</span>
+          </button>
+          <button class="tab-btn" data-tab="tabSlides">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <span>Slide deck</span>
+          </button>
+          <button class="tab-btn" data-tab="tabDataTable">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+            <span>Data table</span>
+          </button>
+          <button class="tab-btn" data-tab="tabCompare">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Compare</span>
+          </button>
         </div>
 
         <!-- Group 3: Visual & Media Tools -->
         <div class="cat-tool-group" id="catGroupMedia" style="display:none">
-          <button class="tab-btn" data-tab="tabImages">🖼️ AI Diagram</button>
-          <button class="tab-btn" data-tab="tabVideo">🎬 Video Lecture</button>
+          <button class="tab-btn" data-tab="tabImages">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>AI diagram</span>
+          </button>
+          <button class="tab-btn" data-tab="tabVideo">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            <span>Video lecture</span>
+          </button>
         </div>
       </div>
 
       <div class="studio-tab-content">
 
         <!-- TAB 1: Audio Overview Podcast -->
-        <div class="tab-pane active" id="tabOverview">
+        <div class="tab-pane" id="tabOverview">
           <div class="overview-hero">
-            <div class="overview-badge">SIGNATURE AUDIO OVERVIEW</div>
+            <div class="overview-badge">Audio overview</div>
             <h2>2-Host AI Podcast</h2>
             <p>Listen to Alex & Sierra unpack your study sources with live waveforms and synced transcript.</p>
-            <button class="btn-sparkle-lg" id="generateAudioBtn">✨ Generate Audio Overview</button>
+            <button class="btn-sparkle-lg" id="generateAudioBtn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
+              <span>Generate audio overview</span>
+            </button>
           </div>
 
           <div class="podcast-player-card" id="podcastPlayerCard" style="display:none">
@@ -404,9 +786,18 @@
             </div>
 
             <div class="player-controls">
-              <button class="btn-ctrl" id="btnAudioSkipBack" title="Skip 10s">↺ 10s</button>
-              <button class="btn-play-pause" id="btnAudioPlay">▶ Play Podcast</button>
-              <button class="btn-ctrl" id="btnAudioSkipFwd" title="Skip 10s">↻ 10s</button>
+              <button class="btn-ctrl" id="btnAudioSkipBack" title="Skip 10s">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+                <span>10s</span>
+              </button>
+              <button class="btn-play-pause" id="btnAudioPlay">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Play podcast</span>
+              </button>
+              <button class="btn-ctrl" id="btnAudioSkipFwd" title="Skip 10s">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                <span>10s</span>
+              </button>
               <select class="speed-select" id="audioSpeedSelect">
                 <option value="0.75">0.75x</option>
                 <option value="1" selected>1.0x</option>
@@ -425,8 +816,14 @@
           <div class="tab-pane-header">
             <h2>Executive Briefing</h2>
             <div class="tab-action-group">
-              <button class="btn-ctrl" id="exportBriefingMdBtn" title="Export Markdown">📝 Export MD</button>
-              <button class="btn-primary-sm" id="generateBriefingBtn">✨ Generate</button>
+              <button class="btn-ctrl" id="exportBriefingMdBtn" title="Export Markdown">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span>Export MD</span>
+              </button>
+              <button class="btn-primary-sm" id="generateBriefingBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
+                <span>Generate</span>
+              </button>
             </div>
           </div>
           <div class="briefing-content" id="briefingContent">
@@ -435,14 +832,66 @@
         </div>
 
         <!-- TAB 3: Flashcards Deck -->
-        <div class="tab-pane" id="tabFlashcards">
+        <div class="tab-pane active" id="tabFlashcards">
           <div class="tab-pane-header">
-            <h2>Spaced Repetition Deck</h2>
+            <div>
+              <h2>Spaced Repetition Deck</h2>
+              <p class="tab-subtitle">Source-grounded flashcards with active recall and Leitner spaced repetition ratings.</p>
+            </div>
             <div class="tab-action-group">
-              <button class="btn-ctrl" id="exportAnkiCsvBtn" title="Export Anki CSV">🃏 Export Anki</button>
-              <button class="btn-primary-sm" id="generateCardsBtn">✨ Generate</button>
+              <button class="btn-ctrl" id="exportAnkiCsvBtn" title="Export Anki CSV">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                <span>Export Anki</span>
+              </button>
+              <button class="btn-primary-sm" id="generateCardsBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
+                <span>Generate</span>
+              </button>
             </div>
           </div>
+
+          <!-- Flashcards Scope Selector Card -->
+          <div class="generation-scope-card" id="flashcardsScopeCard">
+            <div class="scope-header-row">
+              <div class="scope-header-label">
+                <span>Scope:</span>
+                <div class="scope-options-group" id="fcScopeGroup">
+                  <button type="button" class="scope-pill-btn active" data-scope="all" id="fcScopeAllBtn">All topics</button>
+                  <button type="button" class="scope-pill-btn" data-scope="topic" id="fcScopeTopicBtn">Specific topic</button>
+                  <button type="button" class="scope-pill-btn" data-scope="source" id="fcScopeSourceBtn">Specific source</button>
+                </div>
+              </div>
+              <div class="visual-opt-item">
+                <label for="fcCardCountSelect">Cards:</label>
+                <select id="fcCardCountSelect" class="studio-select">
+                  <option value="5">5 Cards</option>
+                  <option value="10" selected>10 Cards</option>
+                  <option value="15">15 Cards</option>
+                  <option value="20">20 Cards</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Topic Selection Subpanel -->
+            <div class="scope-subpanel" id="fcTopicSubpanel" style="display:none">
+              <div class="scope-subpanel-row">
+                <select id="fcTopicSelect" class="studio-select" style="flex:1; max-width:280px">
+                  <option value="">-- Choose detected topic --</option>
+                </select>
+                <span style="font-size:0.75rem; color:var(--text-muted)">or custom:</span>
+                <input type="text" id="fcCustomTopicInput" class="studio-input" style="flex:1" placeholder="Type custom topic (e.g. Deadlock or Framing)..." />
+              </div>
+            </div>
+
+            <!-- Source Document Subpanel -->
+            <div class="scope-subpanel" id="fcSourceSubpanel" style="display:none">
+              <div style="font-size:0.75rem; color:var(--text-sub); margin-bottom:0.25rem">Select one or more documents to scope flashcards:</div>
+              <div class="scope-doc-checkboxes-grid" id="fcDocCheckboxesGrid">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+
           <!-- Mastery Bar -->
           <div class="mastery-bar-wrapper" id="masteryBarWrapper" style="display:none">
             <div class="mastery-info-row">
@@ -455,48 +904,260 @@
           </div>
 
           <div class="flashcards-wrapper" id="flashcardsWrapper">
-            <p class="tab-empty">Click "Generate" to create interactive self-testing study flashcards with Leitner spaced repetition ratings.</p>
+            <p class="tab-empty">Choose your content scope and click "Generate" to create interactive self-testing study flashcards grounded in your notebook sources.</p>
           </div>
         </div>
 
         <!-- TAB 4: Practice Quiz -->
         <div class="tab-pane" id="tabQuiz">
           <div class="tab-pane-header">
-            <h2>Interactive Practice Quiz</h2>
-            <button class="btn-primary-sm" id="generateQuizBtn">✨ Start Quiz</button>
+            <div>
+              <h2>Interactive Practice Quiz</h2>
+              <p class="tab-subtitle">Source-grounded multiple-choice exam simulation with instant feedback and explanations.</p>
+            </div>
+            <button class="btn-primary-sm" id="generateQuizBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              <span>Start quiz</span>
+            </button>
           </div>
+
+          <!-- Scope Selection Card for Quiz -->
+          <div class="generation-scope-card">
+            <div class="scope-header-row">
+              <div class="scope-header-label">
+                <span>Scope:</span>
+                <div class="scope-options-group">
+                  <button type="button" class="scope-pill-btn active" data-scope="all" id="quizScopeAllBtn">All topics</button>
+                  <button type="button" class="scope-pill-btn" data-scope="topic" id="quizScopeTopicBtn">Topic</button>
+                  <button type="button" class="scope-pill-btn" data-scope="source" id="quizScopeSourceBtn">Source</button>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:var(--text-sub)">
+                <span>Questions:</span>
+                <select id="quizCountSelect" class="studio-select" style="padding:0.2rem 0.5rem; font-size:0.75rem;">
+                  <option value="4">4 Questions</option>
+                  <option value="6" selected>6 Questions</option>
+                  <option value="8">8 Questions</option>
+                  <option value="10">10 Questions</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="scope-subpanel" id="quizTopicSubpanel" style="display:none">
+              <select id="quizTopicSelect" class="studio-select" style="flex:1; max-width:240px">
+                <option value="">-- Choose detected topic --</option>
+              </select>
+              <input type="text" id="quizCustomTopicInput" class="studio-input" style="flex:1" placeholder="Or custom focus (e.g. Memory Management)..." />
+            </div>
+
+            <div class="scope-subpanel" id="quizSourceSubpanel" style="display:none">
+              <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:0.25rem">Select one or more sources:</div>
+              <div class="scope-doc-checkboxes-grid" id="quizDocCheckboxesGrid"></div>
+            </div>
+          </div>
+
           <div class="quiz-wrapper" id="quizWrapper">
-            <p class="tab-empty">Click "Start Quiz" to launch a timed multiple-choice practice exam with instant grading.</p>
+            <p class="tab-empty">Choose your scope and click "Start Quiz" to launch a source-grounded practice test.</p>
           </div>
         </div>
 
-        <!-- TAB 5: Important Questions -->
+        <!-- TAB 5: Important Practice Questions (2 Mark, 5 Mark, 10 Mark) -->
         <div class="tab-pane" id="tabImportant">
           <div class="tab-pane-header">
-            <h2>Important Exam Questions</h2>
-            <button class="btn-primary-sm" id="generateImportantBtn">🔥 Extract Questions</button>
+            <div>
+              <h2>Important Practice Questions</h2>
+              <p class="tab-subtitle">High-frequency questions categorized by university exam marks weightage.</p>
+            </div>
+            <button class="btn-primary-sm" id="generateImportantBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Extract questions</span>
+            </button>
           </div>
+
+          <!-- Scope Selection Card for Questions -->
+          <div class="generation-scope-card">
+            <div class="scope-header-row">
+              <div class="scope-header-label">
+                <span>Scope:</span>
+                <div class="scope-options-group">
+                  <button type="button" class="scope-pill-btn active" data-scope="all" id="iqScopeAllBtn">All topics</button>
+                  <button type="button" class="scope-pill-btn" data-scope="topic" id="iqScopeTopicBtn">Topic</button>
+                  <button type="button" class="scope-pill-btn" data-scope="source" id="iqScopeSourceBtn">Source</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="scope-subpanel" id="iqTopicSubpanel" style="display:none">
+              <select id="iqTopicSelect" class="studio-select" style="flex:1; max-width:240px">
+                <option value="">-- Choose detected topic --</option>
+              </select>
+              <input type="text" id="iqCustomTopicInput" class="studio-input" style="flex:1" placeholder="Or custom focus..." />
+            </div>
+
+            <div class="scope-subpanel" id="iqSourceSubpanel" style="display:none">
+              <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:0.25rem">Select one or more sources:</div>
+              <div class="scope-doc-checkboxes-grid" id="iqDocCheckboxesGrid"></div>
+            </div>
+          </div>
+
+          <!-- Exam Modes Filter Pills -->
+          <div class="exam-mode-pills-row">
+            <button class="exam-pill-btn active" data-exam-filter="all">All Marks</button>
+            <button class="exam-pill-btn" data-exam-filter="2mark">2 Mark (Short Answer)</button>
+            <button class="exam-pill-btn" data-exam-filter="5mark">5 Mark (Concept & Derivation)</button>
+            <button class="exam-pill-btn" data-exam-filter="10mark">10 Mark (Comprehensive Essay)</button>
+          </div>
+
           <div class="important-q-wrapper" id="importantWrapper">
-            <p class="tab-empty">Extract high-frequency exam questions categorized by priority (Very Important, Important, Possible).</p>
+            <p class="tab-empty">Choose your scope and click "Extract Questions" to generate grounded test your understanding questions.</p>
           </div>
         </div>
 
-        <!-- TAB 6: Compare Documents -->
+        <!-- TAB 6: Concept Mind Map -->
+        <div class="tab-pane" id="tabMindMap">
+          <div class="tab-pane-header">
+            <div>
+              <h2>Concept Mind Map</h2>
+              <p class="tab-subtitle">Interactive conceptual hierarchy and relationship graph with source citations.</p>
+            </div>
+            <button class="btn-primary-sm" id="generateMindMapBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              <span>Generate map</span>
+            </button>
+          </div>
+
+          <!-- Scope Selection Card for Mind Map -->
+          <div class="generation-scope-card">
+            <div class="scope-header-row">
+              <div class="scope-header-label">
+                <span>Scope:</span>
+                <div class="scope-options-group">
+                  <button type="button" class="scope-pill-btn active" data-scope="all" id="mmScopeAllBtn">All topics</button>
+                  <button type="button" class="scope-pill-btn" data-scope="topic" id="mmScopeTopicBtn">Topic</button>
+                  <button type="button" class="scope-pill-btn" data-scope="source" id="mmScopeSourceBtn">Source</button>
+                </div>
+              </div>
+            </div>
+            <div class="scope-subpanel" id="mmTopicSubpanel" style="display:none">
+              <select id="mmTopicSelect" class="studio-select" style="flex:1; max-width:240px">
+                <option value="">-- Choose detected topic --</option>
+              </select>
+              <input type="text" id="mmCustomTopicInput" class="studio-input" style="flex:1" placeholder="Custom focus..." />
+            </div>
+            <div class="scope-subpanel" id="mmSourceSubpanel" style="display:none">
+              <div class="scope-doc-checkboxes-grid" id="mmDocCheckboxesGrid"></div>
+            </div>
+          </div>
+
+          <div class="mindmap-container" id="mindmapWrapper">
+            <p class="tab-empty">Click "Generate Map" to visualize the knowledge architecture of your documents.</p>
+          </div>
+        </div>
+
+        <!-- TAB 7: Slide Deck Viewer -->
+        <div class="tab-pane" id="tabSlides">
+          <div class="tab-pane-header">
+            <div>
+              <h2>Interactive Slide Deck</h2>
+              <p class="tab-subtitle">Source-grounded presentation slides for quick lecture review.</p>
+            </div>
+            <button class="btn-primary-sm" id="generateSlidesBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              <span>Generate slides</span>
+            </button>
+          </div>
+
+          <!-- Scope Selection Card for Slides -->
+          <div class="generation-scope-card">
+            <div class="scope-header-row">
+              <div class="scope-header-label">
+                <span>Scope:</span>
+                <div class="scope-options-group">
+                  <button type="button" class="scope-pill-btn active" data-scope="all" id="slidesScopeAllBtn">All topics</button>
+                  <button type="button" class="scope-pill-btn" data-scope="topic" id="slidesScopeTopicBtn">Topic</button>
+                  <button type="button" class="scope-pill-btn" data-scope="source" id="slidesScopeSourceBtn">Source</button>
+                </div>
+              </div>
+            </div>
+            <div class="scope-subpanel" id="slidesTopicSubpanel" style="display:none">
+              <select id="slidesTopicSelect" class="studio-select" style="flex:1; max-width:240px">
+                <option value="">-- Choose detected topic --</option>
+              </select>
+              <input type="text" id="slidesCustomTopicInput" class="studio-input" style="flex:1" placeholder="Custom slide topic..." />
+            </div>
+            <div class="scope-subpanel" id="slidesSourceSubpanel" style="display:none">
+              <div class="scope-doc-checkboxes-grid" id="slidesDocCheckboxesGrid"></div>
+            </div>
+          </div>
+
+          <div class="slide-deck-container" id="slidesWrapper">
+            <p class="tab-empty">Click "Generate Slides" to synthesize a study presentation from your materials.</p>
+          </div>
+        </div>
+
+        <!-- TAB 8: Technical Data Table -->
+        <div class="tab-pane" id="tabDataTable">
+          <div class="tab-pane-header">
+            <div>
+              <h2>Structured Data Table</h2>
+              <p class="tab-subtitle">Comparative technical table of principles, parameters, and specifications.</p>
+            </div>
+            <button class="btn-primary-sm" id="generateDataTableBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+              <span>Generate table</span>
+            </button>
+          </div>
+
+          <!-- Scope Selection Card for Data Table -->
+          <div class="generation-scope-card">
+            <div class="scope-header-row">
+              <div class="scope-header-label">
+                <span>Scope:</span>
+                <div class="scope-options-group">
+                  <button type="button" class="scope-pill-btn active" data-scope="all" id="dtScopeAllBtn">All topics</button>
+                  <button type="button" class="scope-pill-btn" data-scope="topic" id="dtScopeTopicBtn">Topic</button>
+                  <button type="button" class="scope-pill-btn" data-scope="source" id="dtScopeSourceBtn">Source</button>
+                </div>
+              </div>
+            </div>
+            <div class="scope-subpanel" id="dtTopicSubpanel" style="display:none">
+              <select id="dtTopicSelect" class="studio-select" style="flex:1; max-width:240px">
+                <option value="">-- Choose detected topic --</option>
+              </select>
+              <input type="text" id="dtCustomTopicInput" class="studio-input" style="flex:1" placeholder="Custom focus..." />
+            </div>
+            <div class="scope-subpanel" id="dtSourceSubpanel" style="display:none">
+              <div class="scope-doc-checkboxes-grid" id="dtDocCheckboxesGrid"></div>
+            </div>
+          </div>
+
+          <div class="table-scroll-wrap" id="dataTableWrapper">
+            <p class="tab-empty" style="padding:1.5rem">Click "Generate Table" to structure key technical concepts into a comparison matrix.</p>
+          </div>
+        </div>
+
+        <!-- TAB 9: Compare Documents -->
         <div class="tab-pane" id="tabCompare">
           <div class="tab-pane-header">
             <h2>Multi-Source Matrix</h2>
-            <button class="btn-primary-sm" id="generateCompareBtn">📊 Compare Sources</button>
+            <button class="btn-primary-sm" id="generateCompareBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <span>Compare sources</span>
+            </button>
           </div>
           <div class="compare-wrapper" id="compareWrapper">
             <p class="tab-empty">Compare multiple uploaded sources in a structured matrix table with citations.</p>
           </div>
         </div>
 
-        <!-- TAB 7: Workspace Notes Board -->
+        <!-- TAB 10: Workspace Notes Board -->
         <div class="tab-pane" id="tabNotes">
           <div class="tab-pane-header">
             <h2>Notes Pinboard</h2>
-            <button class="btn-primary-sm" id="newNoteBtn">+ New Note</button>
+            <button class="btn-primary-sm" id="newNoteBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              <span>New note</span>
+            </button>
           </div>
           <div class="notes-grid" id="notesGrid">
             <p class="tab-empty">No saved notes yet. Pin chat responses or create custom research notes.</p>
@@ -510,22 +1171,54 @@
               <h2>AI Visual & Diagram Studio</h2>
               <p class="tab-subtitle">Synthesize source-grounded infographics, architectural diagrams, and scientific blueprints.</p>
             </div>
-            <button class="btn-primary-sm" id="generateImageBtn">✨ Generate Visual</button>
+            <button class="btn-primary-sm" id="generateImageBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Generate visual</span>
+            </button>
           </div>
 
-          <!-- Prompt & Style Controls -->
+          <!-- Prompt, Scope & Style Controls -->
           <div class="visual-controls-card">
-            <div class="visual-input-row">
-              <input type="text" id="imagePromptInput" class="studio-input" placeholder="Custom focus (e.g. Protocol hierarchy flowchart) or leave empty for auto-synthesis..." />
+            <!-- Scope Selector Row -->
+            <div class="scope-header-row">
+              <div class="scope-header-label">
+                <span>Scope:</span>
+                <div class="scope-options-group" id="imgScopeGroup">
+                  <button type="button" class="scope-pill-btn active" data-scope="all" id="imgScopeAllBtn">All topics</button>
+                  <button type="button" class="scope-pill-btn" data-scope="topic" id="imgScopeTopicBtn">Specific topic</button>
+                  <button type="button" class="scope-pill-btn" data-scope="source" id="imgScopeSourceBtn">Specific source</button>
+                </div>
+              </div>
             </div>
+
+            <!-- Topic Subpanel -->
+            <div class="scope-subpanel" id="imgTopicSubpanel" style="display:none">
+              <div class="scope-subpanel-row">
+                <select id="imgTopicSelect" class="studio-select" style="flex:1; max-width:280px">
+                  <option value="">-- Choose detected topic --</option>
+                </select>
+                <span style="font-size:0.75rem; color:var(--text-muted)">or custom:</span>
+                <input type="text" id="imagePromptInput" class="studio-input" style="flex:1" placeholder="Custom focus (e.g. Protocol hierarchy flowchart)..." />
+              </div>
+            </div>
+
+            <!-- Source Subpanel -->
+            <div class="scope-subpanel" id="imgSourceSubpanel" style="display:none">
+              <div style="font-size:0.75rem; color:var(--text-sub); margin-bottom:0.25rem">Select one or more documents for visual synthesis:</div>
+              <div class="scope-doc-checkboxes-grid" id="imgDocCheckboxesGrid">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Style and Aspect Ratio -->
             <div class="visual-options-row">
               <div class="visual-opt-item">
                 <label>Style Preset</label>
                 <select id="imageStyleSelect" class="studio-select">
-                  <option value="diagram" selected>📐 Architectural Diagram</option>
-                  <option value="infographic">📊 Educational Infographic</option>
-                  <option value="blueprint">🔬 Technical Blueprint</option>
-                  <option value="concept_art">🎨 Scientific Concept</option>
+                  <option value="diagram" selected>Architectural Diagram</option>
+                  <option value="infographic">Educational Infographic</option>
+                  <option value="blueprint">Technical Blueprint</option>
+                  <option value="concept_art">Scientific Concept</option>
                 </select>
               </div>
               <div class="visual-opt-item">
@@ -543,7 +1236,7 @@
           <div class="visual-display-area" id="visualDisplayArea">
             <div class="visual-empty-state" id="visualEmptyState">
               <img src="/assets/images/study_infographic_preview_1790174854345.jpg" alt="Visual Preview" class="visual-banner-preview" referrerpolicy="no-referrer" />
-              <p>Click <strong>"Generate Visual"</strong> to create an interactive concept map & vector diagram from your uploaded documents.</p>
+              <p>Select scope and click <strong>"Generate visual"</strong> to create a source-grounded concept map & architectural diagram from your documents.</p>
             </div>
             <div class="active-visual-card" id="activeVisualCard" style="display:none">
               <div class="visual-card-header">
@@ -552,9 +1245,18 @@
                   <div class="visual-tags" id="visualCardTags"></div>
                 </div>
                 <div class="visual-card-actions">
-                  <button class="btn-ctrl" id="btnVisualDownload" title="Download SVG Vector">⬇️ Download</button>
-                  <button class="btn-ctrl" id="btnVisualPinNote" title="Save as Pinboard Note">📌 Pin to Notes</button>
-                  <button class="btn-ctrl" id="btnVisualZoom" title="Full Screen View">🔍 Zoom</button>
+                  <button class="btn-ctrl" id="btnVisualDownload" title="Download SVG Vector">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>Download</span>
+                  </button>
+                  <button class="btn-ctrl" id="btnVisualPinNote" title="Save as Pinboard Note">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24Z"/></svg>
+                    <span>Pin to notes</span>
+                  </button>
+                  <button class="btn-ctrl" id="btnVisualZoom" title="Full Screen View">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span>Zoom</span>
+                  </button>
                 </div>
               </div>
               <div class="visual-render-stage" id="visualRenderStage"></div>
@@ -582,7 +1284,43 @@
                 <option value="deep_dive">Deep Dive Seminar</option>
                 <option value="speed_run">Exam Speedrun</option>
               </select>
-              <button class="btn-primary-sm" id="generateVideoBtn">🎬 Generate Video</button>
+              <button class="btn-primary-sm" id="generateVideoBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                <span>Generate video</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Video Scope Selector Card -->
+          <div class="generation-scope-card" id="videoScopeCard">
+            <div class="scope-header-row">
+              <div class="scope-header-label">
+                <span>Scope:</span>
+                <div class="scope-options-group" id="videoScopeGroup">
+                  <button type="button" class="scope-pill-btn active" data-scope="all" id="vidScopeAllBtn">All topics</button>
+                  <button type="button" class="scope-pill-btn" data-scope="topic" id="vidScopeTopicBtn">Specific topic</button>
+                  <button type="button" class="scope-pill-btn" data-scope="source" id="vidScopeSourceBtn">Specific source</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Video Topic Subpanel -->
+            <div class="scope-subpanel" id="vidTopicSubpanel" style="display:none">
+              <div class="scope-subpanel-row">
+                <select id="vidTopicSelect" class="studio-select" style="flex:1; max-width:280px">
+                  <option value="">-- Choose detected topic --</option>
+                </select>
+                <span style="font-size:0.75rem; color:var(--text-muted)">or custom:</span>
+                <input type="text" id="vidCustomTopicInput" class="studio-input" style="flex:1" placeholder="Custom lecture focus (e.g. Error Control & Flow)..." />
+              </div>
+            </div>
+
+            <!-- Video Source Subpanel -->
+            <div class="scope-subpanel" id="vidSourceSubpanel" style="display:none">
+              <div style="font-size:0.75rem; color:var(--text-sub); margin-bottom:0.25rem">Select one or more documents for video lecture:</div>
+              <div class="scope-doc-checkboxes-grid" id="vidDocCheckboxesGrid">
+                <!-- Populated dynamically -->
+              </div>
             </div>
           </div>
 
@@ -593,8 +1331,11 @@
               <div class="video-poster-box">
                 <img src="/assets/images/video_lecture_preview_1790174869587.jpg" alt="Video Preview" class="video-banner-preview" referrerpolicy="no-referrer" />
                 <div class="video-poster-overlay">
-                  <div class="video-play-badge">▶ AI Lecture Generator</div>
-                  <p>Click "Generate Video" to create a cinematic animated video lecture with interactive playback and synced voice narration.</p>
+                  <div class="video-play-badge">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    <span>AI lecture generator</span>
+                  </div>
+                  <p>Click "Generate video" to create a cinematic animated video lecture with interactive playback and synced voice narration.</p>
                 </div>
               </div>
             </div>
@@ -609,15 +1350,24 @@
                 </div>
                 <!-- Play Overlay (when paused) -->
                 <div class="video-stage-play-overlay" id="videoStagePlayOverlay">
-                  <button class="video-big-play-btn" id="videoBigPlayBtn">▶</button>
+                  <button class="video-big-play-btn" id="videoBigPlayBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </button>
                 </div>
               </div>
 
               <!-- Controls Toolbar -->
               <div class="video-player-bar">
-                <button class="btn-ctrl video-play-btn" id="btnVideoPlayPause">▶ Play</button>
-                <button class="btn-ctrl" id="btnVideoPrevScene" title="Previous Scene">⏮</button>
-                <button class="btn-ctrl" id="btnVideoNextScene" title="Next Scene">⏭</button>
+                <button class="btn-ctrl video-play-btn" id="btnVideoPlayPause">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <span>Play</span>
+                </button>
+                <button class="btn-ctrl" id="btnVideoPrevScene" title="Previous Scene">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+                </button>
+                <button class="btn-ctrl" id="btnVideoNextScene" title="Next Scene">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                </button>
                 <div class="video-timeline-wrap">
                   <input type="range" id="videoScrubber" class="video-scrubber" min="0" max="100" value="0" step="0.1" />
                 </div>
@@ -627,15 +1377,23 @@
                   <option value="1.25">1.25x</option>
                   <option value="1.5">1.5x</option>
                 </select>
-                <button class="btn-ctrl" id="btnVideoVoiceToggle" title="Toggle Narration Audio">🔊 Voice: On</button>
-                <button class="btn-ctrl" id="btnVideoFullscreen" title="Fullscreen">⛶</button>
+                <button class="btn-ctrl" id="btnVideoVoiceToggle" title="Toggle Narration Audio">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  <span>Voice: On</span>
+                </button>
+                <button class="btn-ctrl" id="btnVideoFullscreen" title="Fullscreen">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                </button>
               </div>
 
               <!-- Storyboard Scenes Row -->
               <div class="video-storyboard-section">
                 <div class="storyboard-header">
                   <h4>Storyboard Scenes Timeline</h4>
-                  <button class="btn-ctrl" id="btnExportVideoScript">📝 Export Script</button>
+                  <button class="btn-ctrl" id="btnExportVideoScript">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <span>Export script</span>
+                  </button>
                 </div>
                 <div class="scenes-timeline-grid" id="scenesTimelineGrid"></div>
               </div>
@@ -649,11 +1407,105 @@
   </div>
 </div>
 
+<!-- UNIFIED ADD SOURCE MODAL -->
+<div class="modal-overlay" id="addSourceModal">
+  <div class="modal-card modal-md">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        <h3>Add source</h3>
+      </div>
+      <button class="modal-close" id="closeAddSourceModalBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Add Source Tabs -->
+      <div class="add-source-tabs">
+        <button type="button" class="as-tab active" data-astab="upload">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="12"/><line x1="15" y1="15" x2="12" y2="12"/></svg>
+          <span>Upload file</span>
+        </button>
+        <button type="button" class="as-tab" data-astab="paste">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>Paste text</span>
+        </button>
+        <button type="button" class="as-tab" data-astab="url">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span>Web URL</span>
+        </button>
+        <button type="button" class="as-tab" data-astab="sample">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
+          <span>Sample research</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: Upload File -->
+      <div class="as-panel active" id="asPanelUpload">
+        <div class="modal-dropzone" id="modalDropzone">
+          <div class="modal-dropzone-icon">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <line x1="9" y1="15" x2="12" y2="12"/>
+              <line x1="15" y1="15" x2="12" y2="12"/>
+            </svg>
+          </div>
+          <h4>Drop PDF, PowerPoint, Word, or text files here</h4>
+          <p>Supports .pdf, .pptx, .ppt, .docx, .doc, .txt, .md files (drag & drop or browse)</p>
+          <button type="button" class="btn-primary-sm" id="btnModalBrowse">Browse files</button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Paste Text -->
+      <div class="as-panel" id="asPanelPaste" style="display:none">
+        <div class="lat-field">
+          <label>Document title</label>
+          <input type="text" id="pasteModalTitle" class="modal-input" placeholder="e.g. Lecture 4 Notes: Concurrency" />
+        </div>
+        <div class="lat-field">
+          <label>Note content</label>
+          <textarea id="pasteModalContent" class="modal-textarea" rows="7" placeholder="Paste your study notes, summary, or syllabus text here..."></textarea>
+        </div>
+        <button type="button" class="btn-primary-sm" id="btnSubmitPasteModal" style="width:100%; justify-content:center; padding:0.65rem">Add text source</button>
+      </div>
+
+      <!-- Tab 3: Web URL -->
+      <div class="as-panel" id="asPanelUrl" style="display:none">
+        <div class="lat-field">
+          <label>Article or documentation URL</label>
+          <input type="url" id="urlModalInput" class="modal-input" placeholder="https://en.wikipedia.org/wiki/Operating_system" />
+        </div>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem">StudyVault will fetch and index the page content for grounded Q&A and citations.</p>
+        <button type="button" class="btn-primary-sm" id="btnSubmitUrlModal" style="width:100%; justify-content:center; padding:0.65rem">Fetch web source</button>
+      </div>
+
+      <!-- Tab 4: Sample Research -->
+      <div class="as-panel" id="asPanelSample" style="display:none">
+        <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:0.75rem">Select a pre-loaded academic notebook to test citations and study tools immediately:</p>
+        <div class="sample-grid">
+          <div class="sample-card-option" data-key="quantum">
+            <h4>Quantum Computing & Encryption</h4>
+            <p>Superconducting qubits, Shor's algorithm, surface codes, and post-quantum lattice cryptography.</p>
+          </div>
+          <div class="sample-card-option" data-key="neuroscience">
+            <h4>AI, Neuroscience & Neural Networks</h4>
+            <p>Comparative analysis of biological synapses, deep learning backpropagation, and neuromorphic computing.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- SETTINGS MODAL -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-card modal-sm">
     <div class="modal-header">
-      <h3>⚙️ AI Provider Settings</h3>
+      <div class="modal-title-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <h3>AI provider settings</h3>
+      </div>
       <button class="modal-close" id="closeSettingsModalBtn">✕</button>
     </div>
     <div class="modal-body">
@@ -663,36 +1515,159 @@
 
       <label style="font-size:0.85rem; font-weight:600; color:var(--text-main); margin-top:0.8rem">Gemini Model Target</label>
       <select id="geminiModelSelect" class="modal-input">
-        <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash (Fast & Balanced)</option>
-        <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning)</option>
-        <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental)</option>
+        <option value="gemini-3.8-flash" selected>Gemini 3.8 Flash (Fast & Balanced)</option>
+        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Ultra Fast & Resilient)</option>
+        <option value="gemini-flash-latest">Gemini Flash Latest (Production)</option>
+        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Deep Reasoning)</option>
       </select>
 
-      <button class="btn-sparkle-lg" id="saveSettingsBtn" style="margin-top:0.5rem">Save AI Settings</button>
+      <label style="font-size:0.85rem; font-weight:600; color:var(--text-main); margin-top:0.85rem">Google OAuth Client ID</label>
+      <input type="text" id="settingsGoogleClientIdInput" class="modal-input" placeholder="e.g. 123456789-abcdef.apps.googleusercontent.com" />
+      <p style="font-size:0.75rem; color:var(--text-sub)">Enables 1-click Google Sign-In. Created in Google Cloud Console Credentials.</p>
+
+      <button class="btn-sparkle-lg" id="saveSettingsBtn" style="margin-top:0.6rem">Save settings</button>
     </div>
   </div>
 </div>
 
-<!-- INTEGRATED PDF VIEWER MODAL -->
+<!-- GOOGLE CLIENT ID QUICK CONFIG MODAL -->
+<div class="modal-overlay" id="googleClientModal">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
+        <h3>Configure Google Sign-In</h3>
+      </div>
+      <button class="modal-close" id="closeGoogleClientModalBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem; color:var(--text-sub); margin-bottom:0.75rem; line-height:1.5;">
+        Enter your <strong>Google OAuth 2.0 Web Client ID</strong> to activate Google Sign-In for StudyVault:
+      </p>
+      <label style="font-size:0.82rem; font-weight:600; color:var(--text-main);">Google Client ID</label>
+      <input type="text" id="quickGoogleClientIdInput" class="modal-input" placeholder="123456789-abcdef.apps.googleusercontent.com" />
+      <p style="font-size:0.75rem; color:var(--text-sub); margin-top:0.35rem;">
+        From <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--primary-blue)">Google Cloud Console</a> &rarr; Credentials &rarr; OAuth 2.0 Client IDs.
+      </p>
+      <div style="display:flex; gap:0.5rem; justify-content:flex-end; margin-top:1.1rem;">
+        <button type="button" class="btn-ghost" id="cancelGoogleClientBtn">Cancel</button>
+        <button type="button" class="btn-primary" id="saveQuickGoogleClientBtn">Save & Activate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INTEGRATED REAL PDF & MULTI-SOURCE VISUAL VIEWER MODAL -->
 <div class="modal-overlay" id="pdfModal">
   <div class="modal-card modal-lg">
     <div class="modal-header">
       <div class="pdf-title-bar">
-        <span class="pdf-icon">📄</span>
-        <h3 id="pdfModalTitle">Document Viewer</h3>
+        <span class="pdf-icon" id="pdfIconWrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </span>
+        <select id="pdfDocSelector" class="pdf-doc-dropdown" title="Switch source document"></select><h3 id="pdfModalTitle" style="display:none">Document Viewer</h3>
         <span class="pdf-page-indicator" id="pdfPageIndicator">Page 1</span>
+        <span class="pdf-source-type-badge" id="pdfSourceTypeBadge">PDF</span>
       </div>
+
+      <!-- Dual Mode Switcher: Visual Canvas vs Source Content & Outline -->
+      <div class="pdf-mode-switch">
+        <button type="button" class="pdf-mode-tab active" id="btnPdfTabVisual" title="Visual page/slide canvas viewer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Visual Page</span>
+        </button>
+        <button type="button" class="pdf-mode-tab" id="btnPdfTabContent" title="Full extracted source content, slides & outline">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+          <span>Source Content & Outline</span>
+        </button>
+        <button type="button" class="pdf-mode-tab" id="btnPdfTabSplit" title="Side-by-side Visual Canvas & Full Source Outline">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+          <span>Split View</span>
+        </button>
+      </div>
+
       <div class="pdf-nav-tools">
-        <button class="btn-ctrl" id="btnPdfPrev">← Prev Page</button>
-        <input type="number" id="pdfPageJumpInput" value="1" min="1" style="width:50px; text-align:center;" />
-        <button class="btn-ctrl" id="btnPdfNext">Next Page →</button>
-        <button class="modal-close" id="closePdfModalBtn">✕</button>
+        <!-- Page Navigation -->
+        <div class="pdf-page-nav-controls" id="pdfPageNavControls">
+          <button class="btn-ctrl" id="btnPdfPrev" title="Previous Page / Slide (Left Arrow)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            <span>Prev</span>
+          </button>
+          <div class="pdf-page-input-wrap">
+            <input type="number" id="pdfPageJumpInput" value="1" min="1" title="Jump to page or slide" />
+            <span id="pdfTotalPages" class="pdf-total-pages">/ 1</span>
+          </div>
+          <button class="btn-ctrl" id="btnPdfNext" title="Next Page / Slide (Right Arrow)">
+            <span>Next</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+
+          <div class="pdf-tools-divider"></div>
+
+          <!-- Zoom Controls -->
+          <button class="btn-ctrl" id="btnPdfZoomOut" title="Zoom Out (-)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </button>
+          <span class="pdf-zoom-label" id="pdfZoomLevel">100%</span>
+          <button class="btn-ctrl" id="btnPdfZoomIn" title="Zoom In (+)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </button>
+          <button class="btn-ctrl" id="btnPdfFit" title="Fit to Width">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            <span>Fit</span>
+          </button>
+
+          <div class="pdf-tools-divider"></div>
+        </div>
+
+        <!-- Download & Delete & Close -->
+        <button class="btn-ctrl" id="btnPdfDownload" title="Download or open original document file">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span id="btnPdfDownloadLabel">Download</span>
+        </button>
+        <button class="btn-ctrl btn-ctrl-danger" id="btnPdfDeleteSource" title="Remove this source from notebook">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          <span>Delete source</span>
+        </button>
+        <button class="modal-close" id="closePdfModalBtn" title="Close Viewer (Esc)">✕</button>
       </div>
     </div>
     <div class="modal-body pdf-body">
+      <!-- 1. Visual Canvas Stage -->
       <div class="pdf-view-container" id="pdfViewContainer">
+        <div class="pdf-loading-spinner" id="pdfLoadingSpinner" style="display:none">
+          <div class="spinner"></div>
+          <span>Rendering visual content...</span>
+        </div>
         <canvas id="pdfCanvas"></canvas>
         <div class="pdf-text-fallback" id="pdfTextFallback" style="display:none"></div>
+      </div>
+
+      <!-- 2. Rich Source Content & Outline View -->
+      <div class="source-content-container" id="sourceContentContainer" style="display:none">
+        <div class="source-content-toolbar">
+          <div class="source-search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="sourceContentSearchInput" placeholder="Search across all pages & slides..." />
+            <span id="sourceContentMatchCount" class="source-match-badge" style="display:none">0 matches</span>
+          </div>
+          <div class="source-content-actions">
+            <button type="button" class="btn-ctrl" id="btnCopyPageText" title="Copy text of current page/slide">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>Copy page</span>
+            </button>
+            <button type="button" class="btn-ctrl" id="btnCopyAllText" title="Copy all extracted document text">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Copy all text</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="source-doc-meta-strip" id="sourceDocMetaStrip"></div>
+
+        <div class="source-pages-feed" id="sourcePagesFeed">
+          <!-- Populated dynamically with slide cards or page cards -->
+        </div>
       </div>
     </div>
   </div>
@@ -708,7 +1683,7 @@
     <div class="modal-body">
       <input type="text" id="pasteTextTitle" class="modal-input" placeholder="Document Title (e.g. Meeting Notes)" />
       <textarea id="pasteTextContent" class="modal-textarea" rows="8" placeholder="Paste your research text or notes here..."></textarea>
-      <button class="btn-sparkle-lg" id="submitPasteBtn">Add Source</button>
+      <button class="btn-sparkle-lg" id="submitPasteBtn">Add source</button>
     </div>
   </div>
 </div>
@@ -722,7 +1697,7 @@
     </div>
     <div class="modal-body">
       <input type="url" id="urlInput" class="modal-input" placeholder="https://example.com/article" />
-      <button class="btn-sparkle-lg" id="submitUrlBtn">Scrape Page & Add Source</button>
+      <button class="btn-sparkle-lg" id="submitUrlBtn">Scrape page & add source</button>
     </div>
   </div>
 </div>
@@ -731,16 +1706,19 @@
 <div class="modal-overlay" id="sampleModal">
   <div class="modal-card modal-sm">
     <div class="modal-header">
-      <h3>⚡ Load Sample Research Notebook</h3>
+      <div class="modal-title-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
+        <h3>Load sample research notebook</h3>
+      </div>
       <button class="modal-close" id="closeSampleModalBtn">✕</button>
     </div>
     <div class="modal-body">
       <div class="sample-card-option" data-key="quantum">
-        <h4>⚛️ Quantum Computing & Encryption</h4>
+        <h4>Quantum Computing & Encryption</h4>
         <p>Research papers on superconducting qubits, Shor's algorithm, and post-quantum cryptography.</p>
       </div>
       <div class="sample-card-option" data-key="neuroscience">
-        <h4>🧠 AI, Neuroscience & Brain Architectures</h4>
+        <h4>AI, Neuroscience & Brain Architectures</h4>
         <p>Comparative analysis of biological neurons, deep learning backpropagation, and neuromorphic chips.</p>
       </div>
     </div>
@@ -827,7 +1805,10 @@
 <div class="modal-overlay" id="adminModal">
   <div class="modal-card modal-admin">
     <div class="modal-header">
-      <h3>🛡️ Admin Control Panel</h3>
+      <div class="modal-title-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <h3>Admin control panel</h3>
+      </div>
       <button class="modal-close" id="closeAdminModalBtn">✕</button>
     </div>
     <div class="admin-panel-body">
@@ -835,30 +1816,41 @@
       <!-- Stats Cards -->
       <div class="admin-stats-grid" id="adminStatsGrid">
         <div class="admin-stat-card">
-          <div class="admin-stat-icon">👥</div>
+          <div class="admin-stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
           <div class="admin-stat-value" id="statUsers">—</div>
           <div class="admin-stat-label">Total Users</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon">📓</div>
+          <div class="admin-stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </div>
           <div class="admin-stat-value" id="statNotebooks">—</div>
           <div class="admin-stat-label">Notebooks</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon">📄</div>
+          <div class="admin-stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
           <div class="admin-stat-value" id="statDocuments">—</div>
           <div class="admin-stat-label">Documents</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon">💾</div>
-          <div class="admin-stat-value" id="statStorage">—</div>
-          <div class="admin-stat-label">DB Mode</div>
+          <div class="admin-stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="admin-stat-value" id="statQueries">—</div>
+          <div class="admin-stat-label">Study Queries</div>
         </div>
       </div>
 
       <!-- Users Table -->
       <div class="admin-section-header">
-        <h4>👥 User Management</h4>
+        <div style="display:flex; align-items:center; gap:0.5rem">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <h4>User management</h4>
+        </div>
         <input type="text" class="admin-search-input" id="adminUserSearch" placeholder="Search users..." />
       </div>
       <div class="admin-table-wrapper">
@@ -895,6 +1887,232 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  LIBRARY & COLLECTIONS MODALS                               -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- CREATE NOTEBOOK MODAL -->
+<div class="modal-overlay" id="createNotebookModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title-with-icon">
+        <div class="modal-header-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <h3>Create New Notebook</h3>
+      </div>
+      <button class="modal-close" id="closeCreateNbModalBtn">✕</button>
+    </div>
+    <form id="createNotebookForm" class="modal-form">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="newNbTitleInput">Notebook title <span class="req-star">*</span></label>
+          <input type="text" id="newNbTitleInput" class="form-input" placeholder="e.g. Operating Systems & Distributed Architecture" required autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label for="newNbDescInput">Description <span class="opt-label">(optional)</span></label>
+          <textarea id="newNbDescInput" class="form-textarea" rows="3" placeholder="Brief summary of research scope, textbook chapters, or topics..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Notebook Icon</label>
+          <div class="emoji-picker-row" id="nbEmojiPicker">
+            <button type="button" class="emoji-opt active" data-emoji="📓">📓</button>
+            <button type="button" class="emoji-opt" data-emoji="🔬">🔬</button>
+            <button type="button" class="emoji-opt" data-emoji="💻">💻</button>
+            <button type="button" class="emoji-opt" data-emoji="🧠">🧠</button>
+            <button type="button" class="emoji-opt" data-emoji="📚">📚</button>
+            <button type="button" class="emoji-opt" data-emoji="📝">📝</button>
+            <button type="button" class="emoji-opt" data-emoji="💡">💡</button>
+            <button type="button" class="emoji-opt" data-emoji="🎓">🎓</button>
+            <button type="button" class="emoji-opt" data-emoji="⚡">⚡</button>
+            <button type="button" class="emoji-opt" data-emoji="📐">📐</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Cover Theme Color</label>
+          <div class="color-picker-row" id="nbColorPicker">
+            <button type="button" class="color-swatch active" data-color="#8ab4f8" style="--c:#8ab4f8" title="Blue"></button>
+            <button type="button" class="color-swatch" data-color="#c58af9" style="--c:#c58af9" title="Purple"></button>
+            <button type="button" class="color-swatch" data-color="#78d9ec" style="--c:#78d9ec" title="Cyan"></button>
+            <button type="button" class="color-swatch" data-color="#81c995" style="--c:#81c995" title="Mint"></button>
+            <button type="button" class="color-swatch" data-color="#f28b82" style="--c:#f28b82" title="Coral"></button>
+            <button type="button" class="color-swatch" data-color="#fdd663" style="--c:#fdd663" title="Gold"></button>
+          </div>
+        </div>
+        <div class="modal-error-banner" id="newNbError" style="display:none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" id="cancelCreateNbBtn">Cancel</button>
+        <button type="submit" class="btn-primary" id="submitCreateNbBtn">
+          <span>Create notebook</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- CREATE / EDIT COLLECTION MODAL -->
+<div class="modal-overlay" id="collectionModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title-with-icon">
+        <div class="modal-header-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3 id="collectionModalTitle">Create Collection</h3>
+      </div>
+      <button class="modal-close" id="closeColModalBtn">✕</button>
+    </div>
+    <form id="collectionForm" class="modal-form">
+      <div class="modal-body">
+        <input type="hidden" id="colEditId" value="" />
+        <div class="form-group">
+          <label for="colNameInput">Collection name <span class="req-star">*</span></label>
+          <input type="text" id="colNameInput" class="form-input" placeholder="e.g. Computer Science Core" required autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label for="colDescInput">Description <span class="opt-label">(optional)</span></label>
+          <textarea id="colDescInput" class="form-textarea" rows="3" placeholder="Curate related study vaults, term materials, or modules..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Collection Icon</label>
+          <div class="emoji-picker-row" id="colEmojiPicker">
+            <button type="button" class="emoji-opt active" data-emoji="📁">📁</button>
+            <button type="button" class="emoji-opt" data-emoji="📚">📚</button>
+            <button type="button" class="emoji-opt" data-emoji="🏷️">🏷️</button>
+            <button type="button" class="emoji-opt" data-emoji="🔬">🔬</button>
+            <button type="button" class="emoji-opt" data-emoji="🧠">🧠</button>
+            <button type="button" class="emoji-opt" data-emoji="🚀">🚀</button>
+            <button type="button" class="emoji-opt" data-emoji="💡">💡</button>
+            <button type="button" class="emoji-opt" data-emoji="💼">💼</button>
+            <button type="button" class="emoji-opt" data-emoji="🗂️">🗂️</button>
+            <button type="button" class="emoji-opt" data-emoji="⭐">⭐</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Accent Color</label>
+          <div class="color-picker-row" id="colColorPicker">
+            <button type="button" class="color-swatch active" data-color="#c58af9" style="--c:#c58af9" title="Purple"></button>
+            <button type="button" class="color-swatch" data-color="#8ab4f8" style="--c:#8ab4f8" title="Blue"></button>
+            <button type="button" class="color-swatch" data-color="#78d9ec" style="--c:#78d9ec" title="Cyan"></button>
+            <button type="button" class="color-swatch" data-color="#81c995" style="--c:#81c995" title="Mint"></button>
+            <button type="button" class="color-swatch" data-color="#f28b82" style="--c:#f28b82" title="Coral"></button>
+            <button type="button" class="color-swatch" data-color="#fdd663" style="--c:#fdd663" title="Gold"></button>
+          </div>
+        </div>
+        <div class="modal-error-banner" id="colError" style="display:none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" id="cancelColBtn">Cancel</button>
+        <button type="submit" class="btn-primary" id="submitColBtn">
+          <span>Save collection</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ADD NOTEBOOKS TO COLLECTION MODAL -->
+<div class="modal-overlay" id="addNotebooksToCollectionModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title-with-icon">
+        <div class="modal-header-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        </div>
+        <h3 id="addToColModalTitle">Add Notebooks to Collection</h3>
+      </div>
+      <button class="modal-close" id="closeAddToColModalBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="targetCollectionId" value="" />
+      <div class="form-group">
+        <input type="text" id="colAddSearchInput" class="form-input" placeholder="Filter notebooks by title..." autocomplete="off" />
+      </div>
+      <div class="col-notebook-select-list" id="colAddNotebooksList">
+        <!-- Rendered checkboxes of notebooks -->
+      </div>
+      <div class="modal-error-banner" id="colAddError" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-ghost" id="cancelColAddBtn">Cancel</button>
+      <button type="button" class="btn-primary" id="submitColAddBtn">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- RENAME NOTEBOOK MODAL -->
+<div class="modal-overlay" id="renameNotebookModal">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <h3>Rename Notebook</h3>
+      <button class="modal-close" id="closeRenameNbModalBtn">✕</button>
+    </div>
+    <form id="renameNotebookForm" class="modal-form">
+      <div class="modal-body">
+        <input type="hidden" id="renameNbId" value="" />
+        <div class="form-group">
+          <label for="renameNbInput">New notebook title <span class="req-star">*</span></label>
+          <input type="text" id="renameNbInput" class="form-input" required autocomplete="off" />
+        </div>
+        <div class="modal-error-banner" id="renameNbError" style="display:none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" id="cancelRenameNbBtn">Cancel</button>
+        <button type="submit" class="btn-primary" id="submitRenameNbBtn">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ADD TO COLLECTION QUICK PICKER MODAL (From Notebook Card 3-dot menu) -->
+<div class="modal-overlay" id="pickCollectionModal">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <div class="modal-title-with-icon">
+        <div class="modal-header-icon-box">📁</div>
+        <h3>Add to Collection</h3>
+      </div>
+      <button class="modal-close" id="closePickColModalBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pickColNotebookId" value="" />
+      <p class="subtle-instruction" id="pickColInstruction">Select a collection to add this notebook to:</p>
+      <div class="col-picker-list" id="pickColList">
+        <!-- Collection options buttons -->
+      </div>
+      <div class="modal-error-banner" id="pickColError" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-ghost" id="cancelPickColBtn">Cancel</button>
+      <button type="button" class="btn-link" id="quickCreateColFromPickerBtn">+ New collection</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM CONFIRMATION MODAL -->
+<div class="modal-overlay" id="customConfirmModal">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <div class="modal-title-with-icon">
+        <div class="modal-header-icon-box modal-danger-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h3 id="confirmModalTitle">Confirm Action</h3>
+      </div>
+      <button class="modal-close" id="closeConfirmModalBtn">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmModalMessage">Are you sure you want to proceed?</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-ghost" id="cancelConfirmBtn">Cancel</button>
+      <button type="button" class="btn-danger" id="submitConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="/vendor/katex/katex.min.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

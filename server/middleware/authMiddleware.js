@@ -10,7 +10,7 @@ function authenticateToken(req, res, next) {
 
   if (!token) {
     // Attach default guest user for backward compatibility
-    req.user = { id: "guest", name: "Guest Student", email: "guest@local", role: "user" };
+    req.user = { id: "guest", name: "Guest", email: "guest@local", role: "user" };
     return next();
   }
 
@@ -24,15 +24,18 @@ function authenticateToken(req, res, next) {
 }
 
 function requireAuth(req, res, next) {
-  if (!req.user || req.user.id === "guest") {
+  if (!req.user || req.user.id === "guest" || !req.user.id) {
     return res.status(401).json({ error: "Authentication required. Please log in." });
   }
   next();
 }
 
 function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role !== "admin") {
-    return res.status(403).json({ error: "Access denied. Admin privileges required." });
+  if (!req.user || req.user.id === "guest" || !req.user.id) {
+    return res.status(401).json({ error: "Authentication required. Please log in with an administrator account." });
+  }
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
   }
   next();
 }

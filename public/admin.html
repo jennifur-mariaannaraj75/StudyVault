@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyVault Admin Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  ACCESS DENIED / 401 / 403 SHIELD                           -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="authShield" class="auth-shield">
+    <div class="shield-card">
+      <div class="shield-icon" id="shieldIcon">🛡️</div>
+      <h2 class="shield-title" id="shieldTitle">Checking Permissions...</h2>
+      <div class="shield-code" id="shieldCode">AUTH_CHECK</div>
+      <p class="shield-desc" id="shieldDesc">Verifying administrator authorization credentials...</p>
+      <a href="/" class="shield-btn" id="shieldBtn">Return to StudyVault</a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  MAIN ADMIN INTERFACE (Visible only to authorized admins)   -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="adminLayout" class="admin-layout">
+
+    <!-- ── SIDEBAR NAVIGATION ── -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🛡️</div>
+        <div class="sidebar-brand">
+          <h1>StudyVault <span class="sidebar-badge">Admin</span></h1>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="overview">
+          <span class="nav-icon">📊</span>
+          <span>Overview</span>
+        </button>
+        <button class="nav-item" data-tab="users">
+          <span class="nav-icon">👥</span>
+          <span>Users</span>
+        </button>
+        <button class="nav-item" data-tab="notebooks">
+          <span class="nav-icon">📓</span>
+          <span>Notebooks</span>
+        </button>
+        <button class="nav-item" data-tab="documents">
+          <span class="nav-icon">📄</span>
+          <span>Documents</span>
+        </button>
+        <button class="nav-item" data-tab="analytics">
+          <span class="nav-icon">📈</span>
+          <span>Analytics</span>
+        </button>
+        <button class="nav-item" data-tab="health">
+          <span class="nav-icon">⚡</span>
+          <span>System Health</span>
+        </button>
+        <button class="nav-item" data-tab="audit">
+          <span class="nav-icon">📜</span>
+          <span>Audit Logs</span>
+        </button>
+        <button class="nav-item" data-tab="settings">
+          <span class="nav-icon">⚙️</span>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="/" class="btn-return-app">
+          <span>← Back to Student Workspace</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ── MAIN CONTENT AREA ── -->
+    <main class="admin-main">
+
+      <!-- Top Header -->
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <h2 class="page-title" id="currentSectionTitle">System Overview</h2>
+          <span class="storage-pill mongo" id="topbarStorageBadge">Checking DB...</span>
+        </div>
+        <div class="topbar-right">
+          <div class="admin-user-info">
+            <div class="admin-avatar" id="topbarAdminAvatar">A</div>
+            <div class="admin-meta">
+              <div class="admin-meta-name" id="topbarAdminName">Admin</div>
+              <div class="admin-meta-role">Administrator</div>
+            </div>
+          </div>
+          <button class="btn-logout" id="adminLogoutBtn">Log out</button>
+        </div>
+      </header>
+
+      <!-- Sections Container -->
+      <div class="admin-content">
+
+        <!-- ─────────────────────────────────────────────────────────────
+             SECTION 1: OVERVIEW
+             ───────────────────────────────────────────────────────────── -->
+        <section id="section-overview" class="admin-section active">
+          <div class="stats-grid" id="overviewStatsGrid">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Users</span>
+                <span class="stat-icon">👥</span>
+              </div>
+              <div class="stat-value" id="statTotalUsers">—</div>
+              <div class="stat-subtext">Registered student & admin accounts</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Notebooks</span>
+                <span class="stat-icon">📓</span>
+              </div>
+              <div class="stat-value" id="statTotalNotebooks">—</div>
+              <div class="stat-subtext">Active workspace containers</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Documents</span>
+                <span class="stat-icon">📄</span>
+              </div>
+              <div class="stat-value" id="statTotalDocs">—</div>
+              <div class="stat-subtext">Uploaded & indexed PDF/text files</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Study Notes</span>
+                <span class="stat-icon">📝</span>
+              </div>
+              <div class="stat-value" id="statTotalNotes">—</div>
+              <div class="stat-subtext">Pinboard notes & insights</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Chat Messages</span>
+                <span class="stat-icon">💬</span>
+              </div>
+              <div class="stat-value" id="statTotalMessages">—</div>
+              <div class="stat-subtext">Grounded query exchanges</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Study Artifacts</span>
+                <span class="stat-icon">🃏</span>
+              </div>
+              <div class="stat-value" id="statTotalArtifacts">—</div>
+              <div class="stat-subtext" id="statArtifactsBreakdown">Flashcards & quizzes</div>
+            </div>
+          </div>
+
+          <!-- Recent Activity & Uploads Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+            <!-- Recent Users -->
+            <div class="card-panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Recently Created Users</h3>
+                <button class="btn-action" onclick="AdminApp.switchTab('users')">View All</button>
+              </div>
+              <div class="table-responsive">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name / Email</th>
+                      <th>Role</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overviewRecentUsersBody">
+                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Recent Documents -->
+            <div class="card-panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Recently Ingested Documents</h3>
+                <button class="btn-action" onclick="AdminApp.switchTab('documents')">View All</button>
+              </div>
+              <div class="table-responsive">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Filename</th>
+                      <th>Chunks</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overviewRecentDocsBody">
+                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────────────────────
+             SECTION 2: USERS
+             ───────────────────────────────────────────────────────────── -->
+        <section id="section-users" class="admin-section">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Users Directory</h3>
+              <div class="panel-actions">
+                <input type="text" id="usersSearchInput" class="search-input" placeholder="Search name or email..." />
+                <select id="usersRoleFilter" class="filter-select">
+                  <option value="all">All Roles</option>
+                  <option value="admin">Admins</option>
+                  <option value="user">Users</option>
+                </select>
+                <select id="usersStatusFilter" class="filter-select">
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Notebooks</th>
+                    <th>Created</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Loading users...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────────────────────
+             SECTION 3: NOTEBOOKS
+             ───────────────────────────────────────────────────────────── -->
+        <section id="section-notebooks" class="admin-section">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Study Notebooks</h3>
+              <div class="panel-actions">
+                <input type="text" id="notebooksSearchInput" class="search-input" placeholder="Search title or owner..." />
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Notebook Name</th>
+                    <th>Owner</th>
+                    <th>Documents</th>
+                    <th>Messages</th>
+                    <th>Updated</th>
+                    <th>Created</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="notebooksTableBody">
+                  <tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Loading notebooks...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────────────────────
+             SECTION 4: DOCUMENTS
+             ───────────────────────────────────────────────────────────── -->
+        <section id="section-documents" class="admin-section">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Uploaded & Ingested Documents</h3>
+              <div class="panel-actions">
+                <input type="text" id="docsSearchInput" class="search-input" placeholder="Search filename or notebook..." />
+                <select id="docsStatusFilter" class="filter-select">
+                  <option value="all">All Statuses</option>
+                  <option value="ready">Ready</option>
+                  <option value="processing">Processing</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Filename</th>
+                    <th>Notebook</th>
+                    <th>Owner</th>
+                    <th>Pages</th>
+                    <th>Status</th>
+                    <th>Uploaded</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="docsTableBody">
+                  <tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Loading documents...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────────────────────
+             SECTION 5: ANALYTICS
+             ───────────────────────────────────────────────────────────── -->
+        <section id="section-analytics" class="admin-section">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Total Users</div>
+              <div class="stat-value" id="analyticsTotalUsers">—</div>
+              <div class="stat-subtext">Registered student accounts</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Study Notebooks</div>
+              <div class="stat-value" id="analyticsTotalNotebooks">—</div>
+              <div class="stat-subtext">Active workspace notebooks</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Documents Processed</div>
+              <div class="stat-value" id="analyticsTotalDocs">—</div>
+              <div class="stat-subtext">Ingested source textbooks & papers</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Document Readiness</div>
+              <div class="stat-value" id="analyticsReadyPct">—</div>
+              <div class="stat-subtext">Successfully ready for AI study</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(400px,1fr));gap:1.5rem;">
+            <div class="card-panel">
+              <h3 class="panel-title" style="margin-bottom:1rem;">Account Registrations Over Time</h3>
+              <div class="table-responsive">
+                <table class="admin-table">
+                  <thead>
+                    <tr><th>Date</th><th>New Accounts</th></tr>
+                  </thead>
+                  <tbody id="analyticsUsersTimeBody">
+                    <tr><td colspan="2" style="text-align:center;color:var(--text-muted)">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card-panel">
+              <h3 class="panel-title" style="margin-bottom:1rem;">Document Uploads Over Time</h3>
+              <div class="table-responsive">
+                <table class="admin-table">
+                  <thead>
+                    <tr><th>Date</th><th>Uploaded Documents</th></tr>
+                  </thead>
+                  <tbody id="analyticsDocsTimeBody">
+                    <tr><td colspan="2" style="text-align:center;color:var(--text-muted)">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────────────────────
+             SECTION 6: SYSTEM HEALTH
+             ───────────────────────────────────────────────────────────── -->
+        <section id="section-health" class="admin-section">
+          <div class="health-grid" id="healthGrid">
+            <!-- Backend API -->
+            <div class="health-card">
+              <div class="health-header">
+                <span class="health-name">Backend API Server</span>
+                <span class="health-badge connected" id="healthNodeBadge">Operational</span>
+              </div>
+              <div class="health-details">
+                <div class="health-row"><span class="health-key">Status</span><span class="health-val" style="color:var(--success);">Active & Running</span></div>
+                <div class="health-row"><span class="health-key">Server Uptime</span><span class="health-val" id="healthUptime">—</span></div>
+                <div class="health-row"><span class="health-key">Environment</span><span class="health-val">Production (Node.js)</span></div>
+              </div>
+            </div>
+
+            <!-- Database -->
+            <div class="health-card">
+              <div class="health-header">
+                <span class="health-name">Database Storage</span>
+                <span class="health-badge connected" id="healthDbBadge">Connected</span>
+              </div>
+              <div class="health-details">
+                <div class="health-row"><span class="health-key">Storage Engine</span><span class="health-val" id="healthDbMode">—</span></div>
+                <div class="health-row"><span class="health-key">Persistence</span><span class="health-val" id="healthDbPersistence">Active</span></div>
+                <div class="health-row"><span class="health-key">Data Integrity</span><span class="health-val" style="color:var(--success);">Verified</span></div>
+              </div>
+            </div>
+
+            <!-- Gemini AI -->
+            <div class="health-card">
+              <div class="health-header">
+                <span class="health-name">AI Generation Engine</span>
+                <span class="health-badge configured" id="healthGeminiBadge">Configured</span>
+              </div>
+              <div class="health-details">
+                <div class="health-row"><span class="health-key">Primary Model</span><span class="health-val" id="healthGeminiModel">gemini-3.8-flash</span></div>
+                <div class="health-row"><span class="health-key">Source Citations</span><span class="health-val" style="color:var(--primary-cyan);">Strict & Verified</span></div>
+                <div class="health-row"><span class="health-key">Study Modes</span><span class="health-val">Notes, Summaries, Quizzes</span></div>
+              </div>
+            </div>
+
+            <!-- Document Ingestion -->
+            <div class="health-card">
+              <div class="health-header">
+                <span class="health-name">Document Ingestion Pipeline</span>
+                <span class="health-badge available">Available</span>
+              </div>
+              <div class="health-details">
+                <div class="health-row"><span class="health-key">Supported Formats</span><span class="health-val">PDF, TXT, MD, Scanned Docs</span></div>
+                <div class="health-row"><span class="health-key">Page-Level Splitter</span><span class="health-val">Active (Per-page)</span></div>
+                <div class="health-row"><span class="health-key">Retrieval Pipeline</span><span class="health-val" style="color:var(--success);">Hybrid Dense + Lexical</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────────────────────
+             SECTION 7: AUDIT LOGS
+             ───────────────────────────────────────────────────────────── -->
+        <section id="section-audit" class="admin-section">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Administrative Audit Logs</h3>
+              <div class="panel-actions">
+                <button class="btn-action" onclick="AdminApp.loadAuditLogs()">Refresh Logs</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Administrator</th>
+                    <th>Action</th>
+                    <th>Affected Entity</th>
+                    <th>Metadata</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                  <tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Loading audit logs...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─────────────────────────────────────────────────────────────
+             SECTION 8: SETTINGS
+             ───────────────────────────────────────────────────────────── -->
+        <section id="section-settings" class="admin-section">
+          <div class="card-panel">
+            <h3 class="panel-title" style="margin-bottom:1rem;">Platform Configuration</h3>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <tbody>
+                  <tr>
+                    <td style="font-weight:600;width:240px;">Platform Name</td>
+                    <td>StudyVault — AI-Powered Academic Research Assistant</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">Google OAuth Client ID</td>
+                    <td><span id="settingsGoogleClientIdDisplay" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--primary-cyan);">Configured</span></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">AI Engine</td>
+                    <td>Google Gemini 3.8 Flash (Multimodal & Grounded)</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">User Authentication</td>
+                    <td>JWT Authentication & Google 1-Click Sign-In</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">Session Duration</td>
+                    <td>7 days per login session</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">Role-Based Access Control</td>
+                    <td>Administrator (Full management) & Student (Workspace access)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  MODALS                                                     -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+
+  <!-- User Details & Role Modal -->
+  <div class="modal-overlay" id="userModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="userModalTitle">User Management</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('userModal')">✕</button>
+      </div>
+      <div class="modal-body" id="userModalBody">
+        <!-- populated dynamically -->
+      </div>
+      <div class="modal-footer" id="userModalFooter">
+        <button class="btn-action" onclick="AdminApp.closeModal('userModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notebook Inspection Modal -->
+  <div class="modal-overlay" id="notebookModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="notebookModalTitle">Notebook Details</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('notebookModal')">✕</button>
+      </div>
+      <div class="modal-body" id="notebookModalBody">
+        <!-- populated dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action" onclick="AdminApp.closeModal('notebookModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Document Inspection Modal -->
+  <div class="modal-overlay" id="docModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="docModalTitle">Document Metadata & Chunks</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('docModal')">✕</button>
+      </div>
+      <div class="modal-body" id="docModalBody">
+        <!-- populated dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action" onclick="AdminApp.closeModal('docModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generic Confirmation Modal -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="confirmModalTitle">Confirm Action</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('confirmModal')">✕</button>
+      </div>
+      <div class="modal-body" id="confirmModalDesc">
+        Are you sure you want to proceed?
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action" onclick="AdminApp.closeModal('confirmModal')">Cancel</button>
+        <button class="btn-action danger" id="confirmModalActionBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

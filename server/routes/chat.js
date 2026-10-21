@@ -3,7 +3,29 @@ const store = require("../config/store");
 const { hybridRetrieve } = require("../utils/vectorEngine");
 const { answerFromSources } = require("../utils/aiClient");
 
+const { authenticateToken } = require("../middleware/authMiddleware");
+
 const router = express.Router({ mergeParams: true });
+router.use(authenticateToken);
+
+// Verify user has access to notebook
+router.use(async (req, res, next) => {
+  const notebookId = req.params.notebookId;
+  if (!notebookId) return next();
+  try {
+    const notebook = await store.getNotebookById(notebookId);
+    if (!notebook) return res.status(404).json({ error: "Notebook not found" });
+    if (notebook.userId && req.user?.role !== "admin") {
+      if (!req.user || String(notebook.userId) !== String(req.user.id)) {
+        return res.status(403).json({ error: "Access denied. You do not have permission to access chat in this notebook." });
+      }
+    }
+    req.notebook = notebook;
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Get chat history
 router.get("/", async (req, res) => {
@@ -48,7 +70,8 @@ router.post("/", async (req, res) => {
       apiKeyOverride,
     });
 
-    const answer = await answerFromSources(question.trim(), relevantChunks, history.slice(0, -1), mode || "chat", apiKeyOverride);
+    const resolvedMode = (mode && mode !== "chat") ? mode : "study-notes";
+    const answer = await answerFromSources(question.trim(), relevantChunks, history.slice(0, -1), resolvedMode, apiKeyOverride);
     const sources = [...new Set(relevantChunks.map((c) => `${c.filename} (p.${c.pageNumber || 1})`))];
     const citations = relevantChunks.map((c) => ({
       filename: c.filename,

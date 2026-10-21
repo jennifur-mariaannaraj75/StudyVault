@@ -1,4 +1,5 @@
 const { GoogleGenAI } = require("@google/genai");
+const nlpService = require("../services/nlpService");
 
 /**
  * High-Performance Vector & Hybrid Retrieval Engine for StudyVault RAG
@@ -7,8 +8,9 @@ const { GoogleGenAI } = require("@google/genai");
  * 2. Deterministic high-dimensional projection fallback for offline/resilience
  * 3. Cosine Similarity Vector Space search
  * 4. BM25 / Lexical Sparse Search
- * 5. Reciprocal Rank Fusion (RRF) + Linear Hybrid Combination
- * 6. Diversity Re-ranking (MMR) across document pages
+ * 5. NLP-Enhanced Keyword, Keyphrase, Topic & Intent-aligned Retrieval
+ * 6. Reciprocal Rank Fusion (RRF: Dense + Lexical + NLP) + Linear Hybrid Combination
+ * 7. Diversity Re-ranking (MMR) across document pages
  */
 
 function getAiClient(apiKeyOverride = null) {
@@ -99,6 +101,18 @@ function cosineSimilarity(vecA, vecB) {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
+// Free-tier embedding quota is 100 requests/minute. Space requests globally (~80/min) so
+// bulk uploads don't exhaust it and silently degrade to non-semantic fallback vectors.
+const EMBED_MIN_INTERVAL_MS = 750;
+const EMBED_MAX_ATTEMPTS = 6;
+let nextEmbedSlot = 0;
+async function acquireEmbedSlot() {
+  const now = Date.now();
+  const start = Math.max(now, nextEmbedSlot);
+  nextEmbedSlot = start + EMBED_MIN_INTERVAL_MS;
+  if (start > now) await new Promise((r) => setTimeout(r, start - now));
+}
+
 /**
  * Generate embedding for a single string using Gemini API or fallback
  */
@@ -109,8 +123,9 @@ async function generateEmbedding(text, apiKeyOverride = null) {
 
   const ai = getAiClient(apiKeyOverride);
   if (ai) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    for (let attempt = 1; attempt <= EMBED_MAX_ATTEMPTS; attempt++) {
       try {
+        await acquireEmbedSlot();
         const response = await ai.models.embedContent({
           model: "gemini-embedding-2-preview",
           contents: text.slice(0, 8000),
@@ -123,10 +138,19 @@ async function generateEmbedding(text, apiKeyOverride = null) {
           return response.embedding.values;
         }
       } catch (err) {
-        if (attempt === 2) {
-          console.warn(`[vectorEngine] Embedding API error (${err.message}). Using mathematical semantic vector.`);
+        if (attempt === EMBED_MAX_ATTEMPTS) {
+          const brief = String(err.message || err).slice(0, 200);
+          console.warn(`[vectorEngine] Embedding API error (${brief}). Using mathematical semantic vector.`);
         } else {
-          await new Promise((r) => setTimeout(r, 600));
+          // Rate-limited (429): wait for the quota window to recover instead of degrading quality.
+          const isRateLimit = /429|RESOURCE_EXHAUSTED|quota/i.test(String(err.message || err));
+          const hinted = /retry in ([\d.]+)\s*(ms|s)/i.exec(String(err.message || ""));
+          let waitMs = isRateLimit ? 4000 * attempt : 600;
+          if (hinted) {
+            const hintMs = parseFloat(hinted[1]) * (hinted[2].toLowerCase() === "ms" ? 1 : 1000);
+            waitMs = Math.max(waitMs, Math.ceil(hintMs) + 500);
+          }
+          await new Promise((r) => setTimeout(r, waitMs));
         }
       }
     }
@@ -150,11 +174,28 @@ async function generateBatchEmbeddings(texts, apiKeyOverride = null, batchSize =
   return results;
 }
 
+const STOP_WORDS = new Set([
+  "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are",
+  "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but",
+  "by", "can", "did", "do", "does", "doing", "don", "down", "during", "each", "few", "for",
+  "from", "further", "had", "has", "have", "having", "he", "her", "here", "hers", "herself",
+  "him", "himself", "his", "how", "if", "in", "into", "is", "it", "its", "itself", "just",
+  "me", "more", "most", "my", "myself", "no", "nor", "not", "now", "of", "off", "on", "once",
+  "only", "or", "other", "our", "ours", "ourselves", "out", "over", "own", "s", "same", "she",
+  "should", "so", "some", "such", "than", "that", "the", "their", "theirs", "them", "themselves",
+  "then", "there", "these", "they", "this", "those", "through", "to", "too", "under", "until",
+  "up", "very", "was", "we", "were", "what", "when", "where", "which", "while", "who", "whom",
+  "why", "will", "with", "you", "your", "yours", "yourself", "yourselves"
+]);
+
 /**
  * Tokenize and stem helper for Sparse / Lexical BM25 matching
  */
-function tokenize(str) {
-  return (str.toLowerCase().match(/[a-z0-9]+/g) || []).filter((w) => w.length >= 2);
+function tokenize(str, filterStop = true) {
+  const tokens = (str.toLowerCase().match(/[a-z0-9]+/g) || []).filter((w) => w.length >= 2);
+  if (!filterStop) return tokens;
+  const filtered = tokens.filter((w) => !STOP_WORDS.has(w));
+  return filtered.length > 0 ? filtered : tokens;
 }
 
 function getStems(word) {
@@ -275,51 +316,182 @@ async function hybridRetrieve({
   // 3. Generate query embedding
   const queryEmbedding = await generateEmbedding(query, apiKeyOverride);
 
-  // 4. Compute Dense Semantic Similarity
+  // 4. NLP Query Analysis & Linguistic Signals
+  let queryNlp = null;
+  try {
+    queryNlp = nlpService.analyzeQuery(query);
+  } catch (err) {
+    console.warn("[vectorEngine] NLP query analysis fallback:", err.message);
+  }
+
   const queryTokens = tokenize(query);
   const queryStems = new Set();
   queryTokens.forEach((t) => getStems(t).forEach((s) => queryStems.add(s)));
 
+  const qKeywords = queryNlp ? queryNlp.keywords : [];
+  const qKeyphrases = queryNlp ? queryNlp.keyphrases : [];
+  const qTopics = queryNlp ? queryNlp.topics : [];
+  const qExpansions = queryNlp ? queryNlp.expandedTerms : [];
+  const qIntent = queryNlp ? queryNlp.intent : "explanation";
+
   const scoredChunks = allChunks.map((item) => {
-    // Dense Cosine Similarity
+    // A. Dense Cosine Similarity
     const semanticSim = item.embedding ? cosineSimilarity(queryEmbedding, item.embedding) : 0;
     // Map cosine from [-1, 1] to [0, 1]
     const semanticScore = Math.max(0, Math.min(1, (semanticSim + 1) / 2));
 
-    // Sparse Lexical Score
+    // B. Sparse Lexical Score (BM25 token + stem match)
     const rawLexical = calculateLexicalScore(item.chunk, queryTokens, queryStems);
+
+    // C. NLP Linguistic Relevance Score
+    let rawNlp = 0;
+    const chunkLower = (item.chunk || "").toLowerCase();
+    const chunkMetadataNlp = item.nlp || item.metadata?.nlp || null;
+
+    // 1. NLP Keyword matching
+    if (qKeywords.length > 0) {
+      qKeywords.forEach((kw) => {
+        if (chunkLower.includes(kw)) {
+          rawNlp += 2.0;
+        } else if (chunkMetadataNlp && Array.isArray(chunkMetadataNlp.keywords) && chunkMetadataNlp.keywords.includes(kw)) {
+          rawNlp += 1.5;
+        }
+      });
+    }
+
+    // 2. Multi-word Keyphrase matching (exact phrase boost)
+    if (qKeyphrases.length > 0) {
+      qKeyphrases.forEach((kp) => {
+        if (chunkLower.includes(kp)) {
+          rawNlp += 3.5;
+        } else if (chunkMetadataNlp && Array.isArray(chunkMetadataNlp.keyphrases) && chunkMetadataNlp.keyphrases.includes(kp)) {
+          rawNlp += 2.5;
+        }
+      });
+    }
+
+    // 3. Topic Alignment match
+    if (qTopics.length > 0) {
+      qTopics.forEach((tp) => {
+        if (chunkLower.includes(tp.toLowerCase())) {
+          rawNlp += 2.0;
+        }
+      });
+    }
+
+    // 4. Intent-Driven Concept Pattern Bonus
+    if (qIntent === "definition") {
+      if (chunkMetadataNlp?.hasDefinition || /(?:is\s+defined\s+as|refers\s+to|means|is\s+a\s+[a-z]+\s+that|definition:)/i.test(item.chunk)) {
+        rawNlp += 3.0;
+      }
+    } else if (qIntent === "comparison") {
+      if (chunkMetadataNlp?.hasComparison || /(?:difference\s+between|differs\s+from|in\s+contrast|versus|\bvs\b|whereas)/i.test(item.chunk)) {
+        rawNlp += 3.0;
+      }
+    } else if (qIntent === "procedure") {
+      if (chunkMetadataNlp?.hasAlgorithm || chunkMetadataNlp?.hasSteps || /(?:algorithm|steps?\s+\d+|procedure|firstly|secondly)/i.test(item.chunk)) {
+        rawNlp += 3.0;
+      }
+    } else if (qIntent === "advantages_disadvantages") {
+      if (/(?:advantages?|disadvantages?|pros|cons|merits?|demerits?|benefits?|limitations?)/i.test(item.chunk)) {
+        rawNlp += 3.0;
+      }
+    } else if (qIntent === "exam_question" || qIntent === "short_answer" || qIntent === "long_answer") {
+      if (chunkMetadataNlp?.hasDefinition || chunkMetadataNlp?.hasSteps || /(?:key\s+points?|important|note:|summary)/i.test(item.chunk)) {
+        rawNlp += 2.0;
+      }
+    }
+
+    // 5. Query Expansion terms matching
+    if (qExpansions.length > 0) {
+      qExpansions.forEach((exp) => {
+        if (chunkLower.includes(exp)) {
+          rawNlp += 1.0;
+        }
+      });
+    }
 
     return {
       ...item,
+      rawCosine: Number(semanticSim.toFixed(4)),
       semanticScore: Number(semanticScore.toFixed(4)),
       rawLexicalScore: rawLexical,
+      rawNlpScore: Number(rawNlp.toFixed(2)),
+      nlpIntent: qIntent,
     };
   });
 
+  // Filter out chunks that have zero lexical match, zero NLP match AND low semantic similarity (< 0.60)
+  let candidateChunks = scoredChunks.filter(
+    (c) => c.rawLexicalScore > 0 || c.rawNlpScore > 0 || c.rawCosine >= 0.60
+  );
+  if (candidateChunks.length === 0) {
+    // Broad/overview questions (e.g. "Summarize this document", "What are the main points?")
+    // have no keyword overlap with the sources. Instead of returning nothing (which makes the
+    // model claim the sources are empty), fall back to a round-robin sample across documents,
+    // ordered by semantic similarity within each document.
+    const byDoc = new Map();
+    for (const c of [...scoredChunks].sort((a, b) => b.rawCosine - a.rawCosine)) {
+      if (!c.chunk || !c.chunk.trim()) continue;
+      if (!byDoc.has(c.documentId)) byDoc.set(c.documentId, []);
+      byDoc.get(c.documentId).push(c);
+    }
+    const queues = [...byDoc.values()];
+    const fallback = [];
+    while (fallback.length < topK && queues.some((q) => q.length > 0)) {
+      for (const q of queues) {
+        if (q.length > 0 && fallback.length < topK) fallback.push(q.shift());
+      }
+    }
+    if (fallback.length === 0) return [];
+    candidateChunks = fallback;
+  }
+
   // Normalize lexical scores to [0, 1]
-  const maxLexical = Math.max(1, ...scoredChunks.map((c) => c.rawLexicalScore));
-  scoredChunks.forEach((c) => {
+  const maxLexical = Math.max(1, ...candidateChunks.map((c) => c.rawLexicalScore));
+  candidateChunks.forEach((c) => {
     c.lexicalScore = Number((c.rawLexicalScore / maxLexical).toFixed(4));
   });
 
-  // 5. Compute Hybrid Scores using Linear Combination & Reciprocal Rank Fusion (RRF)
+  // Normalize NLP scores to [0, 1]
+  const maxNlp = Math.max(1, ...candidateChunks.map((c) => c.rawNlpScore));
+  candidateChunks.forEach((c) => {
+    c.nlpScore = Number((c.rawNlpScore / maxNlp).toFixed(4));
+  });
+
+  // 5. Compute Hybrid Scores using Linear Combination & 3-Way Reciprocal Rank Fusion (RRF)
   // Dense ranking
-  const denseRanked = [...scoredChunks].sort((a, b) => b.semanticScore - a.semanticScore);
+  const denseRanked = [...candidateChunks].sort((a, b) => b.semanticScore - a.semanticScore);
   const denseRankMap = new Map();
   denseRanked.forEach((c, idx) => denseRankMap.set(c.chunkId, idx + 1));
 
   // Lexical ranking
-  const lexicalRanked = [...scoredChunks].sort((a, b) => b.lexicalScore - a.lexicalScore);
+  const lexicalRanked = [...candidateChunks].sort((a, b) => b.lexicalScore - a.lexicalScore);
   const lexicalRankMap = new Map();
   lexicalRanked.forEach((c, idx) => lexicalRankMap.set(c.chunkId, idx + 1));
 
+  // NLP ranking
+  const nlpRanked = [...candidateChunks].sort((a, b) => b.nlpScore - a.nlpScore);
+  const nlpRankMap = new Map();
+  nlpRanked.forEach((c, idx) => nlpRankMap.set(c.chunkId, idx + 1));
+
   const k_rrf = 60;
-  scoredChunks.forEach((c) => {
+  candidateChunks.forEach((c) => {
     const rankDense = denseRankMap.get(c.chunkId) || 999;
     const rankLexical = lexicalRankMap.get(c.chunkId) || 999;
+    const rankNlp = nlpRankMap.get(c.chunkId) || 999;
 
-    const rrfScore = 1.0 / (k_rrf + rankDense) + 1.0 / (k_rrf + rankLexical);
-    const linearScore = alpha * c.semanticScore + (1 - alpha) * c.lexicalScore;
+    // 3-Way RRF: Dense + Lexical + NLP
+    const rrfScore =
+      1.0 / (k_rrf + rankDense) +
+      1.0 / (k_rrf + rankLexical) +
+      1.0 / (k_rrf + rankNlp);
+
+    // Controlled Linear combination: 50% Semantic, 25% Lexical, 25% NLP
+    const linearScore =
+      0.50 * c.semanticScore +
+      0.25 * c.lexicalScore +
+      0.25 * c.nlpScore;
 
     // Blended Hybrid Metric
     c.hybridScore = Number((0.6 * linearScore + 0.4 * (rrfScore * 30)).toFixed(4));
@@ -327,14 +499,14 @@ async function hybridRetrieve({
   });
 
   // Sort by hybrid score
-  scoredChunks.sort((a, b) => b.hybridScore - a.hybridScore);
+  candidateChunks.sort((a, b) => b.hybridScore - a.hybridScore);
 
   // 6. Maximal Marginal Relevance / Page Diversity Filter
   // Ensure we don't return 8 chunks from the exact same page unless only 1 page exists
   const selected = [];
   const pageOccurrence = {};
 
-  for (const cand of scoredChunks) {
+  for (const cand of candidateChunks) {
     const pageKey = `${cand.filename}_p${cand.pageNumber}`;
     const count = pageOccurrence[pageKey] || 0;
 
@@ -349,7 +521,7 @@ async function hybridRetrieve({
 
   // If still need items to fill topK
   if (selected.length < topK) {
-    for (const cand of scoredChunks) {
+    for (const cand of candidateChunks) {
       if (!selected.some((s) => s.chunkId === cand.chunkId)) {
         selected.push(cand);
       }

@@ -9,9 +9,11 @@ const nlpService = require("../services/nlpService");
 const { extractPdfPages } = require("../utils/pdfExtractor");
 const { extractPptx, extractDocx } = require("../utils/officeExtractor");
 const { ocrPdfBuffer } = require("../utils/ocrExtractor");
+const { extractImagesFromPdf, extractImagesFromOffice } = require("../utils/imageExtractor");
 const { analyzeDocument } = require("../utils/aiClient");
 const { chunkDocument } = require("../utils/textChunker");
 const { generateBatchEmbeddings, hybridRetrieve } = require("../utils/vectorEngine");
+const { parseYoutubeVideoId, extractWebUrlSource } = require("../utils/urlAndYoutubeExtractor");
 
 const { authenticateToken } = require("../middleware/authMiddleware");
 
@@ -37,11 +39,16 @@ router.use(async (req, res, next) => {
   }
 });
 
-const uploadsDir = path.join(__dirname, "..", "data", "uploads");
+const os = require("os");
+const uploadsDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), "studyvault_uploads")
+  : path.join(__dirname, "..", "data", "uploads");
 
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (_) {}
 
 function sanitizePdfText(str) {
   if (!str) return "";
@@ -494,6 +501,16 @@ router.post("/", upload.array("files", 10), async (req, res) => {
       return res.status(400).json({ error: "No files uploaded" });
     }
 
+    const maxFileBytes = Math.max(...req.files.map((f) => f.size || (f.buffer ? f.buffer.length : 0)));
+    const quota = await store.checkQuota(req.user?.id, req.user?.role, "upload_document", {
+      notebookId: req.params.notebookId,
+      filesCount: req.files.length,
+      maxFileBytes
+    });
+    if (!quota.allowed) {
+      return res.status(403).json(quota);
+    }
+
     const created = [];
     for (const file of req.files) {
       const lower = file.originalname.toLowerCase();
@@ -540,27 +557,30 @@ router.post("/", upload.array("files", 10), async (req, res) => {
           hasPdfFile: true,
           summary: "Extracting pages & text...",
         });
-        processPdfDocument(doc._id, file.buffer, file.originalname).catch((err) => {
+        const p = processPdfDocument(doc._id, file.buffer, file.originalname).catch((err) => {
           console.error("[documents] PDF processing failed:", err.message);
         });
+        if (process.env.VERCEL) await p;
       } else if (isPpt) {
         await store.updateDocument(doc._id, {
           storagePath: originalPath,
           hasPdfFile: false,
           summary: "Extracting presentation slides...",
         });
-        processPresentationDocument(doc._id, file.buffer, file.originalname).catch((err) => {
+        const p = processPresentationDocument(doc._id, file.buffer, file.originalname).catch((err) => {
           console.error("[documents] Presentation processing failed:", err.message);
         });
+        if (process.env.VERCEL) await p;
       } else if (isDoc) {
         await store.updateDocument(doc._id, {
           storagePath: originalPath,
           hasPdfFile: false,
           summary: "Extracting document chapters & text...",
         });
-        processWordDocument(doc._id, file.buffer, file.originalname).catch((err) => {
+        const p = processWordDocument(doc._id, file.buffer, file.originalname).catch((err) => {
           console.error("[documents] Word processing failed:", err.message);
         });
+        if (process.env.VERCEL) await p;
       } else {
         const textContent = file.buffer.toString("utf-8");
         await store.updateDocument(doc._id, {
@@ -568,12 +588,14 @@ router.post("/", upload.array("files", 10), async (req, res) => {
           hasPdfFile: false,
           summary: "Extracting text content...",
         });
-        processTextDocument(doc._id, textContent, file.originalname).catch((err) => {
+        const p = processTextDocument(doc._id, textContent, file.originalname).catch((err) => {
           console.error("[documents] Text processing failed:", err.message);
         });
+        if (process.env.VERCEL) await p;
       }
 
-      created.push(doc);
+      const finalDoc = process.env.VERCEL ? (await store.getDocumentById(doc._id)) || doc : doc;
+      created.push(finalDoc);
     }
     res.status(201).json(created);
   } catch (err) {
@@ -590,6 +612,15 @@ router.post("/text", async (req, res) => {
     const notebook = await store.getNotebookById(req.params.notebookId);
     if (!notebook) return res.status(404).json({ error: "Notebook not found" });
 
+    const quota = await store.checkQuota(req.user?.id, req.user?.role, "upload_document", {
+      notebookId: req.params.notebookId,
+      filesCount: 1,
+      maxFileBytes: Buffer.byteLength(text, "utf-8")
+    });
+    if (!quota.allowed) {
+      return res.status(403).json(quota);
+    }
+
     const filename = (title && title.trim()) ? title.trim() : `Note_${Date.now()}.txt`;
     const doc = await store.createDocument({
       notebookId: notebook._id,
@@ -599,17 +630,19 @@ router.post("/text", async (req, res) => {
       status: "processing",
     });
 
-    processTextDocument(doc._id, text.trim(), filename).catch((err) => {
+    const p = processTextDocument(doc._id, text.trim(), filename).catch((err) => {
       console.error("[documents] Text paste failed:", err.message);
     });
+    if (process.env.VERCEL) await p;
 
-    res.status(201).json(doc);
+    const finalDoc = process.env.VERCEL ? (await store.getDocumentById(doc._id)) || doc : doc;
+    res.status(201).json(finalDoc);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Add Web URL
+// Add Web URL or YouTube Video Link
 router.post("/url", async (req, res) => {
   try {
     const { url } = req.body;
@@ -617,9 +650,21 @@ router.post("/url", async (req, res) => {
     const notebook = await store.getNotebookById(req.params.notebookId);
     if (!notebook) return res.status(404).json({ error: "Notebook not found" });
 
+    const quota = await store.checkQuota(req.user?.id, req.user?.role, "upload_document", {
+      notebookId: req.params.notebookId,
+      filesCount: 1,
+      maxFileBytes: 0
+    });
+    if (!quota.allowed) {
+      return res.status(403).json(quota);
+    }
+
     const targetUrl = url.trim().startsWith("http") ? url.trim() : `https://${url.trim()}`;
-    const domain = new URL(targetUrl).hostname.replace("www.", "");
-    const filename = `Web_${domain}_${Date.now().toString(36)}.txt`;
+    const ytId = parseYoutubeVideoId(targetUrl);
+    const domain = new URL(targetUrl).hostname.replace(/^www\./, "");
+    const filename = ytId
+      ? `YouTube Video (${ytId}).txt`
+      : `Web - ${domain}.txt`;
 
     const doc = await store.createDocument({
       notebookId: notebook._id,
@@ -627,13 +672,16 @@ router.post("/url", async (req, res) => {
       extractedText: "",
       mimeType: "text/plain",
       status: "processing",
+      summary: ytId ? "Extracting YouTube transcript & metadata..." : "Fetching article content...",
     });
 
-    fetchAndProcessUrl(doc._id, targetUrl, filename).catch((err) => {
+    const p = fetchAndProcessUrl(doc._id, targetUrl, filename).catch((err) => {
       console.error("[documents] URL fetch failed:", err.message);
     });
+    if (process.env.VERCEL) await p;
 
-    res.status(201).json(doc);
+    const finalDoc = process.env.VERCEL ? (await store.getDocumentById(doc._id)) || doc : doc;
+    res.status(201).json(finalDoc);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -723,12 +771,20 @@ async function processPdfDocument(docId, buffer, filename) {
       ])
     );
 
+    let extractedImages = [];
+    try {
+      extractedImages = await extractImagesFromPdf(buffer, docId, filename, pages);
+    } catch (imgErr) {
+      console.warn("[documents] PDF image extraction warning:", imgErr.message);
+    }
+
     await store.updateDocument(docId, {
       summary: analysis.summary || "Ready for grounded AI exploration.",
       keyTopics: mergedTopics,
       suggestedQuestions: analysis.suggestedQuestions || [],
       chunks,
       nlp: docNlp,
+      extractedImages,
       hasPdfFile: true,
       status: "ready",
     });
@@ -788,12 +844,18 @@ async function processPresentationDocument(docId, buffer, filename) {
       ])
     );
 
+    let extractedImages = [];
+    try {
+      extractedImages = await extractImagesFromOffice(buffer, docId, filename, pages);
+    } catch (_) {}
+
     await store.updateDocument(docId, {
       summary: analysis.summary || `Presentation containing ${pageCount} slides ready for exploration.`,
       keyTopics: mergedTopics,
       suggestedQuestions: analysis.suggestedQuestions || [],
       chunks,
       nlp: docNlp,
+      extractedImages,
       hasPdfFile: true,
       status: "ready",
     });
@@ -853,12 +915,18 @@ async function processWordDocument(docId, buffer, filename) {
       ])
     );
 
+    let extractedImages = [];
+    try {
+      extractedImages = await extractImagesFromOffice(buffer, docId, filename, pages);
+    } catch (_) {}
+
     await store.updateDocument(docId, {
       summary: analysis.summary || "Document ready for grounded AI exploration.",
       keyTopics: mergedTopics,
       suggestedQuestions: analysis.suggestedQuestions || [],
       chunks,
       nlp: docNlp,
+      extractedImages,
       hasPdfFile: true,
       status: "ready",
     });
@@ -952,28 +1020,32 @@ async function processTextDocument(docId, text, filename) {
   }
 }
 
-async function fetchAndProcessUrl(docId, url, filename) {
+async function fetchAndProcessUrl(docId, url, fallbackFilename) {
   try {
-    const res = await axios.get(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
-      timeout: 15000,
-    });
-    const html = res.data || "";
-    let cleanText = html
-      .replace(/<script\b[^<]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style\b[^<]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (cleanText.length > 50000) cleanText = cleanText.slice(0, 50000);
-    if (!cleanText || cleanText.length < 50) {
-      await store.updateDocument(docId, { status: "failed", summary: "Failed to extract text from URL." });
+    const extracted = await extractWebUrlSource(url);
+    const cleanText = (extracted && extracted.fullText ? extracted.fullText : "").trim();
+    const finalFilename = (extracted && extracted.filename) || fallbackFilename;
+
+    if (!cleanText || cleanText.length < 30) {
+      await store.updateDocument(docId, {
+        status: "failed",
+        summary: "Could not extract readable text or transcript from this URL.",
+      });
       return;
     }
-    await processTextDocument(docId, cleanText, filename);
+
+    await store.updateDocument(docId, {
+      filename: finalFilename,
+      summary: "Indexing extracted content & generating citations...",
+    });
+
+    await processTextDocument(docId, cleanText, finalFilename);
   } catch (err) {
     console.error("[fetchUrl] Error:", err.message);
-    await store.updateDocument(docId, { status: "failed", summary: `URL fetch failed: ${err.message}` });
+    await store.updateDocument(docId, {
+      status: "failed",
+      summary: `URL import failed: ${err.message}`,
+    });
   }
 }
 
@@ -1180,5 +1252,47 @@ async function resumeInterruptedDocuments() {
   return { resumed };
 }
 
+async function reprocessDocumentById(docId) {
+  const doc = await store.getDocumentById(docId);
+  if (!doc) return { error: "Document not found" };
+  const id = doc._id || doc.id;
+  let filePath = doc.storagePath && fs.existsSync(doc.storagePath)
+    ? doc.storagePath
+    : path.join(uploadsDir, `${String(id)}.pdf`);
+
+  if (!fs.existsSync(filePath) && doc.extractedText && doc.extractedText.trim()) {
+    await store.updateDocument(id, { status: "processing", summary: "Re-indexing chunks & embeddings..." });
+    processTextDocument(id, doc.extractedText, doc.filename).catch((err) => {
+      console.error("[reprocess] Text reindex error:", err.message);
+    });
+    return { success: true, mode: "text_reindex", filename: doc.filename };
+  }
+
+  if (!fs.existsSync(filePath)) {
+    const ensured = await ensurePdfOnDisk(doc);
+    if (ensured && fs.existsSync(ensured)) {
+      filePath = ensured;
+    } else {
+      return { error: "Original source file is not available on disk to reprocess." };
+    }
+  }
+
+  await store.updateDocument(id, { status: "processing", summary: "Re-processing document & vector embeddings..." });
+  const lower = String(doc.filename || filePath).toLowerCase();
+  const buffer = fs.readFileSync(filePath);
+  if (lower.endsWith(".pdf") || filePath.toLowerCase().endsWith(".pdf")) {
+    processPdfDocument(id, buffer, doc.filename).catch((err) => console.error("[reprocess] PDF error:", err.message));
+  } else if (lower.endsWith(".pptx") || lower.endsWith(".ppt")) {
+    processPresentationDocument(id, buffer, doc.filename).catch((err) => console.error("[reprocess] PPTX error:", err.message));
+  } else if (lower.endsWith(".docx") || lower.endsWith(".doc")) {
+    processWordDocument(id, buffer, doc.filename).catch((err) => console.error("[reprocess] DOCX error:", err.message));
+  } else {
+    processTextDocument(id, buffer.toString("utf-8"), doc.filename).catch((err) => console.error("[reprocess] TXT error:", err.message));
+  }
+  return { success: true, mode: "full_reprocess", filename: doc.filename };
+}
+
 module.exports = router;
 module.exports.resumeInterruptedDocuments = resumeInterruptedDocuments;
+module.exports.reprocessDocumentById = reprocessDocumentById;
+module.exports.ensurePdfOnDisk = ensurePdfOnDisk;

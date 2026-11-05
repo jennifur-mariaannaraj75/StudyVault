@@ -1,0 +1,11 @@
+node_modules
+.env
+.git
+Dockerfile
+docker-compose.yml
+.dockerignore
+render.yaml
+deploy
+server/data/uploads/*
+!server/data/uploads/.gitkeep
+*.log

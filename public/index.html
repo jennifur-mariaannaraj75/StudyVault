@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
-<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/style.css?v=20261104_5" />
 <script src="/js/pdf.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -33,13 +33,18 @@
   <div class="landing-hero">
     <div class="landing-logo-wrap">
       <div class="landing-logo-icon">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
           <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="url(#lg1)"/>
           <defs><linearGradient id="lg1" x1="0" y1="0" x2="24" y2="24"><stop stop-color="#8AB4F8"/><stop offset=".5" stop-color="#C58AF9"/><stop offset="1" stop-color="#78D9EC"/></linearGradient></defs>
         </svg>
       </div>
       <span class="landing-logo-name">StudyVault</span>
       <span class="landing-logo-badge">Beta</span>
+    </div>
+
+    <div class="landing-hero-pill">
+      <span class="lhp-dot"></span>
+      <span>AI-Powered Source-Grounded Study Workspace</span>
     </div>
 
     <h1 class="landing-headline">
@@ -58,7 +63,7 @@
       <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Interactive quiz</div>
       <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Deep study answers</div>
       <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> AI podcast</div>
-      <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Admin panel</div>
+      <div class="lf-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Smart diagrams</div>
     </div>
 
     <div class="landing-stats">
@@ -73,6 +78,13 @@
   <!-- Right: Auth Card -->
   <div class="landing-auth-card" id="landingAuthCard">
 
+    <!-- Card Header -->
+    <div class="lat-card-top">
+      <div class="lat-card-badge">✨ Welcome Back</div>
+      <h2 class="lat-card-heading">Sign in to StudyVault</h2>
+      <p class="lat-card-sub">Access your notebooks, flashcards &amp; AI study tools</p>
+    </div>
+
     <!-- Tab switcher -->
     <div class="landing-auth-tabs">
       <button class="lat active" data-lat="signin" id="latSignin">Sign in</button>
@@ -82,15 +94,23 @@
     <!-- SIGN IN FORM -->
     <form class="lat-form active" id="latSigninForm">
       <div class="lat-field">
-        <label>Email address</label>
-        <input type="email" id="latEmail" class="lat-input" placeholder="you@example.com" autocomplete="email" required />
+        <label for="latEmail">Email address</label>
+        <div class="lat-input-wrap">
+          <span class="lat-input-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </span>
+          <input type="email" id="latEmail" class="lat-input has-icon" placeholder="you@example.com" autocomplete="email" required />
+        </div>
       </div>
       <div class="lat-field">
-        <label>Password</label>
-        <div class="lat-pw-wrap">
-          <input type="password" id="latPassword" class="lat-input" placeholder="Your password" autocomplete="current-password" required />
+        <label for="latPassword">Password</label>
+        <div class="lat-pw-wrap lat-input-wrap">
+          <span class="lat-input-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <input type="password" id="latPassword" class="lat-input has-icon" placeholder="Your password" autocomplete="current-password" required />
           <button type="button" class="lat-pw-toggle" id="latPwToggle" tabindex="-1" title="Toggle password visibility">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
       </div>
@@ -98,10 +118,6 @@
       <button type="submit" class="lat-submit" id="latSigninBtn">
         <span>Sign in</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </button>
-      <button type="button" class="lat-demo-btn" id="latDemoBtn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        <span>1-Click demo login (Auto-fill)</span>
       </button>
       <div class="lat-switch-text">
         Don't have an account? <a href="javascript:void(0)" class="lat-switch-link" id="toSignupLink">Create an account</a>
@@ -111,16 +127,31 @@
     <!-- SIGN UP FORM -->
     <form class="lat-form" id="latSignupForm">
       <div class="lat-field">
-        <label>Full name</label>
-        <input type="text" id="latName" class="lat-input" placeholder="Your full name" autocomplete="name" required />
+        <label for="latName">Full name</label>
+        <div class="lat-input-wrap">
+          <span class="lat-input-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <input type="text" id="latName" class="lat-input has-icon" placeholder="Your full name" autocomplete="name" required />
+        </div>
       </div>
       <div class="lat-field">
-        <label>Email address</label>
-        <input type="email" id="latRegEmail" class="lat-input" placeholder="you@example.com" autocomplete="email" required />
+        <label for="latRegEmail">Email address</label>
+        <div class="lat-input-wrap">
+          <span class="lat-input-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </span>
+          <input type="email" id="latRegEmail" class="lat-input has-icon" placeholder="you@example.com" autocomplete="email" required />
+        </div>
       </div>
       <div class="lat-field">
-        <label>Password <span class="lat-hint">(min 6 chars)</span></label>
-        <input type="password" id="latRegPassword" class="lat-input" placeholder="Create a password" autocomplete="new-password" required />
+        <label for="latRegPassword">Password <span class="lat-hint">(min 6 chars)</span></label>
+        <div class="lat-input-wrap">
+          <span class="lat-input-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <input type="password" id="latRegPassword" class="lat-input has-icon" placeholder="Create a password" autocomplete="new-password" required />
+        </div>
       </div>
       <div class="lat-error" id="latSignupError" style="display:none"></div>
       <button type="submit" class="lat-submit" id="latSignupBtn">
@@ -133,18 +164,28 @@
     </form>
 
     <!-- Divider -->
-    <div class="lat-divider"><span>or</span></div>
+    <div class="lat-divider"><span>or continue with</span></div>
 
-    <!-- Google & Guest -->
-    <div id="landingGoogleBtn"></div>
-    <button class="lat-google" id="latGoogleFallback">
-      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      Continue with Google
-    </button>
-    <button type="button" class="lat-demo-btn" id="latGuestBtn" style="margin-top:0.4rem; margin-bottom:1rem;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span>Explore as guest (No sign up needed)</span>
-    </button>
+    <!-- Google Sign-In (Responsive Container) -->
+    <div class="lat-google-wrap">
+      <div id="landingGoogleBtn"></div>
+      <button type="button" class="lat-google" id="latGoogleFallback">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        <span>Continue with Google</span>
+      </button>
+    </div>
+
+    <!-- Quick Access Row (Demo + Guest side-by-side) -->
+    <div class="lat-quick-row">
+      <button type="button" class="lat-quick-btn" id="latDemoBtn" title="Instant 1-click demo login">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span>1-Click Demo</span>
+      </button>
+      <button type="button" class="lat-quick-btn" id="latGuestBtn" title="Continue without an account">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Explore as Guest</span>
+      </button>
+    </div>
 
     <p class="lat-footer">By signing in you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a>.</p>
   </div>
@@ -225,6 +266,11 @@
         </button>
       </div>
 
+      <!-- Plan & Quota Pill -->
+      <button class="plan-pill-btn plan-free" id="libPlanBadgeBtn" title="View Subscription Plan & Daily Quotas">
+        <span id="libPlanBadgeLabel">🌱 FREE</span>
+      </button>
+
       <!-- Settings button -->
       <button class="btn-icon" id="libSettingsBtn" title="AI Settings">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -244,6 +290,10 @@
             <div class="dropdown-user-email" id="libDropdownUserEmail">user@email.com</div>
             <div class="dropdown-user-role" id="libDropdownUserRole">Student</div>
           </div>
+          <button class="dropdown-item" id="libPlansMenuBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span>Subscription & quotas</span>
+          </button>
           <button class="dropdown-item" id="libAdminPanelBtn" style="display:none">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>Admin panel</span>
@@ -432,9 +482,15 @@
     </div>
 
     <div class="topbar-actions">
+      <button class="plan-pill-btn plan-free" id="wsPlanBadgeBtn" title="View Subscription Plan & Daily Quotas">
+        <span id="wsPlanBadgeLabel">🌱 FREE</span>
+      </button>
       <button class="btn-primary-sm" id="sampleNotebooksBtn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
         <span>Sample research</span>
+      </button>
+      <button class="btn-ctrl" id="openDevicesModalBtn" title="Access StudyVault on Phone, Tablet & Other Devices" style="padding:0.38rem 0.68rem; font-size:0.76rem; border:1px solid rgba(129,201,149,0.4); color:#81c995; display:inline-flex; align-items:center; gap:0.35rem;">
+        <span>📱 Devices</span>
       </button>
       <button class="btn-icon" id="openSettingsBtn" title="AI Settings">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -462,6 +518,10 @@
             <div class="dropdown-user-email" id="dropdownUserEmail">user@email.com</div>
             <div class="dropdown-user-role" id="dropdownUserRole">Student</div>
           </div>
+          <button class="dropdown-item" id="wsPlansMenuBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span>Subscription & quotas</span>
+          </button>
           <button class="dropdown-item" id="adminPanelBtn" style="display:none">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>Admin panel</span>
@@ -1168,13 +1228,59 @@
         <div class="tab-pane" id="tabImages">
           <div class="tab-pane-header">
             <div>
-              <h2>AI Visual & Diagram Studio</h2>
-              <p class="tab-subtitle">Synthesize source-grounded infographics, architectural diagrams, and scientific blueprints.</p>
+              <h2>AI Visual &amp; Diagram Studio</h2>
+              <p class="tab-subtitle">Search your topic across external web sources (Google Images, Wikipedia, Wikimedia Commons) and generate AI study visuals from them.</p>
             </div>
-            <button class="btn-primary-sm" id="generateImageBtn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              <span>Generate visual</span>
-            </button>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <a id="openGoogleImagesLink" href="https://www.google.com/imghp" target="_blank" rel="noopener noreferrer" class="btn-ctrl" title="Open topic search in Google Images" style="padding:0.42rem 0.75rem; font-size:0.78rem; text-decoration:none; border:1px solid rgba(138,180,248,0.35); color:#8ab4f8; display:inline-flex; align-items:center; gap:0.35rem;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span>Google Images ↗</span>
+              </a>
+              <button class="btn-primary-sm" id="generateImageBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Generate visual</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- External Web Image Search & Reference Panel -->
+          <div class="visual-controls-card" id="extractedSourceImagesPanel" style="margin-bottom:0.85rem;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.55rem; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span style="font-size:0.82rem; font-weight:700; color:var(--text-main);">🌐 External Web Diagrams &amp; Topic Image Search</span>
+                <span id="extractedSourceImagesCountBadge" style="font-size:0.7rem; padding:0.12rem 0.5rem; border-radius:999px; background:rgba(138,180,248,0.14); color:#8ab4f8; font-weight:600;">0 found</span>
+              </div>
+              <span style="font-size:0.72rem; color:var(--text-muted);">Search any topic on external sources &amp; click an image to generate from it</span>
+            </div>
+
+            <!-- External Topic Search Bar -->
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.55rem;">
+              <input type="text" id="webImageSearchInput" class="studio-input" style="flex:1;" placeholder="Search topic on external web sources (e.g., Paging Hardware with TLB, Deadlock Avoidance, Segmentation)..." />
+              <button type="button" class="btn-ctrl" id="extractSourceImagesBtn" style="padding:0.45rem 0.85rem; font-size:0.78rem; border:1px solid rgba(138,180,248,0.4); color:#8ab4f8; white-space:nowrap;">
+                🔍 Search Web Images
+              </button>
+            </div>
+
+            <!-- Quick Topic Pills from Notebook Sources -->
+            <div id="webSuggestedTopicsBar" style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.65rem;"></div>
+
+            <!-- Selected External Image Reference Banner -->
+            <div id="selectedSourceImageBanner" style="display:none; align-items:center; justify-content:space-between; gap:0.75rem; padding:0.55rem 0.75rem; margin-bottom:0.65rem; background:rgba(138,180,248,0.1); border:1px solid rgba(138,180,248,0.35); border-radius:8px;">
+              <div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
+                <img id="selectedSourceImageThumb" src="" alt="Selected web figure" referrerpolicy="no-referrer" style="width:52px; height:38px; object-fit:contain; border-radius:5px; border:1px solid rgba(255,255,255,0.15); background:#ffffff; padding:2px;" />
+                <div style="min-width:0;">
+                  <div style="font-size:0.76rem; font-weight:700; color:#8ab4f8;">🌐 Generating from External Web Reference Image</div>
+                  <div id="selectedSourceImageLabel" style="font-size:0.72rem; color:var(--text-sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+                </div>
+              </div>
+              <button type="button" class="btn-ctrl" id="clearSelectedSourceImageBtn" style="font-size:0.72rem; padding:0.22rem 0.55rem;">✕ Clear selection</button>
+            </div>
+
+            <div id="extractedSourceImagesGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(195px, 1fr)); gap:0.65rem; max-height:285px; overflow-y:auto; padding-right:0.2rem;">
+              <div style="grid-column:1/-1; font-size:0.76rem; color:var(--text-muted); padding:0.65rem 0.25rem;">
+                Enter a topic above and click <strong>"🔍 Search Web Images"</strong> to fetch real diagrams and illustrations from external sources.
+              </div>
+            </div>
           </div>
 
           <!-- Prompt, Scope & Style Controls -->
@@ -1236,7 +1342,7 @@
           <div class="visual-display-area" id="visualDisplayArea">
             <div class="visual-empty-state" id="visualEmptyState">
               <img src="/assets/images/study_infographic_preview_1790174854345.jpg" alt="Visual Preview" class="visual-banner-preview" referrerpolicy="no-referrer" />
-              <p>Select scope and click <strong>"Generate visual"</strong> to create a source-grounded concept map & architectural diagram from your documents.</p>
+              <p>Click <strong>"✨ Generate from Image"</strong> on any extracted source figure above, or click <strong>"Generate visual"</strong> to synthesize a diagram.</p>
             </div>
             <div class="active-visual-card" id="activeVisualCard" style="display:none">
               <div class="visual-card-header">
@@ -1244,10 +1350,18 @@
                   <h3 id="visualCardTitle">Visual Title</h3>
                   <div class="visual-tags" id="visualCardTags"></div>
                 </div>
-                <div class="visual-card-actions">
+                <div class="visual-card-actions" style="flex-wrap:wrap;">
+                  <button class="btn-ctrl" id="btnVisualCompareSource" title="Compare Original Source Image vs AI Generated Image" style="display:none; border-color:rgba(138,180,248,0.4); color:#8ab4f8;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+                    <span>Compare with Source</span>
+                  </button>
+                  <button class="btn-ctrl" id="btnVisualDownloadPng" title="Download High-Res PNG Image">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <span>PNG</span>
+                  </button>
                   <button class="btn-ctrl" id="btnVisualDownload" title="Download SVG Vector">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    <span>Download</span>
+                    <span>SVG</span>
                   </button>
                   <button class="btn-ctrl" id="btnVisualPinNote" title="Save as Pinboard Note">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24Z"/></svg>
@@ -1429,8 +1543,8 @@
           <span>Paste text</span>
         </button>
         <button type="button" class="as-tab" data-astab="url">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          <span>Web URL</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>YouTube / Web URL</span>
         </button>
         <button type="button" class="as-tab" data-astab="sample">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
@@ -1469,14 +1583,24 @@
         <button type="button" class="btn-primary-sm" id="btnSubmitPasteModal" style="width:100%; justify-content:center; padding:0.65rem">Add text source</button>
       </div>
 
-      <!-- Tab 3: Web URL -->
+      <!-- Tab 3: YouTube & Web URL -->
       <div class="as-panel" id="asPanelUrl" style="display:none">
         <div class="lat-field">
-          <label>Article or documentation URL</label>
-          <input type="url" id="urlModalInput" class="modal-input" placeholder="https://en.wikipedia.org/wiki/Operating_system" />
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label for="urlModalInput">YouTube Video or Web Article URL</label>
+            <span id="urlTypeBadge" style="font-size:0.7rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:999px; background:rgba(138,180,248,0.12); color:#8ab4f8; border:1px solid rgba(138,180,248,0.28);">🎬 YouTube &amp; 🌐 Web Ready</span>
+          </div>
+          <input type="url" id="urlModalInput" class="modal-input" placeholder="Paste https://www.youtube.com/watch?v=... or https://en.wikipedia.org/wiki/..." />
         </div>
-        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem">StudyVault will fetch and index the page content for grounded Q&A and citations.</p>
-        <button type="button" class="btn-primary-sm" id="btnSubmitUrlModal" style="width:100%; justify-content:center; padding:0.65rem">Fetch web source</button>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.7rem; line-height:1.45;">
+          Supports <strong>YouTube videos</strong> (auto-extracts timestamped lecture transcripts &amp; descriptions), <strong>Wikipedia articles</strong>, and <strong>documentation / blog URLs</strong>.
+        </p>
+        <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.95rem;">
+          <button type="button" class="btn-ctrl quick-url-chip" data-url="https://www.youtube.com/watch?v=26QPDBe-NB8" style="font-size:0.72rem; padding:0.28rem 0.55rem;">🎬 YouTube: Operating Systems Crash Course</button>
+          <button type="button" class="btn-ctrl quick-url-chip" data-url="https://en.wikipedia.org/wiki/Operating_system" style="font-size:0.72rem; padding:0.28rem 0.55rem;">📖 Wiki: Operating Systems</button>
+          <button type="button" class="btn-ctrl quick-url-chip" data-url="https://en.wikipedia.org/wiki/Artificial_neural_network" style="font-size:0.72rem; padding:0.28rem 0.55rem;">📖 Wiki: Neural Networks</button>
+        </div>
+        <button type="button" class="btn-primary-sm" id="btnSubmitUrlModal" style="width:100%; justify-content:center; padding:0.65rem">Import YouTube / Web Source</button>
       </div>
 
       <!-- Tab 4: Sample Research -->
@@ -1698,6 +1822,44 @@
     <div class="modal-body">
       <input type="url" id="urlInput" class="modal-input" placeholder="https://example.com/article" />
       <button class="btn-sparkle-lg" id="submitUrlBtn">Scrape page & add source</button>
+    </div>
+  </div>
+</div>
+
+<!-- MULTI-DEVICE ACCESS & QR CODE MODAL -->
+<div class="modal-overlay" id="multiDeviceModal">
+  <div class="modal-card" style="max-width:520px;">
+    <div class="modal-header">
+      <h3>📱 Open StudyVault on Phone, Tablet &amp; Other Devices</h3>
+      <button class="modal-close" id="closeMultiDeviceModalBtn">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:0.9rem;">
+      <div style="background:rgba(129,201,149,0.1); border:1px solid rgba(129,201,149,0.3); border-radius:10px; padding:0.85rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+        <div style="background:#ffffff; padding:8px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+          <img id="multiDeviceQrImg" src="" alt="Scan QR Code" style="width:130px; height:130px; object-fit:contain;" />
+        </div>
+        <div style="flex:1; min-width:210px;">
+          <div style="font-size:0.78rem; font-weight:700; color:#81c995; margin-bottom:0.25rem;">1. Instant Wi-Fi / Hotspot Access</div>
+          <p style="font-size:0.75rem; color:var(--text-sub); margin-bottom:0.5rem; line-height:1.4;">
+            Connect your phone, tablet, or second laptop to the <strong>same Wi-Fi or mobile hotspot</strong> and scan this QR code (or open the link below):
+          </p>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <input type="text" id="multiDeviceLanUrlInput" class="modal-input" readonly style="margin:0; font-family:monospace; font-size:0.78rem; flex:1;" value="http://192.168.100.19:3000" />
+            <button type="button" class="btn-primary-sm" id="copyMultiDeviceUrlBtn" style="white-space:nowrap;">Copy Link</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:rgba(138,180,248,0.08); border:1px solid rgba(138,180,248,0.25); border-radius:10px; padding:0.85rem;">
+        <div style="font-size:0.78rem; font-weight:700; color:#8ab4f8; margin-bottom:0.3rem;">2. Access from Anywhere (Different Network / Mobile Data)</div>
+        <p style="font-size:0.74rem; color:var(--text-sub); margin-bottom:0.45rem; line-height:1.4;">
+          To get a public <code>https://</code> link that works on 4G/5G or any computer anywhere in the world while your server is running, run this command in a second PowerShell terminal:
+        </p>
+        <code style="display:block; background:#080b11; padding:0.5rem 0.65rem; border-radius:6px; font-size:0.74rem; color:#e2e8f0; border:1px solid rgba(255,255,255,0.1);">npx localtunnel --port 3000</code>
+        <p style="font-size:0.72rem; color:var(--text-muted); margin-top:0.45rem; margin-bottom:0;">
+          ☁️ <strong>Cloud Sync Active:</strong> Because your notebooks, PDFs, and generated images are stored in <strong>MongoDB Atlas (`studyvault`)</strong>, any device that opens StudyVault sees your exact same data in real time.
+        </p>
+      </div>
     </div>
   </div>
 </div>
@@ -2112,7 +2274,31 @@
   </div>
 </div>
 
+<!-- SUBSCRIPTION PLANS & QUOTAS MODAL -->
+<div class="modal-overlay" id="plansModal">
+  <div class="modal-card" style="max-width:980px; width:95%;">
+    <div class="modal-header">
+      <div class="modal-title-with-icon">
+        <div class="modal-header-icon-box">💎</div>
+        <div>
+          <h3>StudyVault Subscription Plans & Usage Quotas</h3>
+          <p style="font-size:0.78rem; color:#94a3b8; margin-top:2px;">Compare Free, Plus, and Pro tiers and monitor your live workspace & daily AI quotas.</p>
+        </div>
+      </div>
+      <button class="modal-close" id="closePlansModalBtn">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
+      <div id="planRestrictionAlertBanner" class="plan-restriction-banner" style="display:none;"></div>
+      <div id="userLiveQuotaSummary" class="user-quota-summary-bar"></div>
+      <div id="userPlansComparisonGrid" class="user-plans-grid"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-ghost" id="closePlansFooterBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <script src="/vendor/katex/katex.min.js"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=20261105_1"></script>
 </body>
 </html>

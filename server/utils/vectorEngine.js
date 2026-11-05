@@ -1,4 +1,4 @@
-const { GoogleGenAI } = require("@google/genai");
+const axios = require("axios");
 const nlpService = require("../services/nlpService");
 
 /**
@@ -18,14 +18,36 @@ function getAiClient(apiKeyOverride = null) {
   if (!apiKey || apiKey === "your_gemini_api_key_here") {
     return null;
   }
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        "User-Agent": "aistudio-build",
+  try {
+    const { GoogleGenAI } = require("@google/genai");
+    return new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
       },
-    },
-  });
+    });
+  } catch (_) {
+    return {
+      models: {
+        async embedContent({ model, contents }) {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+            model
+          )}:embedContent?key=${encodeURIComponent(apiKey)}`;
+          const res = await axios.post(
+            url,
+            {
+              model: `models/${model}`,
+              content: { parts: [{ text: String(contents || "") }] },
+            },
+            { timeout: 15000 }
+          );
+          return res.data;
+        },
+      },
+    };
+  }
 }
 
 /**

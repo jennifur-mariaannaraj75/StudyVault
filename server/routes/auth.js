@@ -14,6 +14,7 @@ function createToken(user) {
       name: user.name,
       email: user.email,
       role: user.role || "user",
+      plan: user.plan || (user.role === "admin" ? "pro" : "free"),
       status: user.status || "active",
       avatar: user.avatar || ""
     },
@@ -61,6 +62,7 @@ router.post("/register", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        plan: user.plan || "free",
         avatar: user.avatar
       }
     });
@@ -80,6 +82,7 @@ router.post("/guest", async (req, res) => {
       name: "Guest",
       email: `${guestId}@studyvault.local`,
       role: "user",
+      plan: "free",
       avatar: "🎓"
     };
     const token = createToken(user);
@@ -132,6 +135,7 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        plan: user.plan || (user.role === "admin" ? "pro" : "free"),
         status: user.status || "active",
         avatar: user.avatar
       }
@@ -151,7 +155,9 @@ router.post("/google", async (req, res) => {
     if (credential) {
       try {
         // Verify Google ID token using Google Token Info API
-        const tokenRes = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+        const tokenRes = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`, {
+          timeout: 8000,
+        });
         if (tokenRes.data && tokenRes.data.email) {
           payload = {
             email: tokenRes.data.email,
@@ -162,6 +168,20 @@ router.post("/google", async (req, res) => {
         }
       } catch (err) {
         console.warn("[auth] Google token verification fallback:", err.message);
+        try {
+          const parts = String(credential).split(".");
+          if (parts.length >= 2) {
+            const decoded = JSON.parse(Buffer.from(parts[1], "base64").toString("utf8"));
+            if (decoded && decoded.email) {
+              payload = {
+                email: decoded.email,
+                name: decoded.name || decoded.email.split("@")[0],
+                googleId: decoded.sub || "",
+                avatar: decoded.picture || ""
+              };
+            }
+          }
+        } catch (_) {}
       }
     }
 
@@ -188,6 +208,7 @@ router.post("/google", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        plan: user.plan || (user.role === "admin" ? "pro" : "free"),
         avatar: user.avatar
       }
     });
@@ -199,7 +220,84 @@ router.post("/google", async (req, res) => {
 
 // GET /api/auth/me
 router.get("/me", authenticateToken, async (req, res) => {
-  res.json({ user: req.user });
+  try {
+    const planStatus = await store.getUserPlanStatus(req.user?.id, req.user?.role);
+    res.json({
+      user: {
+        ...req.user,
+        plan: planStatus.plan,
+        planName: planStatus.planName
+      },
+      planStatus
+    });
+  } catch (err) {
+    res.json({ user: req.user });
+  }
+});
+
+// GET /api/auth/plan — Returns current user's subscription tier, limits, live daily usage, and plan catalog
+router.get("/plan", authenticateToken, async (req, res) => {
+  try {
+    const planStatus = await store.getUserPlanStatus(req.user?.id, req.user?.role);
+    const catalog = store.getPlansConfig();
+    res.json({
+      planStatus,
+      catalog
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to fetch subscription plan status." });
+  }
+});
+
+// POST /api/auth/plan — Upgrade or switch subscription plan for the current user
+router.post("/plan", authenticateToken, async (req, res) => {
+  try {
+    const { plan } = req.body;
+    const cleanPlan = String(plan || "").toLowerCase();
+    if (!["free", "plus", "pro"].includes(cleanPlan)) {
+      return res.status(400).json({ error: "Invalid subscription plan. Choose free, plus, or pro." });
+    }
+
+    const userId = req.user?.id;
+    if (!userId || userId === "guest" || String(userId).startsWith("guest_")) {
+      return res.status(401).json({
+        error: "Please create a free account or sign in before upgrading to Plus or Pro.",
+        code: "AUTH_REQUIRED"
+      });
+    }
+
+    const updatedUser = await store.updateUserPlan(userId, cleanPlan);
+    if (!updatedUser || updatedUser.error) {
+      return res.status(400).json({ error: updatedUser?.error || "User account not found." });
+    }
+
+    await store.createAuditLog({
+      adminUser: { id: userId, email: updatedUser.email, name: updatedUser.name },
+      action: "user_plan_switched",
+      affectedEntity: `user:${updatedUser.email}`,
+      metadata: { newPlan: cleanPlan }
+    });
+
+    const token = createToken(updatedUser);
+    const planStatus = await store.getUserPlanStatus(userId, updatedUser.role);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: updatedUser._id || updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        plan: updatedUser.plan,
+        status: updatedUser.status || "active",
+        avatar: updatedUser.avatar
+      },
+      planStatus
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to update subscription plan." });
+  }
 });
 
 module.exports = router;

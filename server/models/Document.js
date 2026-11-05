@@ -35,6 +35,7 @@ const DocumentSchema = new mongoose.Schema(
     storagePath: { type: String, default: "" },
     hasPdfFile: { type: Boolean, default: false },
     mimeType: { type: String, default: "application/pdf" },
+    extractedImages: { type: [Object], default: [] },
     status: { type: String, enum: ["processing", "ready", "failed"], default: "processing" },
     nlp: {
       keywords: { type: [String], default: [] },

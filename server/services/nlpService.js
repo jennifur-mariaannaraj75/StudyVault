@@ -1,5 +1,56 @@
-const nlp = require("compromise");
-const natural = require("natural");
+let nlp = null;
+try {
+  nlp = require("compromise");
+} catch (_) {}
+
+let natural = null;
+try {
+  natural = require("natural");
+} catch (_) {
+  // Lightweight serverless fallback when natural's ESM sub-dependencies are unavailable
+  natural = {
+    PorterStemmer: {
+      stem(word) {
+        return String(word || "")
+          .toLowerCase()
+          .replace(/(?:ing|ed|es|ly|tion|sion|ment|ness|ity|ies|s)$/i, (m) => (m === "ies" ? "y" : ""));
+      },
+    },
+    NGrams: {
+      bigrams(words) {
+        const out = [];
+        for (let i = 0; i < (words || []).length - 1; i++) {
+          out.push([words[i], words[i + 1]]);
+        }
+        return out;
+      },
+    },
+    TfIdf: class SimpleTfIdf {
+      constructor() {
+        this.docs = [];
+      }
+      addDocument(text) {
+        const tokens = (String(text || "").toLowerCase().match(/[a-z0-9]{3,}/g) || []);
+        const counts = {};
+        tokens.forEach((t) => { counts[t] = (counts[t] || 0) + 1; });
+        this.docs.push({ counts, total: Math.max(1, tokens.length) });
+      }
+      listTerms(docIndex = 0) {
+        const doc = this.docs[docIndex];
+        if (!doc) return [];
+        const nDocs = Math.max(1, this.docs.length);
+        return Object.entries(doc.counts)
+          .map(([term, count]) => {
+            const df = this.docs.filter((d) => d.counts[term] > 0).length;
+            const tf = count / doc.total;
+            const idf = 1 + Math.log(nDocs / (1 + df));
+            return { term, tfidf: tf * idf * 10 };
+          })
+          .sort((a, b) => b.tfidf - a.tfidf);
+      }
+    },
+  };
+}
 
 /**
  * StudyVault NLP Service

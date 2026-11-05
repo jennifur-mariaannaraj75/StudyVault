@@ -11,10 +11,74 @@ const AuditLog = require("../models/AuditLog");
 const Artifact = require("../models/Artifact");
 const Note = require("../models/Note");
 const Collection = require("../models/Collection");
+const {
+  ALL_STUDIO_FEATURES,
+  getTodayKey,
+  getPlans,
+  getPlanConfig,
+  updatePlanConfig,
+  resetPlansToDefault,
+  getMinimumPlanForFeature,
+  getFeatureLabel,
+  syncPlansWithDatabase
+} = require("./plans");
 
-const DATA_FILE = path.join(__dirname, "..", "data", "local_db.json");
+const os = require("os");
+const BUNDLED_DATA_FILE = path.join(__dirname, "..", "data", "local_db.json");
+const DATA_FILE = process.env.VERCEL
+  ? path.join(os.tmpdir(), "studyvault_data", "local_db.json")
+  : BUNDLED_DATA_FILE;
 
 let isMongo = false;
+const guestUsageMap = {};
+
+function normalizeUsage(rawUsage = {}) {
+  const today = getTodayKey();
+  const isToday = rawUsage && rawUsage.dateKey === today;
+  return {
+    dateKey: today,
+    chatQueriesToday: isToday ? (Number(rawUsage.chatQueriesToday) || 0) : 0,
+    studioGenerationsToday: isToday ? (Number(rawUsage.studioGenerationsToday) || 0) : 0,
+    totalChatQueries: Number(rawUsage?.totalChatQueries) || 0,
+    totalStudioGenerations: Number(rawUsage?.totalStudioGenerations) || 0,
+    lastActiveAt: rawUsage?.lastActiveAt || null
+  };
+}
+
+function resolveUserPlanDetails(userObj = {}) {
+  const role = userObj.role || "user";
+  const planId = String(userObj.plan || (role === "admin" ? "pro" : "free")).toLowerCase();
+  const basePlan = getPlanConfig(planId, role);
+  const cq = userObj.customQuota || {};
+
+  const limits = {
+    maxNotebooks: cq.maxNotebooks != null && cq.maxNotebooks > 0 ? Number(cq.maxNotebooks) : basePlan.maxNotebooks,
+    maxDocsPerNotebook: cq.maxDocsPerNotebook != null && cq.maxDocsPerNotebook > 0 ? Number(cq.maxDocsPerNotebook) : basePlan.maxDocsPerNotebook,
+    maxFileSizeMB: basePlan.maxFileSizeMB,
+    maxPagesPerDoc: basePlan.maxPagesPerDoc,
+    maxDailyChatQueries: cq.maxDailyChatQueries != null && cq.maxDailyChatQueries > 0 ? Number(cq.maxDailyChatQueries) : basePlan.maxDailyChatQueries,
+    maxDailyStudioGenerations: cq.maxDailyStudioGenerations != null && cq.maxDailyStudioGenerations > 0 ? Number(cq.maxDailyStudioGenerations) : basePlan.maxDailyStudioGenerations,
+    ragTopK: basePlan.ragTopK
+  };
+
+  return {
+    plan: basePlan.id,
+    planName: basePlan.name,
+    tagline: basePlan.tagline,
+    priceMonthly: basePlan.priceMonthly,
+    priceLabel: basePlan.priceLabel,
+    badgeColor: basePlan.badgeColor,
+    limits,
+    allowedStudioFeatures: basePlan.allowedStudioFeatures || [],
+    highlights: basePlan.highlights || [],
+    hasCustomQuota: Boolean(
+      (cq.maxNotebooks != null && cq.maxNotebooks > 0) ||
+      (cq.maxDocsPerNotebook != null && cq.maxDocsPerNotebook > 0) ||
+      (cq.maxDailyChatQueries != null && cq.maxDailyChatQueries > 0) ||
+      (cq.maxDailyStudioGenerations != null && cq.maxDailyStudioGenerations > 0)
+    )
+  };
+}
 let memoryDb = {
   users: [],
   notebooks: [],
@@ -27,15 +91,22 @@ let memoryDb = {
 };
 
 // Ensure data folder exists for local persistence in in-memory mode
-const dataDir = path.join(__dirname, "..", "data");
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+const dataDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), "studyvault_data")
+  : path.join(__dirname, "..", "data");
+try {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+} catch (_) {}
 
 function loadLocalFile() {
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      const raw = fs.readFileSync(DATA_FILE, "utf-8");
+    const fileToRead = fs.existsSync(DATA_FILE)
+      ? DATA_FILE
+      : (fs.existsSync(BUNDLED_DATA_FILE) ? BUNDLED_DATA_FILE : null);
+    if (fileToRead) {
+      const raw = fs.readFileSync(fileToRead, "utf-8");
       memoryDb = JSON.parse(raw);
       if (!memoryDb.users) memoryDb.users = [];
       if (!memoryDb.notebooks) memoryDb.notebooks = [];
@@ -79,15 +150,22 @@ async function ensureDefaultAdmin() {
           password: hashedPassword,
           role: "admin",
           status: "active",
+          plan: "pro",
           avatar: "🛡️"
         });
         console.log(`[auth] Auto-created Default Admin Account: ${adminEmail}`);
       } else {
+        let changed = false;
         if (existing.role !== "admin" || existing.status !== "active") {
           existing.role = "admin";
           existing.status = "active";
-          await existing.save();
+          changed = true;
         }
+        if (!existing.plan || existing.plan === "free") {
+          existing.plan = "pro";
+          changed = true;
+        }
+        if (changed) await existing.save();
       }
     } else {
       let existing = memoryDb.users.find(u => u.email === adminEmail);
@@ -100,6 +178,7 @@ async function ensureDefaultAdmin() {
           password: hashedPassword,
           role: "admin",
           status: "active",
+          plan: "pro",
           avatar: "🛡️",
           createdAt: new Date().toISOString()
         };
@@ -109,6 +188,7 @@ async function ensureDefaultAdmin() {
       } else {
         existing.role = "admin";
         existing.status = existing.status || "active";
+        existing.plan = existing.plan || "pro";
         saveLocalFile();
       }
     }
@@ -138,37 +218,74 @@ function resolveMongoUri() {
   return uri;
 }
 
+let connectPromise = null;
+
 async function connectDB() {
-  const uri = resolveMongoUri();
-  if (!uri) {
-    isMongo = false;
-    console.log("[db] No MONGO_URI provided in environment.");
-    console.log("[db] Running in Zero-Config Persistent Local Storage mode (persisted to server/data/local_db.json).");
-    loadLocalFile();
-    await ensureDefaultAdmin();
-    return;
+  if (isMongo && mongoose.connection.readyState === 1) {
+    return true;
+  }
+  if (connectPromise) {
+    return connectPromise;
   }
 
-  const maskedUri = uri.replace(/:([^:@]+)@/, ":****@");
-  try {
+  connectPromise = (async () => {
+    const uri = resolveMongoUri();
+    if (!uri) {
+      isMongo = false;
+      console.log("[db] No MONGO_URI provided in environment.");
+      console.log("[db] Running in Zero-Config Persistent Local Storage mode (persisted to server/data/local_db.json).");
+      loadLocalFile();
+      await ensureDefaultAdmin();
+      return false;
+    }
+
+    const maskedUri = uri.replace(/:([^:@]+)@/, ":****@");
+    // Always load local file as warm cache in case of offline fallback, but prioritize MongoDB
+    loadLocalFile();
+
     mongoose.set("strictQuery", false);
     mongoose.set("bufferCommands", false);
-    console.log(`[db] Connecting to MongoDB: ${maskedUri}...`);
-    await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
-    isMongo = true;
-    console.log("[db] ✅ MongoDB connected successfully!");
-  } catch (err) {
-    isMongo = false;
-    console.log(`[db] MongoDB connection unavailable (${err.message}).`);
-    console.log("[db] Operating in Zero-Config Persistent Local Storage mode (server/data/local_db.json).");
-    loadLocalFile();
+
+    mongoose.connection.on("connected", () => {
+      isMongo = true;
+    });
+    mongoose.connection.on("disconnected", () => {
+      console.warn("[db] MongoDB disconnected — attempting automatic reconnect...");
+    });
+
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        console.log(`[db] Connecting to MongoDB (attempt ${attempt}): ${maskedUri}...`);
+        await mongoose.connect(uri, {
+          serverSelectionTimeoutMS: 12000,
+          connectTimeoutMS: 12000,
+        });
+        isMongo = true;
+        console.log("[db] ✅ MongoDB connected successfully!");
+        await syncPlansWithDatabase();
+        break;
+      } catch (err) {
+        console.warn(`[db] MongoDB connection attempt ${attempt} failed: ${err.message}`);
+        if (attempt === 2) {
+          isMongo = false;
+          console.log("[db] Operating in Zero-Config Persistent Local Storage mode (server/data/local_db.json).");
+        }
+      }
+    }
+    await ensureDefaultAdmin();
+    return isMongo;
+  })();
+
+  try {
+    return await connectPromise;
+  } finally {
+    connectPromise = null;
   }
-  await ensureDefaultAdmin();
 }
 
 const store = {
   connectDB,
-  isMongoMode: () => isMongo,
+  isMongoMode: () => Boolean(isMongo && mongoose.connection.readyState === 1),
 
   // --- Audit Logs ---
   async createAuditLog({ adminUser, action, affectedEntity, metadata = {} }) {
@@ -221,49 +338,353 @@ const store = {
     return memoryDb.auditLogs.slice(0, Number(limit) || 100);
   },
 
+  // --- Subscription Plans & Quotas ---
+  getPlansConfig() {
+    return {
+      plans: getPlans(),
+      studioFeatures: ALL_STUDIO_FEATURES
+    };
+  },
+
+  updatePlanTierConfig(tier, updates) {
+    return updatePlanConfig(tier, updates);
+  },
+
+  resetPlansConfig() {
+    return resetPlansToDefault();
+  },
+
+  async getUserPlanStatus(userId, role = "user") {
+    let userObj = null;
+    const isGuest = !userId || userId === "guest" || String(userId).startsWith("guest_");
+
+    if (!isGuest) {
+      if (isMongo && mongoose.Types.ObjectId.isValid(userId)) {
+        userObj = await User.findById(userId).select("-password").lean();
+      } else if (!isMongo) {
+        userObj = (memoryDb.users || []).find(u => String(u._id) === String(userId)) || null;
+      }
+    }
+
+    if (!userObj) {
+      const guestKey = String(userId || "guest");
+      const rawGuestUsage = guestUsageMap[guestKey] || {};
+      userObj = {
+        _id: guestKey,
+        name: "Guest",
+        role: role || "user",
+        plan: role === "admin" ? "pro" : "free",
+        usage: rawGuestUsage,
+        customQuota: {}
+      };
+    }
+
+    const planDetails = resolveUserPlanDetails(userObj);
+    const usage = normalizeUsage(userObj.usage);
+
+    // Count user's notebooks & documents
+    let notebooksUsed = 0;
+    let totalDocuments = 0;
+    if (isMongo) {
+      if (isGuest) {
+        const nbs = await Notebook.find({ userId: String(userId || "guest") }).select("_id").lean();
+        notebooksUsed = nbs.length;
+        if (nbs.length > 0) {
+          totalDocuments = await Document.countDocuments({ notebookId: { $in: nbs.map(n => n._id) } });
+        }
+      } else if (mongoose.Types.ObjectId.isValid(userId)) {
+        const nbs = await Notebook.find({
+          $or: [{ userId }, { userId: new mongoose.Types.ObjectId(userId) }]
+        }).select("_id").lean();
+        notebooksUsed = nbs.length;
+        if (nbs.length > 0) {
+          totalDocuments = await Document.countDocuments({ notebookId: { $in: nbs.map(n => n._id) } });
+        }
+      }
+    } else {
+      const nbs = (memoryDb.notebooks || []).filter(n => String(n.userId) === String(userId || "guest"));
+      notebooksUsed = nbs.length;
+      const nbSet = new Set(nbs.map(n => String(n._id)));
+      totalDocuments = (memoryDb.documents || []).filter(d => nbSet.has(String(d.notebookId))).length;
+    }
+
+    return {
+      userId: String(userObj._id || userId || "guest"),
+      role: userObj.role || role || "user",
+      plan: planDetails.plan,
+      planName: planDetails.planName,
+      tagline: planDetails.tagline,
+      priceMonthly: planDetails.priceMonthly,
+      priceLabel: planDetails.priceLabel,
+      badgeColor: planDetails.badgeColor,
+      limits: planDetails.limits,
+      allowedStudioFeatures: planDetails.allowedStudioFeatures,
+      highlights: planDetails.highlights,
+      hasCustomQuota: planDetails.hasCustomQuota,
+      customQuota: userObj.customQuota || {},
+      usage: {
+        ...usage,
+        notebooksUsed,
+        totalDocuments
+      }
+    };
+  },
+
+  async checkQuota(userId, role = "user", actionType, payload = {}) {
+    const status = await this.getUserPlanStatus(userId, role);
+    const { plan, planName, limits, allowedStudioFeatures, usage } = status;
+
+    if (actionType === "create_notebook") {
+      if (usage.notebooksUsed >= limits.maxNotebooks) {
+        const nextTier = plan === "free" ? "plus" : "pro";
+        return {
+          allowed: false,
+          code: "PLAN_LIMIT_REACHED",
+          limitType: "maxNotebooks",
+          currentPlan: plan,
+          requiredPlan: nextTier,
+          used: usage.notebooksUsed,
+          limit: limits.maxNotebooks,
+          error: `${planName} plan limit reached: You have ${usage.notebooksUsed}/${limits.maxNotebooks} notebooks. Upgrade to ${nextTier.toUpperCase()} to create more notebooks.`
+        };
+      }
+    } else if (actionType === "upload_document") {
+      const notebookId = payload.notebookId;
+      const newFilesCount = Number(payload.filesCount) || 1;
+      const maxFileBytes = Number(payload.maxFileBytes) || 0;
+
+      if (maxFileBytes > limits.maxFileSizeMB * 1024 * 1024) {
+        const nextTier = plan === "free" ? "plus" : "pro";
+        const fileMB = (maxFileBytes / (1024 * 1024)).toFixed(1);
+        return {
+          allowed: false,
+          code: "PLAN_LIMIT_REACHED",
+          limitType: "maxFileSizeMB",
+          currentPlan: plan,
+          requiredPlan: nextTier,
+          used: Number(fileMB),
+          limit: limits.maxFileSizeMB,
+          error: `File size (${fileMB} MB) exceeds the ${planName} plan limit of ${limits.maxFileSizeMB} MB per file. Upgrade to ${nextTier.toUpperCase()} for larger uploads.`
+        };
+      }
+
+      if (notebookId) {
+        const existingDocs = await this.getDocuments(notebookId);
+        const currentCount = Array.isArray(existingDocs) ? existingDocs.length : 0;
+        if (currentCount + newFilesCount > limits.maxDocsPerNotebook) {
+          const nextTier = plan === "free" ? "plus" : "pro";
+          return {
+            allowed: false,
+            code: "PLAN_LIMIT_REACHED",
+            limitType: "maxDocsPerNotebook",
+            currentPlan: plan,
+            requiredPlan: nextTier,
+            used: currentCount,
+            limit: limits.maxDocsPerNotebook,
+            error: `${planName} plan limit reached: This notebook has ${currentCount}/${limits.maxDocsPerNotebook} sources. Upgrade to ${nextTier.toUpperCase()} to add up to ${getPlanConfig(nextTier).maxDocsPerNotebook} sources per notebook.`
+          };
+        }
+      }
+    } else if (actionType === "chat_query") {
+      if (usage.chatQueriesToday >= limits.maxDailyChatQueries) {
+        const nextTier = plan === "free" ? "plus" : "pro";
+        return {
+          allowed: false,
+          code: "PLAN_LIMIT_REACHED",
+          limitType: "maxDailyChatQueries",
+          currentPlan: plan,
+          requiredPlan: nextTier,
+          used: usage.chatQueriesToday,
+          limit: limits.maxDailyChatQueries,
+          error: `Daily AI Chat quota reached (${usage.chatQueriesToday}/${limits.maxDailyChatQueries} queries on ${planName} plan). Upgrade to ${nextTier.toUpperCase()} for up to ${getPlanConfig(nextTier).maxDailyChatQueries} daily queries.`
+        };
+      }
+    } else if (actionType === "studio_feature") {
+      const featureId = payload.feature;
+      if (featureId && !allowedStudioFeatures.includes(featureId)) {
+        const minPlan = getMinimumPlanForFeature(featureId);
+        const featureName = getFeatureLabel(featureId);
+        return {
+          allowed: false,
+          code: "PLAN_FEATURE_LOCKED",
+          limitType: "studioFeature",
+          feature: featureId,
+          featureName,
+          currentPlan: plan,
+          requiredPlan: minPlan,
+          error: `${featureName} requires the ${minPlan.toUpperCase()} plan (you are currently on ${planName}). Upgrade your plan to unlock this Studio tool.`
+        };
+      }
+      if (featureId !== "notes" && usage.studioGenerationsToday >= limits.maxDailyStudioGenerations) {
+        const nextTier = plan === "free" ? "plus" : "pro";
+        return {
+          allowed: false,
+          code: "PLAN_LIMIT_REACHED",
+          limitType: "maxDailyStudioGenerations",
+          currentPlan: plan,
+          requiredPlan: nextTier,
+          used: usage.studioGenerationsToday,
+          limit: limits.maxDailyStudioGenerations,
+          error: `Daily Studio generation limit reached (${usage.studioGenerationsToday}/${limits.maxDailyStudioGenerations} generations on ${planName} plan). Upgrade to ${nextTier.toUpperCase()} for more daily AI studio generations.`
+        };
+      }
+    }
+
+    return { allowed: true, status };
+  },
+
+  async incrementUserUsage(userId, type = "chat") {
+    const today = getTodayKey();
+    const now = new Date();
+    const isGuest = !userId || userId === "guest" || String(userId).startsWith("guest_");
+
+    if (isGuest) {
+      const key = String(userId || "guest");
+      const current = normalizeUsage(guestUsageMap[key]);
+      if (type === "chat") {
+        current.chatQueriesToday += 1;
+        current.totalChatQueries += 1;
+      } else if (type === "studio") {
+        current.studioGenerationsToday += 1;
+        current.totalStudioGenerations += 1;
+      }
+      current.lastActiveAt = now.toISOString();
+      guestUsageMap[key] = current;
+      return current;
+    }
+
+    if (isMongo) {
+      if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+      const user = await User.findById(userId);
+      if (!user) return null;
+      const current = normalizeUsage(user.usage);
+      if (type === "chat") {
+        current.chatQueriesToday += 1;
+        current.totalChatQueries += 1;
+      } else if (type === "studio") {
+        current.studioGenerationsToday += 1;
+        current.totalStudioGenerations += 1;
+      }
+      current.lastActiveAt = now;
+      user.usage = current;
+      await user.save();
+      return current;
+    }
+
+    const user = (memoryDb.users || []).find(u => String(u._id) === String(userId));
+    if (!user) return null;
+    const current = normalizeUsage(user.usage);
+    if (type === "chat") {
+      current.chatQueriesToday += 1;
+      current.totalChatQueries += 1;
+    } else if (type === "studio") {
+      current.studioGenerationsToday += 1;
+      current.totalStudioGenerations += 1;
+    }
+    current.lastActiveAt = now.toISOString();
+    user.usage = current;
+    saveLocalFile();
+    return current;
+  },
+
+  async updateUserPlan(userId, newPlan, customQuota = undefined) {
+    const cleanPlan = String(newPlan || "").toLowerCase();
+    if (!["free", "plus", "pro"].includes(cleanPlan)) {
+      return { error: "Invalid plan tier. Choose free, plus, or pro." };
+    }
+
+    const sanitizedQuota = customQuota !== undefined ? {
+      maxNotebooks: customQuota?.maxNotebooks ? Number(customQuota.maxNotebooks) : null,
+      maxDocsPerNotebook: customQuota?.maxDocsPerNotebook ? Number(customQuota.maxDocsPerNotebook) : null,
+      maxDailyChatQueries: customQuota?.maxDailyChatQueries ? Number(customQuota.maxDailyChatQueries) : null,
+      maxDailyStudioGenerations: customQuota?.maxDailyStudioGenerations ? Number(customQuota.maxDailyStudioGenerations) : null
+    } : undefined;
+
+    if (isMongo) {
+      if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+      const updateFields = { plan: cleanPlan, planUpdatedAt: new Date() };
+      if (sanitizedQuota !== undefined) {
+        updateFields.customQuota = sanitizedQuota;
+      }
+      const updated = await User.findByIdAndUpdate(userId, { $set: updateFields }, { new: true }).select("-password").lean();
+      if (!updated) return null;
+      return {
+        ...updated,
+        ...resolveUserPlanDetails(updated),
+        usage: normalizeUsage(updated.usage)
+      };
+    }
+
+    const user = (memoryDb.users || []).find(u => String(u._id) === String(userId));
+    if (!user) return null;
+    user.plan = cleanPlan;
+    user.planUpdatedAt = new Date().toISOString();
+    if (sanitizedQuota !== undefined) {
+      user.customQuota = sanitizedQuota;
+    }
+    saveLocalFile();
+    const { password, ...rest } = user;
+    return {
+      ...rest,
+      ...resolveUserPlanDetails(rest),
+      usage: normalizeUsage(rest.usage)
+    };
+  },
+
+  async resetUserQuota(userId) {
+    const today = getTodayKey();
+    if (isMongo) {
+      if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+      const user = await User.findById(userId);
+      if (!user) return null;
+      const cur = normalizeUsage(user.usage);
+      user.usage = {
+        ...cur,
+        dateKey: today,
+        chatQueriesToday: 0,
+        studioGenerationsToday: 0
+      };
+      await user.save();
+      return user.usage;
+    }
+
+    const user = (memoryDb.users || []).find(u => String(u._id) === String(userId));
+    if (!user) return null;
+    const cur = normalizeUsage(user.usage);
+    user.usage = {
+      ...cur,
+      dateKey: today,
+      chatQueriesToday: 0,
+      studioGenerationsToday: 0
+    };
+    saveLocalFile();
+    return user.usage;
+  },
+
   // --- Users & Auth ---
   async getUsers() {
+    let users = [];
+    let notebooks = [];
+    let documents = [];
+    let messages = [];
+
     if (isMongo) {
-      const [users, notebooks, documents] = await Promise.all([
+      [users, notebooks, documents, messages] = await Promise.all([
         User.find().select("-password").sort({ createdAt: -1 }).lean(),
-        Notebook.find().select("userId").lean(),
-        Document.find().select("notebookId").lean()
+        Notebook.find().select("userId title").lean(),
+        Document.find().select("notebookId pageCount charCount chunks status").lean(),
+        Message.find().select("notebookId role").lean()
       ]);
-
-      const nbMap = {};
-      const userNbs = {};
-      notebooks.forEach(n => {
-        const uid = n.userId ? String(n.userId) : null;
-        if (uid) {
-          nbMap[uid] = (nbMap[uid] || 0) + 1;
-          if (!userNbs[uid]) userNbs[uid] = new Set();
-          userNbs[uid].add(String(n._id));
-        }
-      });
-
-      const userDocs = {};
-      documents.forEach(d => {
-        const nid = d.notebookId ? String(d.notebookId) : null;
-        if (nid) {
-          for (const [uid, nSet] of Object.entries(userNbs)) {
-            if (nSet.has(nid)) {
-              userDocs[uid] = (userDocs[uid] || 0) + 1;
-            }
-          }
-        }
-      });
-
-      return users.map(u => ({
-        ...u,
-        status: u.status || "active",
-        notebookCount: nbMap[String(u._id)] || 0,
-        documentCount: userDocs[String(u._id)] || 0
-      }));
+    } else {
+      users = (memoryDb.users || []).map(({ password, ...u }) => u);
+      notebooks = memoryDb.notebooks || [];
+      documents = memoryDb.documents || [];
+      messages = memoryDb.messages || [];
     }
 
     const nbMap = {};
     const userNbs = {};
-    (memoryDb.notebooks || []).forEach(n => {
+    notebooks.forEach(n => {
       const uid = n.userId ? String(n.userId) : null;
       if (uid) {
         nbMap[uid] = (nbMap[uid] || 0) + 1;
@@ -273,23 +694,70 @@ const store = {
     });
 
     const userDocs = {};
-    (memoryDb.documents || []).forEach(d => {
+    const userPages = {};
+    const userChars = {};
+    const userChunks = {};
+    documents.forEach(d => {
       const nid = d.notebookId ? String(d.notebookId) : null;
       if (nid) {
         for (const [uid, nSet] of Object.entries(userNbs)) {
           if (nSet.has(nid)) {
             userDocs[uid] = (userDocs[uid] || 0) + 1;
+            userPages[uid] = (userPages[uid] || 0) + (d.pageCount || 0);
+            userChars[uid] = (userChars[uid] || 0) + (d.charCount || 0);
+            userChunks[uid] = (userChunks[uid] || 0) + (Array.isArray(d.chunks) ? d.chunks.length : 0);
           }
         }
       }
     });
 
-    return memoryDb.users.map(({ password, ...u }) => ({
-      ...u,
-      status: u.status || "active",
-      notebookCount: nbMap[String(u._id)] || 0,
-      documentCount: userDocs[String(u._id)] || 0
-    }));
+    const userMsgs = {};
+    messages.forEach(m => {
+      if (m.role && m.role !== "user") return;
+      const nid = m.notebookId ? String(m.notebookId) : null;
+      if (nid) {
+        for (const [uid, nSet] of Object.entries(userNbs)) {
+          if (nSet.has(nid)) {
+            userMsgs[uid] = (userMsgs[uid] || 0) + 1;
+          }
+        }
+      }
+    });
+
+    return users.map(u => {
+      const uid = String(u._id);
+      const planInfo = resolveUserPlanDetails(u);
+      const usage = normalizeUsage(u.usage);
+      const notebookCount = nbMap[uid] || 0;
+      const documentCount = userDocs[uid] || 0;
+      const totalChatQueries = Math.max(usage.totalChatQueries, userMsgs[uid] || 0);
+
+      return {
+        ...u,
+        status: u.status || "active",
+        plan: planInfo.plan,
+        planName: planInfo.planName,
+        priceLabel: planInfo.priceLabel,
+        badgeColor: planInfo.badgeColor,
+        limits: planInfo.limits,
+        hasCustomQuota: planInfo.hasCustomQuota,
+        customQuota: u.customQuota || {},
+        usage: {
+          ...usage,
+          totalChatQueries
+        },
+        notebookCount,
+        documentCount,
+        totalPages: userPages[uid] || 0,
+        totalChars: userChars[uid] || 0,
+        totalChunks: userChunks[uid] || 0,
+        utilization: {
+          notebooksPct: Math.min(100, Math.round((notebookCount / Math.max(1, planInfo.limits.maxNotebooks)) * 100)),
+          chatDailyPct: Math.min(100, Math.round((usage.chatQueriesToday / Math.max(1, planInfo.limits.maxDailyChatQueries)) * 100)),
+          studioDailyPct: Math.min(100, Math.round((usage.studioGenerationsToday / Math.max(1, planInfo.limits.maxDailyStudioGenerations)) * 100))
+        }
+      };
+    });
   },
 
   async getUserByEmail(email) {
@@ -299,27 +767,80 @@ const store = {
   },
 
   async getUserById(id) {
+    let user = null;
+    let notebooks = [];
+    let docs = [];
+    let messagesCount = 0;
+    let artifactsCount = 0;
+
     if (isMongo) {
       if (!mongoose.Types.ObjectId.isValid(id)) return null;
-      const user = await User.findById(id).select("-password").lean();
+      user = await User.findById(id).select("-password").lean();
       if (!user) return null;
-      const notebooks = await Notebook.find({ userId: id }).select("title createdAt updatedAt").lean();
-      return {
-        ...user,
-        status: user.status || "active",
-        notebooks,
-        notebookCount: notebooks.length
-      };
+      notebooks = await Notebook.find({
+        $or: [{ userId: id }, { userId: new mongoose.Types.ObjectId(id) }]
+      }).select("title icon color createdAt updatedAt").lean();
+      const nbIds = notebooks.map(n => n._id);
+      if (nbIds.length > 0) {
+        docs = await Document.find({ notebookId: { $in: nbIds } }).select("notebookId filename pageCount charCount chunks status createdAt").lean();
+        messagesCount = await Message.countDocuments({ notebookId: { $in: nbIds }, role: "user" });
+        artifactsCount = await Artifact.countDocuments({ notebookId: { $in: nbIds } });
+      }
+    } else {
+      const u = memoryDb.users.find(user => String(user._id) === String(id));
+      if (!u) return null;
+      const { password, ...userWithoutPass } = u;
+      user = userWithoutPass;
+      notebooks = (memoryDb.notebooks || []).filter(n => String(n.userId) === String(id));
+      const nbSet = new Set(notebooks.map(n => String(n._id)));
+      docs = (memoryDb.documents || []).filter(d => nbSet.has(String(d.notebookId)));
+      messagesCount = (memoryDb.messages || []).filter(m => nbSet.has(String(m.notebookId)) && m.role === "user").length;
+      artifactsCount = (memoryDb.artifacts || []).filter(a => nbSet.has(String(a.notebookId))).length;
     }
-    const u = memoryDb.users.find(user => user._id === id);
-    if (!u) return null;
-    const { password, ...userWithoutPass } = u;
-    const notebooks = (memoryDb.notebooks || []).filter(n => n.userId === id);
+
+    const planInfo = resolveUserPlanDetails(user);
+    const usage = normalizeUsage(user.usage);
+
+    const docByNb = {};
+    let totalPages = 0;
+    let totalChars = 0;
+    let totalChunks = 0;
+    docs.forEach(d => {
+      const nid = String(d.notebookId);
+      docByNb[nid] = (docByNb[nid] || 0) + 1;
+      totalPages += d.pageCount || 0;
+      totalChars += d.charCount || 0;
+      totalChunks += Array.isArray(d.chunks) ? d.chunks.length : 0;
+    });
+
+    const enrichedNotebooks = notebooks.map(nb => ({
+      ...nb,
+      documentCount: docByNb[String(nb._id)] || 0
+    }));
+
     return {
-      ...userWithoutPass,
-      status: userWithoutPass.status || "active",
-      notebooks,
-      notebookCount: notebooks.length
+      ...user,
+      status: user.status || "active",
+      plan: planInfo.plan,
+      planName: planInfo.planName,
+      priceLabel: planInfo.priceLabel,
+      badgeColor: planInfo.badgeColor,
+      limits: planInfo.limits,
+      allowedStudioFeatures: planInfo.allowedStudioFeatures,
+      hasCustomQuota: planInfo.hasCustomQuota,
+      customQuota: user.customQuota || {},
+      usage: {
+        ...usage,
+        totalChatQueries: Math.max(usage.totalChatQueries, messagesCount),
+        totalStudioGenerations: Math.max(usage.totalStudioGenerations, artifactsCount)
+      },
+      notebooks: enrichedNotebooks,
+      notebookCount: enrichedNotebooks.length,
+      documentCount: docs.length,
+      totalPages,
+      totalChars,
+      totalChunks,
+      artifactsCount
     };
   },
 
@@ -329,6 +850,7 @@ const store = {
     if (userData.password) {
       hashedPassword = await bcrypt.hash(userData.password, 10);
     }
+    const defaultPlan = userData.plan || (userData.role === "admin" ? "pro" : "free");
 
     if (isMongo) {
       const newUser = await User.create({
@@ -338,7 +860,9 @@ const store = {
         googleId: userData.googleId || null,
         avatar: userData.avatar || "",
         role: userData.role || "user",
-        status: userData.status || "active"
+        status: userData.status || "active",
+        plan: defaultPlan,
+        usage: normalizeUsage({})
       });
       return newUser;
     }
@@ -353,6 +877,9 @@ const store = {
       avatar: userData.avatar || "",
       role: userData.role || "user",
       status: userData.status || "active",
+      plan: defaultPlan,
+      usage: normalizeUsage({}),
+      customQuota: {},
       createdAt: now
     };
     memoryDb.users.unshift(newUser);
@@ -494,108 +1021,170 @@ const store = {
   },
 
   async getSystemStats() {
+    let users = [];
+    let notebookCount = 0;
+    let documentCount = 0;
+    let messageCount = 0;
+    let docs = [];
+    let artifacts = [];
+    let notesCount = 0;
+    let recentUsers = [];
+    let recentDocs = [];
+    let recentLogs = [];
+
     if (isMongo) {
-      const [
-        userCount,
+      [
+        users,
         notebookCount,
         documentCount,
         messageCount,
         docs,
-        flashcardsCount,
-        quizCount,
+        artifacts,
         notesCount,
         recentUsers,
         recentDocs,
         recentLogs
       ] = await Promise.all([
-        User.countDocuments(),
+        User.find().select("-password").lean(),
         Notebook.countDocuments(),
         Document.countDocuments(),
         Message.countDocuments(),
-        Document.find().select("chunks filename").lean(),
-        Artifact.countDocuments({ type: "flashcards" }),
-        Artifact.countDocuments({ type: "quiz" }),
+        Document.find().select("chunks filename pageCount charCount status").lean(),
+        Artifact.find().select("type").lean(),
         Note.countDocuments(),
-        User.find().select("-password").sort({ createdAt: -1 }).limit(5).lean(),
-        Document.find().select("filename pageCount chunks status notebookId createdAt").sort({ createdAt: -1 }).limit(5).lean(),
-        AuditLog.find().sort({ timestamp: -1 }).limit(5).lean()
+        User.find().select("-password").sort({ createdAt: -1 }).limit(6).lean(),
+        Document.find().select("filename pageCount charCount chunks status notebookId createdAt").sort({ createdAt: -1 }).limit(6).lean(),
+        AuditLog.find().sort({ timestamp: -1 }).limit(8).lean()
       ]);
-
-      let totalChunks = 0;
-      let embeddedChunksCount = 0;
-      docs.forEach(d => {
-        if (d.chunks && Array.isArray(d.chunks)) {
-          totalChunks += d.chunks.length;
-          embeddedChunksCount += d.chunks.filter(c => c.embedding && c.embedding.length > 0).length;
-        }
-      });
-
-      return {
-        userCount,
-        notebookCount,
-        documentCount,
-        totalChunks,
-        embeddedChunksCount,
-        messageCount,
-        flashcardsCount,
-        quizCount,
-        notesCount,
-        recentUsers: recentUsers.map(u => ({ ...u, status: u.status || "active" })),
-        recentDocuments: recentDocs.map(d => ({
-          _id: d._id,
-          filename: d.filename,
-          pageCount: d.pageCount || 0,
-          chunkCount: d.chunks ? d.chunks.length : 0,
-          status: d.status,
-          createdAt: d.createdAt
-        })),
-        recentAuditLogs: recentLogs
-      };
+    } else {
+      users = (memoryDb.users || []).map(({ password, ...u }) => u);
+      notebookCount = (memoryDb.notebooks || []).length;
+      documentCount = (memoryDb.documents || []).length;
+      messageCount = (memoryDb.messages || []).length;
+      docs = memoryDb.documents || [];
+      artifacts = memoryDb.artifacts || [];
+      notesCount = (memoryDb.notes || []).length;
+      recentUsers = users.slice(0, 6);
+      recentDocs = docs.slice(0, 6);
+      recentLogs = (memoryDb.auditLogs || []).slice(0, 8);
     }
 
     let totalChunks = 0;
     let embeddedChunksCount = 0;
-    (memoryDb.documents || []).forEach(d => {
+    let totalPages = 0;
+    let totalChars = 0;
+    const docStatusCounts = { ready: 0, processing: 0, failed: 0 };
+
+    docs.forEach(d => {
+      const s = d.status || "processing";
+      docStatusCounts[s] = (docStatusCounts[s] || 0) + 1;
+      totalPages += d.pageCount || 0;
+      totalChars += d.charCount || 0;
       if (d.chunks && Array.isArray(d.chunks)) {
         totalChunks += d.chunks.length;
         embeddedChunksCount += d.chunks.filter(c => c.embedding && c.embedding.length > 0).length;
       }
     });
 
-    const flashcardsCount = (memoryDb.artifacts || []).filter(a => a.type === "flashcards").length;
-    const quizCount = (memoryDb.artifacts || []).filter(a => a.type === "quiz").length;
-    const notesCount = (memoryDb.notes || []).length;
-    const messageCount = (memoryDb.messages || []).length;
+    const artifactBreakdown = {
+      flashcards: 0,
+      quiz: 0,
+      mindmap: 0,
+      slides: 0,
+      briefing: 0,
+      "important-questions": 0,
+      "data-table": 0,
+      compare: 0,
+      "audio-overview": 0,
+      images: 0,
+      video: 0
+    };
+    artifacts.forEach(a => {
+      if (a && a.type) {
+        artifactBreakdown[a.type] = (artifactBreakdown[a.type] || 0) + 1;
+      }
+    });
 
-    const recentUsers = (memoryDb.users || []).slice(0, 5).map(({ password, ...u }) => ({
-      ...u,
-      status: u.status || "active"
-    }));
+    const planCounts = { free: 0, plus: 0, pro: 0 };
+    let estimatedMonthlyRevenue = 0;
+    let chatQueriesToday = 0;
+    let studioGenerationsToday = 0;
+    let usersNearQuota = 0;
+    const plansCfg = getPlans();
 
-    const recentDocs = (memoryDb.documents || []).slice(0, 5).map(d => ({
-      _id: d._id,
-      filename: d.filename,
-      pageCount: d.pageCount || 0,
-      chunkCount: d.chunks ? d.chunks.length : 0,
-      status: d.status,
-      createdAt: d.createdAt
-    }));
+    users.forEach(u => {
+      const pInfo = resolveUserPlanDetails(u);
+      const tier = pInfo.plan || "free";
+      planCounts[tier] = (planCounts[tier] || 0) + 1;
+      if (u.role !== "admin") {
+        estimatedMonthlyRevenue += Number(plansCfg[tier]?.priceMonthly || 0);
+      }
+      const uUsage = normalizeUsage(u.usage);
+      chatQueriesToday += uUsage.chatQueriesToday;
+      studioGenerationsToday += uUsage.studioGenerationsToday;
+      if (
+        uUsage.chatQueriesToday >= Math.max(1, pInfo.limits.maxDailyChatQueries * 0.8) ||
+        uUsage.studioGenerationsToday >= Math.max(1, pInfo.limits.maxDailyStudioGenerations * 0.8)
+      ) {
+        usersNearQuota += 1;
+      }
+    });
 
-    const recentAuditLogs = (memoryDb.auditLogs || []).slice(0, 5);
+    const embeddingCoveragePct = totalChunks > 0
+      ? Math.round((embeddedChunksCount / totalChunks) * 100)
+      : 100;
 
     return {
-      userCount: (memoryDb.users || []).length,
-      notebookCount: (memoryDb.notebooks || []).length,
-      documentCount: (memoryDb.documents || []).length,
+      userCount: users.length,
+      notebookCount,
+      documentCount,
+      totalPages,
+      totalChars,
       totalChunks,
       embeddedChunksCount,
+      embeddingCoveragePct,
       messageCount,
-      flashcardsCount,
-      quizCount,
+      flashcardsCount: artifactBreakdown.flashcards || 0,
+      quizCount: artifactBreakdown.quiz || 0,
+      mindmapCount: artifactBreakdown.mindmap || 0,
+      slidesCount: artifactBreakdown.slides || 0,
+      visualsCount: (artifactBreakdown.images || 0) + (artifactBreakdown.video || 0),
+      totalArtifactsCount: artifacts.length,
+      artifactBreakdown,
       notesCount,
-      recentUsers,
-      recentDocuments: recentDocs,
-      recentAuditLogs
+      docStatusCounts,
+      planBreakdown: {
+        ...planCounts,
+        paidUsers: (planCounts.plus || 0) + (planCounts.pro || 0),
+        conversionRatePct: users.length > 0 ? Math.round((((planCounts.plus || 0) + (planCounts.pro || 0)) / users.length) * 100) : 0,
+        estimatedMonthlyRevenue
+      },
+      quotaTelemetry: {
+        chatQueriesToday,
+        studioGenerationsToday,
+        usersNearQuota
+      },
+      recentUsers: recentUsers.map(u => {
+        const p = resolveUserPlanDetails(u);
+        return {
+          ...u,
+          status: u.status || "active",
+          plan: p.plan,
+          planName: p.planName,
+          usage: normalizeUsage(u.usage)
+        };
+      }),
+      recentDocuments: recentDocs.map(d => ({
+        _id: d._id,
+        filename: d.filename,
+        pageCount: d.pageCount || 0,
+        charCount: d.charCount || 0,
+        chunkCount: d.chunks ? d.chunks.length : 0,
+        embeddedCount: d.chunks ? d.chunks.filter(c => c.embedding && c.embedding.length > 0).length : 0,
+        status: d.status,
+        createdAt: d.createdAt
+      })),
+      recentAuditLogs: recentLogs
     };
   },
 
@@ -1462,14 +2051,15 @@ const store = {
       mongoAtlasVectorSearch: "Not currently implemented",
       trueMmr: "Not currently implemented",
       diversityFilter: "Page-level diversity capping (maximum 2 chunks per page)",
-      generationModel: process.env.GEMINI_MODEL || "gemini-3.8-flash",
-      generationFallbackModel: "gemini-3.1-flash-lite",
+      generationModel: process.env.GEMINI_MODEL || "gemini-3-flash-preview",
+      generationFallbackModel: "gemini-2.5-flash-lite",
       geminiConfigured: hasGeminiKey,
       totalDocuments: docs.length,
       documentsReady,
       documentsNeedingReindex,
       totalChunks,
       embeddedChunks,
+      embeddingCoveragePct: totalChunks > 0 ? Math.round((embeddedChunks / totalChunks) * 100) : 100,
       chunks3072Dim: fallback3072Chunks,
       chunks512Dim: fallback512Chunks
     };
@@ -1500,13 +2090,14 @@ const store = {
       database: {
         status: isMongo ? "Connected" : "Connected (Local Storage Fallback)",
         mode: isMongo ? "mongodb" : "local_json",
-        label: isMongo ? "MongoDB Database" : "Zero-Config In-Memory Storage",
+        label: isMongo ? "MongoDB Atlas Cluster" : "Zero-Config In-Memory Storage",
         details: isMongo ? "MongoDB Active" : "server/data/local_db.json"
       },
       geminiApi: {
         status: hasGeminiKey ? "Configured" : "Not configured",
         configured: hasGeminiKey,
-        primaryModel: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+        primaryModel: process.env.GEMINI_MODEL || "gemini-3-flash-preview",
+        fallbackModel: "gemini-2.5-flash-lite",
         embeddingModel: "gemini-embedding-2-preview"
       },
       pdfExtraction: {
@@ -1515,7 +2106,7 @@ const store = {
       },
       ocrExtraction: {
         status: "Available",
-        engine: "Tesseract.js OCR fallback"
+        engine: "Tesseract.js Parallel OCR Pool (3 workers)"
       },
       ragEngine: {
         status: "Available",
@@ -1529,17 +2120,23 @@ const store = {
     let users = [];
     let notebooks = [];
     let docs = [];
+    let artifacts = [];
+    let messages = [];
 
     if (isMongo) {
-      [users, notebooks, docs] = await Promise.all([
-        User.find().select("createdAt").lean(),
+      [users, notebooks, docs, artifacts, messages] = await Promise.all([
+        User.find().select("-password").lean(),
         Notebook.find().select("createdAt userId title").lean(),
-        Document.find().select("createdAt charCount chunks status").lean()
+        Document.find().select("createdAt pageCount charCount chunks status filename").lean(),
+        Artifact.find().select("type updatedAt notebookId").lean(),
+        Message.find().select("notebookId role createdAt").lean()
       ]);
     } else {
-      users = (memoryDb.users || []).map(u => ({ createdAt: u.createdAt }));
-      notebooks = (memoryDb.notebooks || []).map(n => ({ createdAt: n.createdAt, userId: n.userId, title: n.title }));
-      docs = (memoryDb.documents || []).map(d => ({ createdAt: d.createdAt, charCount: d.charCount, chunks: d.chunks, status: d.status }));
+      users = (memoryDb.users || []).map(({ password, ...u }) => u);
+      notebooks = (memoryDb.notebooks || []).map(n => ({ _id: n._id, createdAt: n.createdAt, userId: n.userId, title: n.title }));
+      docs = (memoryDb.documents || []).map(d => ({ createdAt: d.createdAt, pageCount: d.pageCount, charCount: d.charCount, chunks: d.chunks, status: d.status, filename: d.filename }));
+      artifacts = memoryDb.artifacts || [];
+      messages = memoryDb.messages || [];
     }
 
     // Aggregate by date (YYYY-MM-DD)
@@ -1562,12 +2159,35 @@ const store = {
     // Status breakdown
     const statusCounts = { ready: 0, processing: 0, failed: 0 };
     let totalChars = 0;
+    let totalPages = 0;
     let totalChunks = 0;
+    let embeddedChunks = 0;
     docs.forEach(d => {
       const s = d.status || "processing";
       statusCounts[s] = (statusCounts[s] || 0) + 1;
       totalChars += d.charCount || 0;
-      totalChunks += (d.chunks || []).length;
+      totalPages += d.pageCount || 0;
+      const ch = d.chunks || [];
+      totalChunks += ch.length;
+      embeddedChunks += ch.filter(c => c.embedding && c.embedding.length > 0).length;
+    });
+
+    const planCounts = { free: 0, plus: 0, pro: 0 };
+    let mrr = 0;
+    const plansCfg = getPlans();
+    users.forEach(u => {
+      const p = resolveUserPlanDetails(u);
+      planCounts[p.plan] = (planCounts[p.plan] || 0) + 1;
+      if (u.role !== "admin") {
+        mrr += Number(plansCfg[p.plan]?.priceMonthly || 0);
+      }
+    });
+
+    const studioToolBreakdown = {};
+    artifacts.forEach(a => {
+      if (a && a.type) {
+        studioToolBreakdown[a.type] = (studioToolBreakdown[a.type] || 0) + 1;
+      }
     });
 
     return {
@@ -1577,10 +2197,156 @@ const store = {
       totalUsers: users.length,
       totalNotebooks: notebooks.length,
       totalDocuments: docs.length,
+      totalMessages: messages.length,
+      totalArtifacts: artifacts.length,
       documentStatusBreakdown: statusCounts,
       totalExtractedCharacters: totalChars,
+      totalPagesExtracted: totalPages,
       totalChunksCreated: totalChunks,
-      averageChunksPerDocument: docs.length ? Math.round((totalChunks / docs.length) * 10) / 10 : 0
+      embeddedChunksCount: embeddedChunks,
+      embeddingCoveragePct: totalChunks > 0 ? Math.round((embeddedChunks / totalChunks) * 100) : 100,
+      averageChunksPerDocument: docs.length ? Math.round((totalChunks / docs.length) * 10) / 10 : 0,
+      planBreakdown: {
+        ...planCounts,
+        estimatedMonthlyRevenue: mrr
+      },
+      studioToolBreakdown
+    };
+  },
+
+  async getDatabaseExplorer(collectionName = "users", limit = 25) {
+    const safeLimit = Math.min(Math.max(Number(limit) || 25, 1), 100);
+    const SystemSetting = require("../models/SystemSetting");
+
+    if (isMongo) {
+      const [
+        usersCount,
+        settingsCount,
+        notebooksCount,
+        documentsCount,
+        messagesCount,
+        artifactsCount,
+        notesCount,
+        collectionsCount,
+        auditLogsCount
+      ] = await Promise.all([
+        User.countDocuments(),
+        SystemSetting.countDocuments(),
+        Notebook.countDocuments(),
+        Document.countDocuments(),
+        Message.countDocuments(),
+        Artifact.countDocuments(),
+        Note.countDocuments(),
+        Collection.countDocuments(),
+        AuditLog.countDocuments()
+      ]);
+
+      let records = [];
+      switch (collectionName) {
+        case "users":
+          records = await User.find().select("-password").sort({ createdAt: -1 }).limit(safeLimit).lean();
+          break;
+        case "systemsettings":
+          records = await SystemSetting.find().sort({ updatedAt: -1 }).limit(safeLimit).lean();
+          break;
+        case "notebooks":
+          records = await Notebook.find().sort({ updatedAt: -1 }).limit(safeLimit).lean();
+          break;
+        case "documents":
+          const rawDocs = await Document.find()
+            .select("filename notebookId mimeType pageCount charCount status summary keyTopics chunks createdAt updatedAt")
+            .sort({ createdAt: -1 })
+            .limit(safeLimit)
+            .lean();
+          records = rawDocs.map(d => ({
+            _id: d._id,
+            filename: d.filename,
+            notebookId: d.notebookId,
+            mimeType: d.mimeType,
+            pageCount: d.pageCount,
+            charCount: d.charCount,
+            status: d.status,
+            chunksCount: Array.isArray(d.chunks) ? d.chunks.length : 0,
+            embeddedChunksCount: Array.isArray(d.chunks) ? d.chunks.filter(c => c.embedding && c.embedding.length > 0).length : 0,
+            keyTopics: d.keyTopics || [],
+            summary: (d.summary || "").slice(0, 200),
+            createdAt: d.createdAt,
+            updatedAt: d.updatedAt
+          }));
+          break;
+        case "messages":
+          records = await Message.find().sort({ createdAt: -1 }).limit(safeLimit).lean();
+          break;
+        case "artifacts":
+          const rawArts = await Artifact.find().sort({ updatedAt: -1 }).limit(safeLimit).lean();
+          records = rawArts.map(a => ({
+            _id: a._id,
+            notebookId: a.notebookId,
+            type: a.type,
+            updatedAt: a.updatedAt,
+            dataPreview: JSON.stringify(a.data || {}).slice(0, 350) + (JSON.stringify(a.data || {}).length > 350 ? "..." : "")
+          }));
+          break;
+        case "notes":
+          records = await Note.find().sort({ createdAt: -1 }).limit(safeLimit).lean();
+          break;
+        case "collections":
+          records = await Collection.find().sort({ updatedAt: -1 }).limit(safeLimit).lean();
+          break;
+        case "auditlogs":
+          records = await AuditLog.find().sort({ timestamp: -1 }).limit(safeLimit).lean();
+          break;
+        default:
+          records = await User.find().select("-password").limit(safeLimit).lean();
+      }
+
+      return {
+        mode: "MongoDB Atlas (studyvault)",
+        activeCollection: collectionName,
+        collections: [
+          { id: "users", label: "users (Accounts, Plans & Quotas)", count: usersCount },
+          { id: "systemsettings", label: "systemsettings (Global Plan Rules)", count: settingsCount },
+          { id: "notebooks", label: "notebooks (Study Workspaces)", count: notebooksCount },
+          { id: "documents", label: "documents (Sources & Vector Chunks)", count: documentsCount },
+          { id: "messages", label: "messages (RAG Chat History)", count: messagesCount },
+          { id: "artifacts", label: "artifacts (Studio Generations)", count: artifactsCount },
+          { id: "notes", label: "notes (Pinned Student Notes)", count: notesCount },
+          { id: "collections", label: "collections (Library Folders)", count: collectionsCount },
+          { id: "auditlogs", label: "auditlogs (Admin & Plan Audit Trail)", count: auditLogsCount }
+        ],
+        records
+      };
+    }
+
+    const colMap = {
+      users: (memoryDb.users || []).map(({ password, ...u }) => u),
+      systemsettings: [{ key: "subscription_plans", value: getPlans() }],
+      notebooks: memoryDb.notebooks || [],
+      documents: (memoryDb.documents || []).map(d => ({
+        _id: d._id,
+        filename: d.filename,
+        notebookId: d.notebookId,
+        pageCount: d.pageCount,
+        charCount: d.charCount,
+        status: d.status,
+        chunksCount: (d.chunks || []).length
+      })),
+      messages: memoryDb.messages || [],
+      artifacts: memoryDb.artifacts || [],
+      notes: memoryDb.notes || [],
+      collections: memoryDb.collections || [],
+      auditlogs: memoryDb.auditLogs || []
+    };
+
+    return {
+      mode: "Local JSON Storage (server/data/local_db.json)",
+      activeCollection: collectionName,
+      collections: Object.keys(colMap).map(k => ({
+        id: k,
+        label: k,
+        count: (colMap[k] || []).length
+      })),
+      records: (colMap[collectionName] || []).slice(0, safeLimit)
     };
   }
 };

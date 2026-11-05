@@ -1,6 +1,13 @@
 const AdmZip = require("adm-zip");
 const mammoth = require("mammoth");
-const officeParser = require("officeparser");
+
+function getOfficeParser() {
+  try {
+    return require("officeparser");
+  } catch (_) {
+    return null;
+  }
+}
 
 /**
  * Extracts slide-by-slide text, titles, and notes from PPTX/PPT buffers.
@@ -102,7 +109,8 @@ async function extractPptx(buffer, filename = "presentation.pptx") {
   // Fallback if AdmZip didn't find slides (e.g. older .ppt format or non-standard PPTX)
   if (slides.length === 0) {
     try {
-      const rawText = await officeParser.parseOffice(buffer);
+      const officeParser = getOfficeParser();
+      const rawText = officeParser ? await officeParser.parseOffice(buffer) : "";
       const text = (rawText || "").trim();
       if (text) {
         // Split text by slide boundaries or double newlines into distinct slides
@@ -174,7 +182,8 @@ async function extractDocx(buffer, filename = "document.docx") {
 
   if (!fullText) {
     try {
-      fullText = (await officeParser.parseOffice(buffer) || "").trim();
+      const officeParser = getOfficeParser();
+      fullText = officeParser ? (await officeParser.parseOffice(buffer) || "").trim() : "";
     } catch (opErr) {
       console.warn(`[officeExtractor] officeParser fallback failed for ${filename}:`, opErr.message);
     }

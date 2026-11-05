@@ -211,7 +211,21 @@ async function api(path, options = {}) {
       AuthManager.clearSession();
       showToast("Session expired. Please sign in again.");
     }
+    if (
+      res.status === 403 &&
+      (data.code === "PLAN_LIMIT_REACHED" || data.code === "PLAN_FEATURE_LOCKED") &&
+      typeof PlanManager !== "undefined"
+    ) {
+      PlanManager.openModal(data);
+    }
     throw new Error(data.error || `Request failed (${res.status})`);
+  }
+  if (
+    options.method === "POST" &&
+    typeof PlanManager !== "undefined" &&
+    (path.includes("/chat") || path.includes("/studio") || path.startsWith("/notebooks"))
+  ) {
+    PlanManager.refreshStatus().catch(() => {});
   }
   return data;
 }
@@ -628,6 +642,7 @@ async function initApp() {
   setupEventListeners();
   setupDropdowns();
   setupSettingsModal();
+  setupMultiDeviceModal();
   setupGoogleClientModal();
   setupDropzones();
   setupGenerationScopeControls();
@@ -645,14 +660,70 @@ async function checkDbStatus() {
     if (res.ok) {
       const data = await res.json();
       if (storagePill) {
-        storagePill.textContent = `🟢 ${data.label || "DB Connected"}`;
+        const isMongo = data.dbMode === "mongodb";
+        storagePill.textContent = `🟢 ${data.label || "MongoDB Connected"}`;
         storagePill.title = `Storage: ${data.details}`;
-        storagePill.style.background = "rgba(52, 168, 83, 0.15)";
-        storagePill.style.color = "#81c995";
-        storagePill.style.borderColor = "rgba(52, 168, 83, 0.3)";
+        storagePill.style.background = isMongo ? "rgba(52, 168, 83, 0.18)" : "rgba(251, 191, 36, 0.15)";
+        storagePill.style.color = isMongo ? "#81c995" : "#fbbf24";
+        storagePill.style.borderColor = isMongo ? "rgba(52, 168, 83, 0.35)" : "rgba(251, 191, 36, 0.35)";
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    if (storagePill) {
+      storagePill.textContent = "🔴 Reconnecting DB...";
+    }
+    setTimeout(checkDbStatus, 3000);
+  }
+}
+
+function setupMultiDeviceModal() {
+  const openBtn = document.getElementById("openDevicesModalBtn");
+  const modal = document.getElementById("multiDeviceModal");
+  const closeBtn = document.getElementById("closeMultiDeviceModalBtn");
+  const urlInput = document.getElementById("multiDeviceLanUrlInput");
+  const copyBtn = document.getElementById("copyMultiDeviceUrlBtn");
+  const qrImg = document.getElementById("multiDeviceQrImg");
+
+  if (!modal) return;
+
+  async function refreshDeviceLink() {
+    let baseLanUrl = window.location.origin;
+    try {
+      const info = await fetch("/api/system/network-info").then((r) => r.json());
+      if (info && info.primaryLanUrl) {
+        baseLanUrl = info.primaryLanUrl;
+      }
+    } catch (_) {
+      if (baseLanUrl.includes("localhost") || baseLanUrl.includes("127.0.0.1")) {
+        baseLanUrl = "http://192.168.100.19:3000";
+      }
+    }
+    const targetUrl = state.currentId
+      ? `${baseLanUrl}/#notebook=${state.currentId}`
+      : baseLanUrl;
+    if (urlInput) urlInput.value = targetUrl;
+    if (qrImg) {
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
+        targetUrl
+      )}`;
+    }
+  }
+
+  if (openBtn) {
+    openBtn.addEventListener("click", () => {
+      refreshDeviceLink();
+      modal.classList.add("show");
+    });
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => modal.classList.remove("show"));
+  }
+  if (copyBtn && urlInput) {
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(urlInput.value).catch(() => {});
+      showToast("📱 Copied Multi-Device Link to clipboard!");
+    });
+  }
 }
 
 function setupSettingsModal() {
@@ -916,20 +987,23 @@ function renderSources() {
   sourcesRailInner.innerHTML = state.documents
     .map((doc) => {
       const lower = doc.filename.toLowerCase();
-      const isPdf = (doc.mimeType && doc.mimeType.includes("pdf")) || lower.endsWith(".pdf");
+      const isYoutube = lower.startsWith("youtube -") || lower.startsWith("youtube video") || lower.includes("youtube");
+      const isPdf = !isYoutube && ((doc.mimeType && doc.mimeType.includes("pdf")) || lower.endsWith(".pdf"));
       const isPpt = (doc.mimeType && doc.mimeType.includes("presentation")) || lower.endsWith(".pptx") || lower.endsWith(".ppt");
       const isDoc = (doc.mimeType && doc.mimeType.includes("word")) || lower.endsWith(".docx") || lower.endsWith(".doc");
-      const isWeb = lower.startsWith("web_") || (doc.mimeType && doc.mimeType.includes("html"));
-      const docSvg = isPpt
+      const isWeb = !isYoutube && (lower.startsWith("web_") || lower.startsWith("web -") || lower.startsWith("wiki -") || (doc.mimeType && doc.mimeType.includes("html")));
+      const docSvg = isYoutube
+        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>`
+        : isPpt
         ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="21 15 16 10 5 21"/></svg>`
         : isDoc
         ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`
         : isPdf
         ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
         : isWeb
-        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`
+        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`
         : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="2" x2="22" y2="6"/><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"/></svg>`;
-      const typeBadge = isPpt ? "SLIDES" : isDoc ? "DOCX" : isPdf ? "PDF" : isWeb ? "Web" : "Text";
+      const typeBadge = isYoutube ? "YOUTUBE" : isPpt ? "SLIDES" : isDoc ? "DOCX" : isPdf ? "PDF" : isWeb ? "WEB" : "Text";
       const unitWord = isPpt ? (doc.pageCount === 1 ? "slide" : "slides") : (doc.pageCount === 1 ? "page" : "pages");
 
       const isProcessing = doc.status === "processing";
@@ -942,8 +1016,18 @@ function renderSources() {
 
       const pageInfo = doc.pageCount ? `${doc.pageCount} ${unitWord}` : "Document";
 
-      const pillClass = isPpt ? "ppt" : isDoc ? "doc" : isPdf ? "pdf" : "text";
-      const pillLabel = isPpt ? `PPTX • ${doc.pageCount || 1} slides` : isDoc ? `DOCX • ${doc.pageCount || 1} pgs` : isPdf ? `PDF • ${doc.pageCount || 1} pgs` : `TEXT • ${doc.pageCount || 1} pgs`;
+      const pillClass = isYoutube ? "pdf" : isPpt ? "ppt" : isDoc ? "doc" : isPdf ? "pdf" : "text";
+      const pillLabel = isYoutube
+        ? `🎬 YOUTUBE • ${doc.pageCount || 1} pgs`
+        : isWeb
+        ? `🌐 WEB • ${doc.pageCount || 1} pgs`
+        : isPpt
+        ? `PPTX • ${doc.pageCount || 1} slides`
+        : isDoc
+        ? `DOCX • ${doc.pageCount || 1} pgs`
+        : isPdf
+        ? `PDF • ${doc.pageCount || 1} pgs`
+        : `TEXT • ${doc.pageCount || 1} pgs`;
 
       const docId = String(doc._id || doc.id);
 
@@ -2695,8 +2779,223 @@ newNoteBtn.addEventListener("click", async () => {
 });
 
 // ══════════════════════════════════════════════════════════════════
-// AI VISUAL & IMAGE STUDIO CONTROLLER
+// AI VISUAL & IMAGE STUDIO CONTROLLER (EXTERNAL WEB SEARCH + AI VISUALS)
 // ══════════════════════════════════════════════════════════════════
+state.extractedSourceImages = [];
+state.selectedSourceImage = null;
+state.visualCompareMode = true;
+state.visualStageViewMode = "split"; // "split" | "web_image" | "diagram"
+state.webSuggestedTopics = [];
+state.currentGoogleImagesUrl = "https://www.google.com/imghp";
+
+const extractSourceImagesBtn = document.getElementById("extractSourceImagesBtn");
+const webImageSearchInput = document.getElementById("webImageSearchInput");
+const webSuggestedTopicsBar = document.getElementById("webSuggestedTopicsBar");
+const openGoogleImagesLink = document.getElementById("openGoogleImagesLink");
+const extractedSourceImagesGrid = document.getElementById("extractedSourceImagesGrid");
+const extractedSourceImagesCountBadge = document.getElementById("extractedSourceImagesCountBadge");
+const selectedSourceImageBanner = document.getElementById("selectedSourceImageBanner");
+const selectedSourceImageThumb = document.getElementById("selectedSourceImageThumb");
+const selectedSourceImageLabel = document.getElementById("selectedSourceImageLabel");
+const clearSelectedSourceImageBtn = document.getElementById("clearSelectedSourceImageBtn");
+const btnVisualCompareSource = document.getElementById("btnVisualCompareSource");
+const btnVisualDownloadPng = document.getElementById("btnVisualDownloadPng");
+
+async function loadExtractedSourceImages(force = false, explicitQuery = "") {
+  if (!state.currentId || !extractedSourceImagesGrid) return;
+  const queryText = (explicitQuery || (webImageSearchInput ? webImageSearchInput.value.trim() : "")).trim();
+  const styleVal = imageStyleSelect ? imageStyleSelect.value : "diagram";
+
+  if (extractSourceImagesBtn) {
+    extractSourceImagesBtn.disabled = true;
+    extractSourceImagesBtn.innerHTML = `<span>⏳ Searching Web...</span>`;
+  }
+  try {
+    const qs = new URLSearchParams();
+    if (queryText) qs.set("q", queryText);
+    if (styleVal) qs.set("style", styleVal);
+    const endpoint = `/notebooks/${state.currentId}/studio/web-images?${qs.toString()}`;
+    const res = await api(endpoint);
+
+    state.extractedSourceImages = (res && Array.isArray(res.images)) ? res.images : [];
+    state.webSuggestedTopics = (res && Array.isArray(res.suggestedTopics)) ? res.suggestedTopics : [];
+    if (res && res.googleImagesUrl) {
+      state.currentGoogleImagesUrl = res.googleImagesUrl;
+      if (openGoogleImagesLink) {
+        openGoogleImagesLink.href = res.googleImagesUrl;
+      }
+    }
+    if (webImageSearchInput && !webImageSearchInput.value.trim() && res && res.query) {
+      webImageSearchInput.value = res.query;
+    }
+
+    renderSuggestedWebTopics(res?.query || queryText);
+    renderExtractedSourceImages();
+    if (force) {
+      showToast(`🌐 Found ${state.extractedSourceImages.length} external web diagram(s) for "${res?.query || queryText}"!`);
+    }
+  } catch (err) {
+    if (force) showToast(err.message || "Failed to search external web images");
+  } finally {
+    if (extractSourceImagesBtn) {
+      extractSourceImagesBtn.disabled = false;
+      extractSourceImagesBtn.innerHTML = `🔍 Search Web Images`;
+    }
+  }
+}
+
+function renderSuggestedWebTopics(activeQuery = "") {
+  if (!webSuggestedTopicsBar) return;
+  const topics = state.webSuggestedTopics || [];
+  if (topics.length === 0) {
+    webSuggestedTopicsBar.innerHTML = "";
+    return;
+  }
+  webSuggestedTopicsBar.innerHTML =
+    `<span style="font-size:0.68rem; color:var(--text-muted); margin-right:0.2rem;">Notebook topics:</span>` +
+    topics
+      .slice(0, 8)
+      .map((t) => {
+        const isCurrent = activeQuery && t.toLowerCase() === activeQuery.toLowerCase();
+        return `<button type="button" class="web-topic-pill-btn" data-webtopic="${escapeHtml(t)}" style="font-size:0.68rem; padding:0.16rem 0.55rem; border-radius:999px; border:1px solid ${isCurrent ? '#8ab4f8' : 'rgba(255,255,255,0.14)'}; background:${isCurrent ? 'rgba(138,180,248,0.18)' : 'rgba(255,255,255,0.04)'}; color:${isCurrent ? '#8ab4f8' : '#cbd5e1'}; cursor:pointer; transition:all 0.15s ease;">${escapeHtml(t)}</button>`;
+      })
+      .join("");
+
+  webSuggestedTopicsBar.querySelectorAll(".web-topic-pill-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const topicVal = btn.dataset.webtopic || "";
+      if (webImageSearchInput) webImageSearchInput.value = topicVal;
+      if (imagePromptInput) imagePromptInput.value = topicVal;
+      loadExtractedSourceImages(true, topicVal);
+    });
+  });
+}
+
+function setSelectedSourceImage(imgObj) {
+  state.selectedSourceImage = imgObj || null;
+  if (selectedSourceImageBanner) {
+    if (imgObj) {
+      selectedSourceImageBanner.style.display = "flex";
+      if (selectedSourceImageThumb) selectedSourceImageThumb.src = imgObj.thumbUrl || imgObj.imageUrl || imgObj.url || "";
+      if (selectedSourceImageLabel) {
+        selectedSourceImageLabel.textContent = `${imgObj.title || imgObj.caption || "External Diagram"} (${imgObj.sourceName || "External Web"})`;
+      }
+      if (imagePromptInput && (imgObj.title || imgObj.caption)) {
+        imagePromptInput.value = imgObj.title || imgObj.caption;
+      }
+    } else {
+      selectedSourceImageBanner.style.display = "none";
+    }
+  }
+  renderExtractedSourceImages();
+}
+
+if (clearSelectedSourceImageBtn) {
+  clearSelectedSourceImageBtn.addEventListener("click", () => {
+    setSelectedSourceImage(null);
+  });
+}
+
+if (extractSourceImagesBtn) {
+  extractSourceImagesBtn.addEventListener("click", () => {
+    loadExtractedSourceImages(true);
+  });
+}
+
+if (webImageSearchInput) {
+  webImageSearchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      loadExtractedSourceImages(true);
+    }
+  });
+}
+
+function renderExtractedSourceImages() {
+  if (!extractedSourceImagesGrid) return;
+  const imgs = state.extractedSourceImages || [];
+  if (extractedSourceImagesCountBadge) {
+    extractedSourceImagesCountBadge.textContent = `${imgs.length} found`;
+  }
+
+  if (imgs.length === 0) {
+    extractedSourceImagesGrid.innerHTML = `
+      <div style="grid-column:1/-1; font-size:0.76rem; color:var(--text-muted); padding:0.65rem 0.25rem;">
+        Enter any topic above and click <strong>"🔍 Search Web Images"</strong> to fetch diagrams from Wikipedia, Wikimedia Commons, and external web sources.
+      </div>`;
+    return;
+  }
+
+  extractedSourceImagesGrid.innerHTML = imgs.map((img, idx) => {
+    const isSelected = state.selectedSourceImage && String(state.selectedSourceImage.id) === String(img.id);
+    const figName = img.title || img.caption || img.label || `External Diagram ${idx + 1}`;
+    const thumbSrc = img.thumbUrl || img.imageUrl || img.url;
+    const sourceBadge = img.sourceName || "External Web";
+    const externalUrl = img.sourceUrl || img.googleSearchUrl || state.currentGoogleImagesUrl;
+    const isAiGen = img.kind === "external_ai_generated";
+
+    return `
+      <div class="extracted-src-img-card" data-srcimgidx="${idx}" style="display:flex; flex-direction:column; justify-content:space-between; background:rgba(15,19,28,0.9); border:1.5px solid ${isSelected ? '#8ab4f8' : 'rgba(255,255,255,0.09)'}; border-radius:8px; padding:0.45rem; transition:all 0.18s ease;">
+        <div>
+          <div style="position:relative; height:118px; border-radius:6px; overflow:hidden; background:${isAiGen ? '#0b0e14' : '#ffffff'}; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:4px;" class="extracted-img-preview-box" data-srcimgidx="${idx}">
+            <img src="${thumbSrc}" alt="${escapeHtml(figName)}" referrerpolicy="no-referrer" style="max-width:100%; max-height:100%; object-fit:contain;" loading="lazy" onerror="this.onerror=null;this.src='/assets/images/study_infographic_preview_1790174854345.jpg';" />
+            <span style="position:absolute; bottom:4px; right:4px; font-size:0.6rem; font-weight:700; padding:0.12rem 0.4rem; border-radius:4px; background:rgba(8,11,17,0.88); color:${isAiGen ? '#c084fc' : '#8ab4f8'}; border:1px solid rgba(255,255,255,0.12);">${escapeHtml(sourceBadge)}</span>
+          </div>
+          <div style="font-size:0.74rem; font-weight:700; color:#e2e8f0; margin-top:0.42rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.3;" title="${escapeHtml(figName)}">
+            ${escapeHtml(figName)}
+          </div>
+          <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.15rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            🌐 ${escapeHtml(sourceBadge)}
+          </div>
+        </div>
+        <div style="display:flex; gap:0.3rem; margin-top:0.42rem;">
+          <button type="button" class="btn-primary-sm btn-gen-from-srcimg" data-srcimgidx="${idx}" style="flex:1; justify-content:center; padding:0.28rem 0.4rem; font-size:0.68rem;">
+            ✨ Generate
+          </button>
+          <button type="button" class="btn-ctrl btn-dl-srcimg" data-srcimgidx="${idx}" title="Download this image (.PNG)" style="padding:0.25rem 0.45rem; font-size:0.68rem; color:#81c995; border-color:rgba(129,201,149,0.35);">
+            ⬇️
+          </button>
+          <a href="${externalUrl}" target="_blank" rel="noopener noreferrer" class="btn-ctrl" title="Open external source link in new tab" style="padding:0.25rem 0.42rem; font-size:0.68rem; text-decoration:none; display:inline-flex; align-items:center;">
+            🔗
+          </a>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  extractedSourceImagesGrid.querySelectorAll(".extracted-img-preview-box").forEach((box) => {
+    box.addEventListener("click", () => {
+      const idx = parseInt(box.dataset.srcimgidx, 10);
+      if (imgs[idx]) setSelectedSourceImage(imgs[idx]);
+    });
+  });
+
+  extractedSourceImagesGrid.querySelectorAll(".btn-gen-from-srcimg").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.srcimgidx, 10);
+      const targetImg = imgs[idx];
+      if (!targetImg) return;
+      setSelectedSourceImage(targetImg);
+      await triggerGenerateVisual(targetImg);
+    });
+  });
+
+  extractedSourceImagesGrid.querySelectorAll(".btn-dl-srcimg").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.srcimgidx, 10);
+      const targetImg = imgs[idx];
+      if (!targetImg) return;
+      await downloadImageFromUrlOrSvg(
+        targetImg.imageUrl || targetImg.thumbUrl || targetImg.url,
+        targetImg.title || targetImg.caption || "study_diagram",
+        null
+      );
+    });
+  });
+}
+
 function renderVisual(visual) {
   if (!visual) {
     visualEmptyState.style.display = "block";
@@ -2704,29 +3003,222 @@ function renderVisual(visual) {
     return;
   }
   state.activeVisual = visual;
+  const hasExternalOrSource = Boolean(
+    (visual.externalImage && visual.externalImage.imageUrl) ||
+    (visual.sourceImage && visual.sourceImage.url) ||
+    (Array.isArray(visual.externalWebImages) && visual.externalWebImages.length > 0)
+  );
+  state.visualCompareMode = hasExternalOrSource;
+  state.visualStageViewMode = hasExternalOrSource ? "split" : "diagram";
+
   visualEmptyState.style.display = "none";
   activeVisualCard.style.display = "flex";
 
   visualCardTitle.textContent = visual.title || "Visual Synthesis";
   
   let tagsHtml = (visual.tags || ["Infographic", "Concept"]).map(t => `<span class="visual-tag-badge">${escapeHtml(t)}</span>`).join("");
+
+  if (visual.externalImage && visual.externalImage.sourceUrl) {
+    tagsHtml =
+      `<a href="${visual.externalImage.sourceUrl}" target="_blank" rel="noopener noreferrer" class="visual-tag-badge" style="background:rgba(129,201,149,0.18); color:#81c995; border:1px solid rgba(129,201,149,0.35); text-decoration:none;">🌐 Source: ${escapeHtml(visual.externalImage.sourceName || "External Web")} ↗</a>` +
+      tagsHtml;
+  }
+  if (visual.googleImagesUrl) {
+    tagsHtml += `<a href="${visual.googleImagesUrl}" target="_blank" rel="noopener noreferrer" class="visual-tag-badge" style="background:rgba(138,180,248,0.18); color:#8ab4f8; border:1px solid rgba(138,180,248,0.35); text-decoration:none;">🔍 Google Images ↗</a>`;
+  }
   if (visual.citations && Array.isArray(visual.citations) && visual.citations.length > 0) {
     tagsHtml += visual.citations.map(c => {
       const parts = c.split(",");
       const fn = parts[0]?.trim() || "document.pdf";
       const p = parts[1] ? parseInt(parts[1].replace(/[^0-9]/g, ""), 10) || 1 : 1;
-      return `<span class="visual-tag-badge" style="background:rgba(138,180,248,0.18); color:#8ab4f8; cursor:pointer;" onclick="openPdfModal('${escapeHtml(fn)}', ${p})">📄 ${escapeHtml(c)} ↗</span>`;
+      return `<span class="visual-tag-badge" style="background:rgba(138,180,248,0.14); color:#93c5fd; cursor:pointer;" onclick="openPdfModal('${escapeHtml(fn)}', ${p})">📄 ${escapeHtml(c)} ↗</span>`;
     }).join("");
   }
   visualCardTags.innerHTML = tagsHtml;
 
   visualSummaryText.textContent = visual.summary || "Source-grounded concept illustration.";
 
-  if (visual.svgContent) {
-    visualRenderStage.innerHTML = visual.svgContent;
-  } else if (visual.previewUrl) {
-    visualRenderStage.innerHTML = `<img src="${visual.previewUrl}" alt="${escapeHtml(visual.title)}" style="max-width:100%; border-radius:8px;" referrerpolicy="no-referrer" />`;
+  if (btnVisualCompareSource) {
+    if (hasExternalOrSource) {
+      btnVisualCompareSource.style.display = "inline-flex";
+      btnVisualCompareSource.querySelector("span").textContent =
+        state.visualStageViewMode === "split"
+          ? "Switch View Mode"
+          : "Split View (Web + AI)";
+    } else {
+      btnVisualCompareSource.style.display = "none";
+    }
   }
+
+  renderVisualStageContent(visual);
+}
+
+function renderVisualStageContent(visual) {
+  if (!visual || !visualRenderStage) return;
+
+  const extImg =
+    visual.externalImage ||
+    (Array.isArray(visual.externalWebImages) && visual.externalWebImages.length > 0
+      ? visual.externalWebImages[0]
+      : null);
+  const allWebImgs = Array.isArray(visual.externalWebImages) ? visual.externalWebImages : extImg ? [extImg] : [];
+  const primaryImgUrl =
+    extImg?.imageUrl ||
+    visual.generatedImageUrl ||
+    visual.sourceImage?.url ||
+    visual.previewUrl;
+  const primaryTitle =
+    extImg?.title ||
+    visual.sourceImage?.caption ||
+    visual.title ||
+    "External Reference Diagram";
+  const primarySourceName =
+    extImg?.sourceName ||
+    (visual.sourceImage ? `${visual.sourceImage.filename} (p.${visual.sourceImage.pageNumber || 1})` : "External Web");
+  const primarySourceUrl =
+    extImg?.sourceUrl ||
+    visual.googleImagesUrl ||
+    state.currentGoogleImagesUrl;
+
+  const svgDiagramHtml = visual.svgContent
+    ? visual.svgContent
+    : `<img src="${primaryImgUrl}" alt="${escapeHtml(visual.title)}" referrerpolicy="no-referrer" style="max-width:100%; border-radius:8px;" />`;
+
+  // Top mode bar inside stage so user can easily switch between Split View, External Web Image Only, or Interactive Diagram Only
+  const modeBarHtml = `
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.7rem; padding:0.4rem 0.65rem; background:rgba(15,20,30,0.85); border:1px solid rgba(255,255,255,0.08); border-radius:8px; width:100%;">
+      <div style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
+        <button type="button" class="stage-view-mode-btn" data-viewmode="split" style="font-size:0.72rem; padding:0.25rem 0.65rem; border-radius:6px; border:1px solid ${state.visualStageViewMode === 'split' ? '#8ab4f8' : 'rgba(255,255,255,0.12)'}; background:${state.visualStageViewMode === 'split' ? 'rgba(138,180,248,0.18)' : 'transparent'}; color:${state.visualStageViewMode === 'split' ? '#8ab4f8' : '#cbd5e1'}; cursor:pointer; font-weight:600;">
+          🔀 Split View (External Image + AI Diagram)
+        </button>
+        <button type="button" class="stage-view-mode-btn" data-viewmode="web_image" style="font-size:0.72rem; padding:0.25rem 0.65rem; border-radius:6px; border:1px solid ${state.visualStageViewMode === 'web_image' ? '#8ab4f8' : 'rgba(255,255,255,0.12)'}; background:${state.visualStageViewMode === 'web_image' ? 'rgba(138,180,248,0.18)' : 'transparent'}; color:${state.visualStageViewMode === 'web_image' ? '#8ab4f8' : '#cbd5e1'}; cursor:pointer; font-weight:600;">
+          🌐 External Web &amp; AI Images (${allWebImgs.length || 1})
+        </button>
+        <button type="button" class="stage-view-mode-btn" data-viewmode="diagram" style="font-size:0.72rem; padding:0.25rem 0.65rem; border-radius:6px; border:1px solid ${state.visualStageViewMode === 'diagram' ? '#8ab4f8' : 'rgba(255,255,255,0.12)'}; background:${state.visualStageViewMode === 'diagram' ? 'rgba(138,180,248,0.18)' : 'transparent'}; color:${state.visualStageViewMode === 'diagram' ? '#8ab4f8' : '#cbd5e1'}; cursor:pointer; font-weight:600;">
+          📊 Interactive Study Diagram
+        </button>
+      </div>
+      <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
+        <button type="button" class="btn-primary-sm" id="stageQuickDownloadImgBtn" style="padding:0.26rem 0.65rem; font-size:0.72rem; background:#22c55e; border-color:#16a34a; color:#052e16; font-weight:700;">
+          ⬇️ Download Image (.PNG)
+        </button>
+        <button type="button" class="btn-ctrl" id="stageQuickDownloadDiagramBtn" style="padding:0.25rem 0.6rem; font-size:0.72rem; color:#8ab4f8; border-color:rgba(138,180,248,0.4);">
+          ⬇️ Download AI Diagram (.PNG)
+        </button>
+        ${primarySourceUrl ? `<a href="${primarySourceUrl}" target="_blank" rel="noopener noreferrer" style="font-size:0.72rem; color:#81c995; text-decoration:none; font-weight:600;">🔗 Source ↗</a>` : ""}
+        ${visual.googleImagesUrl ? `<a href="${visual.googleImagesUrl}" target="_blank" rel="noopener noreferrer" style="font-size:0.72rem; color:#8ab4f8; text-decoration:none; font-weight:600;">🔍 Google Images ↗</a>` : ""}
+      </div>
+    </div>
+  `;
+
+  let bodyHtml = "";
+  if (state.visualStageViewMode === "web_image") {
+    const cardsToRender = allWebImgs.length > 0 ? allWebImgs : [{
+      title: primaryTitle,
+      imageUrl: primaryImgUrl,
+      sourceName: primarySourceName,
+      sourceUrl: primarySourceUrl,
+    }];
+    bodyHtml = `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:0.85rem; width:100%;">
+        ${cardsToRender.map((item, cIdx) => `
+          <div style="background:#0a0d14; border:1px solid rgba(138,180,248,0.28); border-radius:10px; padding:0.75rem; display:flex; flex-direction:column; justify-content:space-between;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; gap:0.4rem;">
+              <span style="font-size:0.72rem; font-weight:700; color:#8ab4f8;">🌐 ${escapeHtml(item.sourceName || "External Web")}</span>
+              <div style="display:flex; align-items:center; gap:0.4rem;">
+                <button type="button" class="btn-ctrl stage-card-dl-btn" data-dlurl="${escapeHtml(item.imageUrl || item.url || '')}" data-dltitle="${escapeHtml(item.title || visual.title || 'image')}" style="padding:0.18rem 0.5rem; font-size:0.68rem; color:#81c995; border-color:rgba(129,201,149,0.4);">
+                  ⬇️ Download
+                </button>
+                ${item.sourceUrl ? `<a href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer" style="font-size:0.68rem; color:#93c5fd; text-decoration:none;">Link ↗</a>` : ""}
+              </div>
+            </div>
+            <div style="flex:1; display:flex; align-items:center; justify-content:center; background:${item.kind === 'external_ai_generated' ? '#0b0e14' : '#ffffff'}; padding:8px; border-radius:8px; min-height:240px; max-height:420px; overflow:hidden;">
+              <img src="${item.imageUrl || item.url}" alt="${escapeHtml(item.title || visual.title)}" referrerpolicy="no-referrer" style="max-width:100%; max-height:400px; object-fit:contain;" onerror="this.onerror=null;this.src='/assets/images/study_infographic_preview_1790174854345.jpg';" />
+            </div>
+            <div style="font-size:0.78rem; font-weight:700; color:#e2e8f0; margin-top:0.55rem; text-align:center;">
+              ${escapeHtml(item.title || visual.title)}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  } else if (state.visualStageViewMode === "split" && primaryImgUrl) {
+    bodyHtml = `
+      <div style="display:grid; grid-template-columns:minmax(250px, 42%) 1fr; gap:0.85rem; width:100%; align-items:stretch;">
+        <div style="background:#0a0d14; border:1px solid rgba(255,255,255,0.14); border-radius:10px; padding:0.65rem; display:flex; flex-direction:column; justify-content:space-between;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.45rem;">
+            <span style="font-size:0.72rem; font-weight:700; color:#93c5fd;">🌐 External Reference Image</span>
+            <button type="button" class="btn-ctrl stage-card-dl-btn" data-dlurl="${escapeHtml(primaryImgUrl)}" data-dltitle="${escapeHtml(primaryTitle)}" style="padding:0.18rem 0.5rem; font-size:0.68rem; color:#81c995; border-color:rgba(129,201,149,0.4);">
+              ⬇️ Download Image
+            </button>
+          </div>
+          <div style="flex:1; display:flex; align-items:center; justify-content:center; background:#ffffff; padding:8px; border-radius:6px; overflow:hidden; min-height:220px; max-height:380px;">
+            <img src="${primaryImgUrl}" alt="${escapeHtml(primaryTitle)}" referrerpolicy="no-referrer" style="max-width:100%; max-height:360px; object-fit:contain;" onerror="this.onerror=null;this.src='/assets/images/study_infographic_preview_1790174854345.jpg';" />
+          </div>
+          <div style="font-size:0.74rem; font-weight:700; color:#e2e8f0; margin-top:0.5rem; text-align:center;">
+            ${escapeHtml(primaryTitle)}
+          </div>
+        </div>
+        <div style="background:#0a0d14; border:1px solid rgba(138,180,248,0.35); border-radius:10px; padding:0.65rem; display:flex; flex-direction:column;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.45rem;">
+            <span style="font-size:0.72rem; font-weight:700; color:#81c995;">✨ AI Synthesized Study Diagram</span>
+            <button type="button" class="btn-ctrl" id="stageSplitDlDiagramBtn" style="padding:0.18rem 0.5rem; font-size:0.68rem; color:#8ab4f8; border-color:rgba(138,180,248,0.4);">
+              ⬇️ Download Diagram
+            </button>
+          </div>
+          <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:6px;">
+            ${svgDiagramHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    bodyHtml = `<div style="width:100%;">${svgDiagramHtml}</div>`;
+  }
+
+  visualRenderStage.innerHTML = `<div style="display:flex; flex-direction:column; width:100%;">${modeBarHtml}${bodyHtml}</div>`;
+
+  visualRenderStage.querySelectorAll(".stage-view-mode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.visualStageViewMode = btn.dataset.viewmode || "split";
+      renderVisualStageContent(visual);
+    });
+  });
+
+  const quickImgBtn = document.getElementById("stageQuickDownloadImgBtn");
+  if (quickImgBtn) {
+    quickImgBtn.addEventListener("click", () => {
+      downloadImageFromUrlOrSvg(primaryImgUrl, primaryTitle || visual.title, visual.svgContent);
+    });
+  }
+  const quickDiagBtn = document.getElementById("stageQuickDownloadDiagramBtn");
+  if (quickDiagBtn) {
+    quickDiagBtn.addEventListener("click", () => {
+      downloadSvgAsHighResPng(visual.svgContent, visual.title || "AI_Study_Diagram");
+    });
+  }
+  const splitDiagBtn = document.getElementById("stageSplitDlDiagramBtn");
+  if (splitDiagBtn) {
+    splitDiagBtn.addEventListener("click", () => {
+      downloadSvgAsHighResPng(visual.svgContent, visual.title || "AI_Study_Diagram");
+    });
+  }
+  visualRenderStage.querySelectorAll(".stage-card-dl-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      downloadImageFromUrlOrSvg(btn.dataset.dlurl, btn.dataset.dltitle || visual.title, visual.svgContent);
+    });
+  });
+}
+
+if (btnVisualCompareSource) {
+  btnVisualCompareSource.addEventListener("click", () => {
+    if (!state.activeVisual) return;
+    const modes = ["split", "web_image", "diagram"];
+    const nextIdx = (modes.indexOf(state.visualStageViewMode) + 1) % modes.length;
+    state.visualStageViewMode = modes[nextIdx];
+    renderVisualStageContent(state.activeVisual);
+  });
 }
 
 function renderVisualGallery() {
@@ -2735,14 +3227,24 @@ function renderVisualGallery() {
     return;
   }
   visualGallerySection.style.display = "block";
-  visualGalleryGrid.innerHTML = state.visuals.map((vis, idx) => `
-    <div class="visual-gallery-thumb" data-visidx="${idx}">
-      <div style="height:90px; overflow:hidden; border-radius:4px; display:flex; align-items:center; justify-content:center; background:#0b0e14;">
-        ${vis.svgContent ? vis.svgContent : `<img src="${vis.previewUrl || '/assets/images/study_infographic_preview_1790174854345.jpg'}" alt="Thumb" style="width:100%; height:100%; object-fit:cover;" referrerpolicy="no-referrer" />`}
+  visualGalleryGrid.innerHTML = state.visuals.map((vis, idx) => {
+    const thumbUrl =
+      vis.externalImage?.thumbUrl ||
+      vis.externalImage?.imageUrl ||
+      vis.generatedImageUrl ||
+      vis.previewUrl ||
+      "/assets/images/study_infographic_preview_1790174854345.jpg";
+    return `
+      <div class="visual-gallery-thumb" data-visidx="${idx}">
+        <div style="height:90px; overflow:hidden; border-radius:4px; display:flex; align-items:center; justify-content:center; background:#ffffff; position:relative; padding:2px;">
+          <img src="${thumbUrl}" alt="Thumb" referrerpolicy="no-referrer" style="width:100%; height:100%; object-fit:contain;" onerror="this.onerror=null;this.src='/assets/images/study_infographic_preview_1790174854345.jpg';" />
+          ${vis.externalImage?.sourceName ? `<span style="position:absolute; bottom:3px; left:3px; font-size:0.54rem; background:rgba(8,11,17,0.88); color:#8ab4f8; padding:1px 4px; border-radius:3px;">🌐 ${escapeHtml(vis.externalImage.sourceName)}</span>` : ""}
+          <button type="button" class="gallery-thumb-dl-btn" data-visidx="${idx}" title="Download this image (.PNG)" style="position:absolute; top:3px; right:3px; font-size:0.65rem; background:rgba(8,11,17,0.88); color:#81c995; border:1px solid rgba(129,201,149,0.45); border-radius:4px; padding:2px 5px; cursor:pointer;">⬇️</button>
+        </div>
+        <div class="visual-gallery-thumb-title">${escapeHtml(vis.title || 'Visual')}</div>
       </div>
-      <div class="visual-gallery-thumb-title">${escapeHtml(vis.title || 'Visual')}</div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 
   visualGalleryGrid.querySelectorAll(".visual-gallery-thumb").forEach(el => {
     el.addEventListener("click", () => {
@@ -2750,50 +3252,166 @@ function renderVisualGallery() {
       if (state.visuals[idx]) renderVisual(state.visuals[idx]);
     });
   });
+
+  visualGalleryGrid.querySelectorAll(".gallery-thumb-dl-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.visidx, 10);
+      const vis = state.visuals[idx];
+      if (!vis) return;
+      const imgUrl = vis.externalImage?.imageUrl || vis.generatedImageUrl || vis.sourceImage?.url || "";
+      const imgTitle = vis.externalImage?.title || vis.title || "study_visual";
+      downloadImageFromUrlOrSvg(imgUrl, imgTitle, vis.svgContent);
+    });
+  });
 }
 
-generateImageBtn.addEventListener("click", async () => {
+async function triggerGenerateVisual(explicitExternalImage = null) {
   if (!state.currentId) return showToast("Select a notebook first.");
 
+  const chosenExtImg = explicitExternalImage || state.selectedSourceImage;
   const scope = genScopes.images || "all";
   let topic = "";
   let documentIds = [];
 
-  const customPrompt = imagePromptInput.value.trim();
-  const selectedTopic = document.getElementById("imgTopicSelect")?.value;
+  const customPrompt = imagePromptInput ? imagePromptInput.value.trim() : "";
+  const webSearchTopic = webImageSearchInput ? webImageSearchInput.value.trim() : "";
+  const selectedTopic = document.getElementById("imgTopicSelect")?.value || "";
 
-  if (scope === "topic") {
-    topic = customPrompt || selectedTopic || "";
-    if (!topic) return showToast("Please select or enter a topic for the visual.");
-  } else if (scope === "source") {
-    const checked = Array.from(document.querySelectorAll("#imgDocCheckboxesGrid input:checked")).map(cb => cb.value);
-    if (checked.length === 0) return showToast("Please select at least one document.");
-    documentIds = checked;
-    topic = customPrompt || "";
+  if (!chosenExtImg) {
+    if (scope === "topic") {
+      topic = customPrompt || selectedTopic || webSearchTopic || "";
+      if (!topic) return showToast("Please select or enter a topic for the visual.");
+    } else if (scope === "source") {
+      const checked = Array.from(document.querySelectorAll("#imgDocCheckboxesGrid input:checked")).map(cb => cb.value);
+      if (checked.length === 0) return showToast("Please select at least one document.");
+      documentIds = checked;
+      topic = customPrompt || webSearchTopic || "";
+    } else {
+      topic = customPrompt || webSearchTopic || selectedTopic || "";
+    }
   } else {
-    topic = customPrompt || "";
+    topic = customPrompt || chosenExtImg.title || chosenExtImg.caption || webSearchTopic || "";
   }
 
   generateImageBtn.disabled = true;
-  generateImageBtn.textContent = "⏳ Generating...";
+  generateImageBtn.textContent = chosenExtImg
+    ? "⏳ Generating from Web Image..."
+    : "⏳ Searching Web & Generating...";
   try {
     const style = imageStyleSelect.value;
     const aspectRatio = imageRatioSelect.value;
     const res = await api(`/notebooks/${state.currentId}/studio/images`, {
       method: "POST",
-      body: JSON.stringify({ scopeType: scope, topic, prompt: topic, documentIds, style, aspectRatio })
+      body: JSON.stringify({
+        scopeType: scope,
+        topic,
+        prompt: topic,
+        documentIds,
+        style,
+        aspectRatio,
+        externalImage: chosenExtImg || null,
+      })
     });
     state.visuals = res.list || [res.visual];
+    if (res.visual && Array.isArray(res.visual.externalWebImages) && res.visual.externalWebImages.length > 0) {
+      state.extractedSourceImages = res.visual.externalWebImages;
+      renderExtractedSourceImages();
+    }
     renderVisual(res.visual);
     renderVisualGallery();
-    showToast("✨ AI Concept Visual Generated!");
+    showToast(
+      chosenExtImg
+        ? `✨ Generated AI Visual from external reference (${chosenExtImg.sourceName || "Web"})!`
+        : `✨ Searched external web sources & generated study visual!`
+    );
   } catch (err) {
     showToast(err.message);
   } finally {
     generateImageBtn.disabled = false;
-    generateImageBtn.textContent = "✨ Generate Visual";
+    generateImageBtn.textContent = "Generate visual";
   }
+}
+
+generateImageBtn.addEventListener("click", () => {
+  triggerGenerateVisual(null);
 });
+
+function downloadSvgAsHighResPng(svgStr, rawTitle = "study_visual") {
+  if (!svgStr) return showToast("No diagram available to download.");
+  const fileBase = String(rawTitle || "study_visual").replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "study_visual";
+  const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1600;
+    canvas.height = 960;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#080b11";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    canvas.toBlob((pngBlob) => {
+      if (!pngBlob) return;
+      const pngUrl = URL.createObjectURL(pngBlob);
+      const a = document.createElement("a");
+      a.href = pngUrl;
+      a.download = `${fileBase}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(pngUrl);
+      showToast(`🖼️ Downloaded "${fileBase}.png"!`);
+    }, "image/png");
+  };
+  img.src = url;
+}
+
+async function downloadImageFromUrlOrSvg(imageUrl, rawTitle = "study_visual", svgFallback = null) {
+  const fileBase = String(rawTitle || "study_visual").replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "study_visual";
+  if (imageUrl) {
+    try {
+      showToast(`⏳ Downloading "${fileBase}.png"...`);
+      const res = await fetch(imageUrl, { mode: "cors" });
+      if (res.ok) {
+        const blob = await res.blob();
+        const ext = blob.type.includes("svg") ? "svg" : blob.type.includes("jpeg") || blob.type.includes("jpg") ? "jpg" : "png";
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `${fileBase}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+        showToast(`✅ Downloaded "${fileBase}.${ext}" to your Downloads folder!`);
+        return;
+      }
+    } catch (err) {
+      console.warn("[download] Direct blob fetch fallback to canvas/SVG:", err.message);
+    }
+  }
+  if (svgFallback) {
+    downloadSvgAsHighResPng(svgFallback, fileBase);
+  } else if (imageUrl) {
+    window.open(imageUrl, "_blank");
+  }
+}
+
+if (btnVisualDownloadPng) {
+  btnVisualDownloadPng.addEventListener("click", () => {
+    if (!state.activeVisual) return;
+    const vis = state.activeVisual;
+    const extImgUrl = vis.externalImage?.imageUrl || vis.generatedImageUrl || vis.sourceImage?.url || "";
+    const title = vis.externalImage?.title || vis.title || "study_visual";
+    if (state.visualStageViewMode === "diagram" && vis.svgContent) {
+      downloadSvgAsHighResPng(vis.svgContent, vis.title || "study_visual");
+    } else {
+      downloadImageFromUrlOrSvg(extImgUrl, title, vis.svgContent);
+    }
+  });
+}
 
 btnVisualDownload.addEventListener("click", () => {
   if (!state.activeVisual) return;
@@ -3258,6 +3876,10 @@ async function loadCachedArtifacts() {
       if (activeVisualCard) activeVisualCard.style.display = "none";
       if (visualGallerySection) visualGallerySection.style.display = "none";
     }
+    state.selectedSourceImage = null;
+    if (selectedSourceImageBanner) selectedSourceImageBanner.style.display = "none";
+    if (webImageSearchInput) webImageSearchInput.value = "";
+    loadExtractedSourceImages(false).catch(() => {});
 
     const vid = await api(`/notebooks/${state.currentId}/studio/video`).catch(() => null);
     if (vid) {
@@ -3415,6 +4037,179 @@ function setupDropdowns() {
     });
   }
 
+  // Tab switcher inside #addSourceModal (.as-tab -> #asPanelUpload | #asPanelPaste | #asPanelUrl | #asPanelSample)
+  if (addSourceModal) {
+    const asTabs = addSourceModal.querySelectorAll(".as-tab");
+    const panelMap = {
+      upload: document.getElementById("asPanelUpload"),
+      paste: document.getElementById("asPanelPaste"),
+      url: document.getElementById("asPanelUrl"),
+      sample: document.getElementById("asPanelSample"),
+    };
+    asTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const key = tab.dataset.astab;
+        asTabs.forEach((t) => t.classList.toggle("active", t === tab));
+        Object.entries(panelMap).forEach(([k, panel]) => {
+          if (!panel) return;
+          const isMatch = k === key;
+          panel.classList.toggle("active", isMatch);
+          panel.style.display = isMatch ? "block" : "none";
+        });
+        if (key === "url") {
+          const urlModalInput = document.getElementById("urlModalInput");
+          if (urlModalInput) setTimeout(() => urlModalInput.focus(), 60);
+        } else if (key === "paste") {
+          const pasteModalTitle = document.getElementById("pasteModalTitle");
+          if (pasteModalTitle) setTimeout(() => pasteModalTitle.focus(), 60);
+        }
+      });
+    });
+  }
+
+  // Live URL Type Detection Badge & Quick Sample Chips inside #asPanelUrl
+  const urlModalInput = document.getElementById("urlModalInput");
+  const urlTypeBadge = document.getElementById("urlTypeBadge");
+  const updateUrlTypeBadge = (val) => {
+    if (!urlTypeBadge) return;
+    const raw = (val || "").trim().toLowerCase();
+    if (!raw) {
+      urlTypeBadge.textContent = "🎬 YouTube & 🌐 Web Ready";
+      urlTypeBadge.style.background = "rgba(138,180,248,0.12)";
+      urlTypeBadge.style.color = "#8ab4f8";
+      urlTypeBadge.style.borderColor = "rgba(138,180,248,0.28)";
+    } else if (raw.includes("youtube.com") || raw.includes("youtu.be")) {
+      urlTypeBadge.textContent = "🎬 YouTube Video Detected";
+      urlTypeBadge.style.background = "rgba(248,113,113,0.16)";
+      urlTypeBadge.style.color = "#fca5a5";
+      urlTypeBadge.style.borderColor = "rgba(248,113,113,0.38)";
+    } else if (raw.includes("wikipedia.org")) {
+      urlTypeBadge.textContent = "📖 Wikipedia Article Detected";
+      urlTypeBadge.style.background = "rgba(52,211,153,0.15)";
+      urlTypeBadge.style.color = "#6ee7b7";
+      urlTypeBadge.style.borderColor = "rgba(52,211,153,0.35)";
+    } else {
+      urlTypeBadge.textContent = "🌐 Web Article URL Detected";
+      urlTypeBadge.style.background = "rgba(96,165,250,0.16)";
+      urlTypeBadge.style.color = "#93c5fd";
+      urlTypeBadge.style.borderColor = "rgba(96,165,250,0.35)";
+    }
+  };
+  if (urlModalInput) {
+    urlModalInput.addEventListener("input", (e) => updateUrlTypeBadge(e.target.value));
+    urlModalInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const btn = document.getElementById("btnSubmitUrlModal");
+        if (btn) btn.click();
+      }
+    });
+  }
+  document.querySelectorAll(".quick-url-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      if (!urlModalInput) return;
+      urlModalInput.value = chip.dataset.url || "";
+      updateUrlTypeBadge(urlModalInput.value);
+      urlModalInput.focus();
+    });
+  });
+
+  // Helper to ensure an active notebook exists before adding a URL or pasted note
+  const ensureActiveNotebook = async (defaultTitle = "New Study Notebook") => {
+    if (state.currentId) return state.currentId;
+    const nb = await api("/notebooks", {
+      method: "POST",
+      body: JSON.stringify({ title: defaultTitle }),
+    });
+    state.notebooks.unshift(nb);
+    renderNotebookList();
+    await selectNotebook(nb._id);
+    return nb._id;
+  };
+
+  // Submit Paste Text inside #addSourceModal (#btnSubmitPasteModal)
+  const btnSubmitPasteModal = document.getElementById("btnSubmitPasteModal");
+  if (btnSubmitPasteModal) {
+    btnSubmitPasteModal.addEventListener("click", async () => {
+      const titleEl = document.getElementById("pasteModalTitle");
+      const contentEl = document.getElementById("pasteModalContent");
+      const title = titleEl ? titleEl.value.trim() : "";
+      const text = contentEl ? contentEl.value.trim() : "";
+      if (!text) {
+        showToast("Please paste or type some study notes first.");
+        return;
+      }
+      btnSubmitPasteModal.disabled = true;
+      const origText = btnSubmitPasteModal.textContent;
+      btnSubmitPasteModal.textContent = "Saving note...";
+      try {
+        await ensureActiveNotebook(title || "Study Notes");
+        const doc = await api(`/notebooks/${state.currentId}/documents/text`, {
+          method: "POST",
+          body: JSON.stringify({ title: title || "Pasted Study Note", text }),
+        });
+        state.documents.push(doc);
+        renderSources();
+        closeAddSource();
+        if (titleEl) titleEl.value = "";
+        if (contentEl) contentEl.value = "";
+        maybePollDocs();
+        renderChat();
+        showToast("Study note added and indexing!");
+      } catch (err) {
+        showToast(err.message || "Failed to add note");
+      } finally {
+        btnSubmitPasteModal.disabled = false;
+        btnSubmitPasteModal.textContent = origText;
+      }
+    });
+  }
+
+  // Submit YouTube / Web URL inside #addSourceModal (#btnSubmitUrlModal)
+  const btnSubmitUrlModal = document.getElementById("btnSubmitUrlModal");
+  if (btnSubmitUrlModal) {
+    btnSubmitUrlModal.addEventListener("click", async () => {
+      const rawUrl = urlModalInput ? urlModalInput.value.trim() : "";
+      if (!rawUrl) {
+        showToast("Please paste a YouTube or Web URL first.");
+        if (urlModalInput) urlModalInput.focus();
+        return;
+      }
+      const isYt = rawUrl.toLowerCase().includes("youtube.com") || rawUrl.toLowerCase().includes("youtu.be");
+      btnSubmitUrlModal.disabled = true;
+      const origText = btnSubmitUrlModal.textContent;
+      btnSubmitUrlModal.textContent = isYt
+        ? "⏳ Extracting YouTube transcript..."
+        : "⏳ Fetching web article...";
+      try {
+        await ensureActiveNotebook(isYt ? "YouTube Video Study" : "Web Research Notebook");
+        const doc = await api(`/notebooks/${state.currentId}/documents/url`, {
+          method: "POST",
+          body: JSON.stringify({ url: rawUrl }),
+        });
+        state.documents.push(doc);
+        renderSources();
+        closeAddSource();
+        if (urlModalInput) {
+          urlModalInput.value = "";
+          updateUrlTypeBadge("");
+        }
+        maybePollDocs();
+        renderChat();
+        showToast(
+          isYt
+            ? "🎬 Importing YouTube video transcript & metadata..."
+            : "🌐 Importing web article content..."
+        );
+      } catch (err) {
+        showToast(err.message || "Failed to import URL");
+      } finally {
+        btnSubmitUrlModal.disabled = false;
+        btnSubmitUrlModal.textContent = origText;
+      }
+    });
+  }
+
   // Add source options inside modal
   const srcOptUploadPdf = document.getElementById("srcOptUploadPdf");
   if (srcOptUploadPdf) {
@@ -3474,8 +4269,9 @@ function setupDropdowns() {
   document.getElementById("submitPasteBtn").addEventListener("click", async () => {
     const title = document.getElementById("pasteTextTitle").value;
     const text = document.getElementById("pasteTextContent").value;
-    if (!text || !state.currentId) return;
+    if (!text) return;
     try {
+      await ensureActiveNotebook(title || "Study Notes");
       const doc = await api(`/notebooks/${state.currentId}/documents/text`, { method: "POST", body: JSON.stringify({ title, text }) });
       state.documents.push(doc); renderSources(); pasteTextModal.classList.remove("show");
       document.getElementById("pasteTextTitle").value = ""; document.getElementById("pasteTextContent").value = "";
@@ -3486,18 +4282,22 @@ function setupDropdowns() {
 
   document.getElementById("submitUrlBtn").addEventListener("click", async () => {
     const url = document.getElementById("urlInput").value;
-    if (!url || !state.currentId) return;
+    if (!url) return;
     try {
+      await ensureActiveNotebook("Web Research Notebook");
       const doc = await api(`/notebooks/${state.currentId}/documents/url`, { method: "POST", body: JSON.stringify({ url }) });
       state.documents.push(doc); renderSources(); urlModal.classList.remove("show");
       document.getElementById("urlInput").value = ""; maybePollDocs();
       renderChat();
+      showToast("Importing URL source...");
     } catch (err) { showToast(err.message); }
   });
 
   document.querySelectorAll(".sample-card-option").forEach((card) => {
     card.addEventListener("click", async () => {
-      const sampleKey = card.dataset.key; sampleModal.classList.remove("show");
+      const sampleKey = card.dataset.key;
+      sampleModal.classList.remove("show");
+      closeAddSource();
       try {
         const nb = await api(`/notebooks/sample/${sampleKey}`, { method: "POST" });
         state.notebooks.unshift(nb); renderNotebookList(); selectNotebook(nb._id);
@@ -3801,7 +4601,12 @@ const StudioManager = {
     else if (toolId === "tabFlashcards" && state.flashcards) renderFlashcards();
     else if (toolId === "tabOverview" && state.audioScript) renderAudioOverview();
     else if (toolId === "tabBriefing" && state.briefing) renderBriefing();
-    else if (toolId === "tabImages" && state.visuals && state.visuals.length > 0) renderVisualGallery();
+    else if (toolId === "tabImages") {
+      if (state.visuals && state.visuals.length > 0) renderVisualGallery();
+      if (!state.extractedSourceImages || state.extractedSourceImages.length === 0) {
+        loadExtractedSourceImages(false).catch(() => {});
+      }
+    }
   }
 };
 
@@ -5307,6 +6112,9 @@ const AuthManager = {
     localStorage.setItem("studyvault_token", token);
     localStorage.setItem("studyvault_user", JSON.stringify(user));
     this.updateUI();
+    if (typeof PlanManager !== "undefined") {
+      PlanManager.refreshStatus().catch(() => {});
+    }
   },
 
   clearSession() {
@@ -5580,8 +6388,10 @@ const AuthManager = {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ credential: response.credential })
                 }).then(async (r) => {
-                  const d = await r.json();
-                  if (!r.ok) throw new Error(d.error);
+                  const raw = await r.text();
+                  let d = {};
+                  try { d = JSON.parse(raw); } catch (_) { d = { error: raw.slice(0, 120) || `Server error (${r.status})` }; }
+                  if (!r.ok) throw new Error(d.error || `Server error (${r.status})`);
                   return d;
                 });
                 this.saveSession(user, token);
@@ -5606,10 +6416,13 @@ const AuthManager = {
           const latGoogleFallback = document.getElementById("latGoogleFallback");
           if (landingGoogleBtn) {
             landingGoogleBtn.innerHTML = "";
+            const cardEl = document.getElementById("landingAuthCard");
+            const availableW = landingGoogleBtn.clientWidth || (cardEl ? cardEl.clientWidth - 48 : 280);
+            const btnWidth = Math.min(350, Math.max(200, Math.floor(availableW)));
             window.google.accounts.id.renderButton(landingGoogleBtn, {
               theme: "outline",
               size: "large",
-              width: 340
+              width: btnWidth
             });
             if (latGoogleFallback) latGoogleFallback.style.display = "none";
           }
@@ -5618,10 +6431,12 @@ const AuthManager = {
           const googleSignInFallback = document.getElementById("googleSignInFallback");
           if (googleSignInBtn) {
             googleSignInBtn.innerHTML = "";
+            const availModalW = googleSignInBtn.clientWidth || 280;
+            const modalBtnWidth = Math.min(340, Math.max(200, Math.floor(availModalW)));
             window.google.accounts.id.renderButton(googleSignInBtn, {
               theme: "outline",
               size: "large",
-              width: 340
+              width: modalBtnWidth
             });
             if (googleSignInFallback) googleSignInFallback.style.display = "none";
           }
@@ -5849,6 +6664,19 @@ const LandingPage = {
       const target = tabName === "signin" ? "latSigninForm" : "latSignupForm";
       const targetEl = document.getElementById(target);
       if (targetEl) targetEl.classList.add("active");
+
+      const badgeEl = document.querySelector(".lat-card-badge");
+      const headingEl = document.querySelector(".lat-card-heading");
+      const subEl = document.querySelector(".lat-card-sub");
+      if (tabName === "signup") {
+        if (badgeEl) badgeEl.textContent = "🚀 Get Started Free";
+        if (headingEl) headingEl.textContent = "Create your account";
+        if (subEl) subEl.textContent = "Start organizing PDFs & generating AI study guides";
+      } else {
+        if (badgeEl) badgeEl.textContent = "✨ Welcome Back";
+        if (headingEl) headingEl.textContent = "Sign in to StudyVault";
+        if (subEl) subEl.textContent = "Access your notebooks, flashcards & AI study tools";
+      }
     };
 
     document.querySelectorAll(".lat").forEach(btn => {
@@ -5910,7 +6738,7 @@ const LandingPage = {
       guestBtn.addEventListener("click", async () => {
         guestBtn.disabled = true;
         const span = guestBtn.querySelector("span");
-        if (span) span.textContent = "Entering as Guest…";
+        if (span) span.textContent = "Entering…";
         try {
           const { token, user } = await fetch("/api/auth/guest", {
             method: "POST",
@@ -5923,7 +6751,7 @@ const LandingPage = {
           showToast(ex.message || "Failed to start guest session");
         } finally {
           guestBtn.disabled = false;
-          if (span) span.textContent = "👤 Explore as Guest (No sign up needed)";
+          if (span) span.textContent = "Explore as Guest";
         }
       });
     }
@@ -5991,8 +6819,11 @@ const LandingPage = {
     const input  = document.getElementById("latPassword");
     if (!toggle || !input) return;
     toggle.addEventListener("click", () => {
-      input.type = input.type === "password" ? "text" : "password";
-      toggle.textContent = input.type === "password" ? "👁" : "🙈";
+      const isPw = input.type === "password";
+      input.type = isPw ? "text" : "password";
+      toggle.innerHTML = isPw
+        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
     });
   },
 
@@ -6014,8 +6845,281 @@ const LandingPage = {
   }
 };
 
+// ══════════════════════════════════════════════════════════════════
+// SUBSCRIPTION PLAN & QUOTA MANAGER
+// ══════════════════════════════════════════════════════════════════
+const PlanManager = {
+  planStatus: null,
+  catalog: null,
+
+  init() {
+    const libBadge = document.getElementById("libPlanBadgeBtn");
+    const wsBadge = document.getElementById("wsPlanBadgeBtn");
+    const libMenuBtn = document.getElementById("libPlansMenuBtn");
+    const wsMenuBtn = document.getElementById("wsPlansMenuBtn");
+    const closeBtn = document.getElementById("closePlansModalBtn");
+    const closeFooterBtn = document.getElementById("closePlansFooterBtn");
+    const modal = document.getElementById("plansModal");
+
+    const openPlans = () => {
+      const dd1 = document.getElementById("userDropdown");
+      const dd2 = document.getElementById("libUserDropdown");
+      if (dd1) dd1.classList.remove("show");
+      if (dd2) dd2.classList.remove("show");
+      this.openModal(null);
+    };
+
+    if (libBadge) libBadge.addEventListener("click", openPlans);
+    if (wsBadge) wsBadge.addEventListener("click", openPlans);
+    if (libMenuBtn) libMenuBtn.addEventListener("click", openPlans);
+    if (wsMenuBtn) wsMenuBtn.addEventListener("click", openPlans);
+
+    const closePlans = () => {
+      if (modal) modal.classList.remove("show");
+    };
+    if (closeBtn) closeBtn.addEventListener("click", closePlans);
+    if (closeFooterBtn) closeFooterBtn.addEventListener("click", closePlans);
+    if (modal) {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closePlans();
+      });
+    }
+
+    this.refreshStatus().catch(() => {});
+  },
+
+  async refreshStatus() {
+    try {
+      const token = localStorage.getItem("studyvault_token");
+      const res = await fetch("/api/auth/plan", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      this.planStatus = data.planStatus;
+      this.catalog = data.catalog;
+      this.updateBadgesUI();
+      this.updateStudioTabLockIndicators();
+      return data;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  updateBadgesUI() {
+    if (!this.planStatus) return;
+    const plan = String(this.planStatus.plan || "free").toLowerCase();
+    const usage = this.planStatus.usage || {};
+    const limits = this.planStatus.limits || {};
+    const icon = plan === "pro" ? "💎 PRO" : plan === "plus" ? "⚡ PLUS" : "🌱 FREE";
+    const chatRemaining = Math.max(0, (limits.maxDailyChatQueries || 15) - (usage.chatQueriesToday || 0));
+
+    const libBtn = document.getElementById("libPlanBadgeBtn");
+    const wsBtn = document.getElementById("wsPlanBadgeBtn");
+    const libLbl = document.getElementById("libPlanBadgeLabel");
+    const wsLbl = document.getElementById("wsPlanBadgeLabel");
+
+    [libBtn, wsBtn].forEach(btn => {
+      if (!btn) return;
+      btn.className = `plan-pill-btn plan-${plan}`;
+      btn.title = `${this.planStatus.planName} Plan • ${chatRemaining}/${limits.maxDailyChatQueries || 15} AI queries left today`;
+    });
+
+    if (libLbl) libLbl.textContent = `${icon} • ${usage.notebooksUsed || 0}/${limits.maxNotebooks || 2} NB`;
+    if (wsLbl) wsLbl.textContent = `${icon} • ${chatRemaining} Qs left`;
+
+    const roleText = (AuthManager.currentUser?.role === "admin" ? "Admin" : "Student") + ` • ${plan.toUpperCase()} Plan`;
+    const wsRoleEl = document.getElementById("dropdownUserRole");
+    const libRoleEl = document.getElementById("libDropdownUserRole");
+    if (wsRoleEl) wsRoleEl.textContent = roleText;
+    if (libRoleEl) libRoleEl.textContent = roleText;
+  },
+
+  updateStudioTabLockIndicators() {
+    if (!this.planStatus) return;
+    const allowed = new Set(this.planStatus.allowedStudioFeatures || []);
+    const tabMap = {
+      tabFlashcards: { id: "flashcards", min: "free" },
+      tabQuiz: { id: "quiz", min: "free" },
+      tabImportant: { id: "important-questions", min: "free" },
+      tabMindMap: { id: "mindmap", min: "plus" },
+      tabSlides: { id: "slides", min: "plus" },
+      tabOverview: { id: "briefing", min: "free" },
+      tabDataTable: { id: "data-table", min: "plus" },
+      tabCompare: { id: "compare", min: "plus" },
+      tabAudio: { id: "audio-overview", min: "plus" },
+      tabImages: { id: "images", min: "pro" },
+      tabVideo: { id: "video", min: "pro" }
+    };
+
+    document.querySelectorAll(".studio-tool-btn, .tab-btn").forEach(btn => {
+      const targetTab = btn.dataset.tab;
+      const spec = tabMap[targetTab];
+      if (!spec) return;
+      const existingTag = btn.querySelector(".studio-lock-tag");
+      if (existingTag) existingTag.remove();
+
+      if (!allowed.has(spec.id)) {
+        const lockSpan = document.createElement("span");
+        lockSpan.className = "studio-lock-tag";
+        lockSpan.textContent = `🔒 ${spec.min.toUpperCase()}`;
+        btn.appendChild(lockSpan);
+      }
+    });
+  },
+
+  async openModal(restrictionAlert = null) {
+    const modal = document.getElementById("plansModal");
+    if (!modal) return;
+    modal.classList.add("show");
+
+    await this.refreshStatus();
+    this.renderModalContent(restrictionAlert);
+  },
+
+  renderModalContent(restrictionAlert = null) {
+    const banner = document.getElementById("planRestrictionAlertBanner");
+    const summaryEl = document.getElementById("userLiveQuotaSummary");
+    const gridEl = document.getElementById("userPlansComparisonGrid");
+    if (!summaryEl || !gridEl) return;
+
+    if (restrictionAlert && restrictionAlert.error) {
+      banner.style.display = "flex";
+      banner.innerHTML = `
+        <div>
+          <strong style="display:block; color:#fff; margin-bottom:2px;">🔒 Plan Limit or Feature Restriction Reached</strong>
+          <span>${escapeHtml(restrictionAlert.error)}</span>
+        </div>
+        <span class="plan-pill-btn plan-${escapeHtml(restrictionAlert.requiredPlan || "plus")}">
+          Recommended: ${(restrictionAlert.requiredPlan || "plus").toUpperCase()}
+        </span>
+      `;
+    } else {
+      banner.style.display = "none";
+      banner.innerHTML = "";
+    }
+
+    const ps = this.planStatus || {};
+    const limits = ps.limits || { maxNotebooks: 2, maxDocsPerNotebook: 3, maxDailyChatQueries: 15, maxDailyStudioGenerations: 4 };
+    const usage = ps.usage || { notebooksUsed: 0, chatQueriesToday: 0, studioGenerationsToday: 0 };
+
+    const nbPct = Math.min(100, Math.round(((usage.notebooksUsed || 0) / Math.max(1, limits.maxNotebooks)) * 100));
+    const chatPct = Math.min(100, Math.round(((usage.chatQueriesToday || 0) / Math.max(1, limits.maxDailyChatQueries)) * 100));
+    const studioPct = Math.min(100, Math.round(((usage.studioGenerationsToday || 0) / Math.max(1, limits.maxDailyStudioGenerations)) * 100));
+
+    summaryEl.innerHTML = `
+      <div class="uq-metric">
+        <div class="uq-metric-top">
+          <span>Active Tier</span>
+          <strong style="color:#fff;">${escapeHtml(ps.planName || "Free")} (${escapeHtml(ps.priceLabel || "$0 / mo")})</strong>
+        </div>
+        <div style="font-size:0.74rem; color:#94a3b8;">${escapeHtml(ps.tagline || "Starter Study Plan")}</div>
+      </div>
+      <div class="uq-metric">
+        <div class="uq-metric-top">
+          <span>📓 Notebooks Used</span>
+          <strong>${usage.notebooksUsed || 0} / ${limits.maxNotebooks}</strong>
+        </div>
+        <div class="uq-bar"><div class="uq-fill" style="width:${nbPct}%"></div></div>
+      </div>
+      <div class="uq-metric">
+        <div class="uq-metric-top">
+          <span>💬 Daily AI Chat Queries</span>
+          <strong>${usage.chatQueriesToday || 0} / ${limits.maxDailyChatQueries}</strong>
+        </div>
+        <div class="uq-bar"><div class="uq-fill" style="width:${chatPct}%"></div></div>
+      </div>
+      <div class="uq-metric">
+        <div class="uq-metric-top">
+          <span>✨ Daily Studio Generations</span>
+          <strong>${usage.studioGenerationsToday || 0} / ${limits.maxDailyStudioGenerations}</strong>
+        </div>
+        <div class="uq-bar"><div class="uq-fill" style="width:${studioPct}%"></div></div>
+      </div>
+    `;
+
+    const plans = this.catalog?.plans || {};
+    const currentPlan = String(ps.plan || "free").toLowerCase();
+    const recommendedPlan = restrictionAlert?.requiredPlan ? String(restrictionAlert.requiredPlan).toLowerCase() : null;
+
+    gridEl.innerHTML = ["free", "plus", "pro"].map(tier => {
+      const p = plans[tier] || {};
+      const isCurrent = currentPlan === tier;
+      const isRecommended = recommendedPlan === tier && !isCurrent;
+      const icon = tier === "pro" ? "💎" : tier === "plus" ? "⚡" : "🌱";
+
+      return `
+        <div class="user-plan-card ${isCurrent ? "active-tier" : ""} ${isRecommended ? "recommended-tier" : ""}">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="plan-pill-btn plan-${tier}">${icon} ${escapeHtml(p.name || tier.toUpperCase())}</span>
+            ${isCurrent ? `<span style="font-size:0.72rem; color:#34d399; font-weight:700;">✓ Current Plan</span>` : ""}
+            ${isRecommended ? `<span style="font-size:0.72rem; color:#c58af9; font-weight:700;">★ Recommended</span>` : ""}
+          </div>
+          <div>
+            <div class="user-plan-price">$${p.priceMonthly ?? 0} <span style="font-size:0.8rem; font-weight:400; color:#94a3b8;">/ month</span></div>
+            <div style="font-size:0.78rem; color:#94a3b8;">${escapeHtml(p.tagline || "")}</div>
+          </div>
+          <ul class="user-plan-limits">
+            <li><span>📓</span> <span>Up to <strong>${p.maxNotebooks}</strong> study notebooks</span></li>
+            <li><span>📄</span> <span>Up to <strong>${p.maxDocsPerNotebook}</strong> sources per notebook (${p.maxFileSizeMB} MB / ${p.maxPagesPerDoc} pages max)</span></li>
+            <li><span>💬</span> <span><strong>${p.maxDailyChatQueries}</strong> grounded AI chat queries / day (RAG topK=${p.ragTopK})</span></li>
+            <li><span>✨</span> <span><strong>${p.maxDailyStudioGenerations}</strong> Studio generations / day</span></li>
+            <li><span>🛠️</span> <span>${tier === "free" ? "Core Study Tools (Flashcards, Quiz, Exam Qs, Briefing, Notes)" : tier === "plus" ? "All Free tools + Mind Maps, Slides, Data Tables, Multi-Doc Compare & Audio Podcast" : "All 12 Studio Tools + AI Visual Diagram Studio & AI Video Explainer Lectures"}</span></li>
+          </ul>
+          <button
+            type="button"
+            class="${isCurrent ? "btn-ghost" : "btn-primary"}"
+            style="margin-top:auto; width:100%;"
+            ${isCurrent ? "disabled" : ""}
+            onclick="PlanManager.switchPlan('${tier}')"
+          >
+            ${isCurrent ? "Active Plan" : `Switch to ${p.name || tier.toUpperCase()}`}
+          </button>
+        </div>
+      `;
+    }).join("");
+  },
+
+  async switchPlan(newTier) {
+    try {
+      const token = localStorage.getItem("studyvault_token");
+      const res = await fetch("/api/auth/plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ plan: newTier })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.code === "AUTH_REQUIRED") {
+          document.getElementById("plansModal").classList.remove("show");
+          showToast(data.error || "Sign in or create an account to upgrade your plan.");
+          const authModal = document.getElementById("authModal");
+          if (authModal) authModal.classList.add("show");
+          return;
+        }
+        throw new Error(data.error || "Failed to switch plan");
+      }
+
+      if (data.user && data.token) {
+        AuthManager.saveSession(data.user, data.token);
+      }
+      this.planStatus = data.planStatus;
+      this.updateBadgesUI();
+      this.updateStudioTabLockIndicators();
+      this.renderModalContent(null);
+      showToast(`Switched to ${newTier.toUpperCase()} Plan! 🎉`);
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+};
+
 // Init everything
 AuthManager.init();
+PlanManager.init();
 
 
 

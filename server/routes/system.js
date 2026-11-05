@@ -1,9 +1,40 @@
 const express = require("express");
+const os = require("os");
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const store = require("../config/store");
 
 const router = express.Router();
+
+function getLocalLanUrls(port = process.env.PORT || 3000) {
+  const nets = os.networkInterfaces();
+  const urls = [];
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] || []) {
+      if (net.family === "IPv4" && !net.internal) {
+        urls.push({
+          interfaceName: name,
+          ip: net.address,
+          url: `http://${net.address}:${port}`,
+        });
+      }
+    }
+  }
+  return urls;
+}
+
+router.get("/network-info", (req, res) => {
+  const port = Number(process.env.PORT) || 3000;
+  const lanList = getLocalLanUrls(port);
+  const primaryLanUrl = lanList[0]?.url || `http://localhost:${port}`;
+  res.json({
+    port,
+    localUrl: `http://localhost:${port}`,
+    primaryLanUrl,
+    lanInterfaces: lanList,
+    cloudDatabaseConnected: store.isMongoMode(),
+  });
+});
 
 function sanitizeString(str) {
   if (!str) return "";

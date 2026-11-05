@@ -1,7 +1,16 @@
 const express = require("express");
+const fs = require("fs");
 const store = require("../config/store");
 const { authenticateToken } = require("../middleware/authMiddleware");
 const { getGenerationContext } = require("../services/generationContextService");
+const { ensureDocumentExtractedImages, getExtractedImageFilePath } = require("../utils/imageExtractor");
+const {
+  searchExternalTopicImages,
+  fetchExternalImageAsBase64,
+  buildExternalAiGeneratedImage,
+} = require("../utils/webImageSearch");
+const GeneratedImage = require("../models/GeneratedImage");
+const documentsRouter = require("./documents");
 const {
   generateAudioOverviewScript,
   generateGroundedAudioOverviewScript,
@@ -40,6 +49,47 @@ router.use(async (req, res, next) => {
       }
     }
     req.notebook = notebook;
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+const STUDIO_GENERATION_FEATURES = new Set([
+  "audio-overview",
+  "compare",
+  "important-questions",
+  "briefing",
+  "flashcards",
+  "quiz",
+  "mindmap",
+  "slides",
+  "data-table",
+  "images",
+  "video",
+]);
+
+// Enforce subscription plan feature access & daily Studio generation limits
+router.use(async (req, res, next) => {
+  if (req.method !== "POST") return next();
+  const featureId = req.path.replace(/^\/+/, "").split("/")[0];
+  if (!STUDIO_GENERATION_FEATURES.has(featureId)) return next();
+
+  try {
+    const quota = await store.checkQuota(req.user?.id, req.user?.role, "studio_feature", {
+      feature: featureId,
+    });
+    if (!quota.allowed) {
+      return res.status(403).json(quota);
+    }
+
+    const originalJson = res.json.bind(res);
+    res.json = (body) => {
+      if (res.statusCode < 400) {
+        store.incrementUserUsage(req.user?.id, "studio").catch(() => {});
+      }
+      return originalJson(body);
+    };
     next();
   } catch (err) {
     next(err);
@@ -528,6 +578,154 @@ router.delete("/notes/:noteId", async (req, res) => {
 });
 
 // --- AI Visual & Image Generation Studio ---
+async function collectNotebookSourceImages(notebookId, forceReExtract = false) {
+  const docs = await store.getDocuments(notebookId);
+  const readyDocs = (docs || []).filter((d) => d.status === "ready");
+  const allImages = [];
+
+  for (const doc of readyDocs) {
+    const docId = doc._id || doc.id;
+    let docToScan = doc;
+    if (forceReExtract) {
+      docToScan = { ...doc, extractedImages: [] };
+    }
+    const isAllV2 =
+      Array.isArray(doc.extractedImages) &&
+      doc.extractedImages.length > 0 &&
+      doc.extractedImages.every((i) => i && i.kind === "cropped_figure_v2");
+    const imgs = await ensureDocumentExtractedImages(docToScan, documentsRouter.ensurePdfOnDisk);
+    if (!isAllV2 || forceReExtract) {
+      await store.updateDocument(docId, {
+        extractedImages: imgs.map(({ url, ...rest }) => rest),
+      }).catch(() => {});
+    }
+    allImages.push(...imgs);
+  }
+  return { images: allImages, documentCount: readyDocs.length };
+}
+
+router.get("/source-images", async (req, res) => {
+  try {
+    const result = await collectNotebookSourceImages(req.params.notebookId, false);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/extract-source-images", async (req, res) => {
+  try {
+    const result = await collectNotebookSourceImages(req.params.notebookId, Boolean(req.body?.force));
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Helper to gather detected topics from the notebook's uploaded sources
+async function getNotebookDefaultSearchTopic(notebookId, fallbackNotebookTitle = "") {
+  const docs = await store.getDocuments(notebookId);
+  const readyDocs = (docs || []).filter((d) => d.status === "ready");
+  const suggestedTopics = [];
+  for (const d of readyDocs) {
+    if (Array.isArray(d.keyTopics)) {
+      for (const kt of d.keyTopics) {
+        const clean = String(kt || "").trim();
+        if (clean && clean.length >= 3 && !suggestedTopics.includes(clean)) {
+          suggestedTopics.push(clean);
+        }
+      }
+    }
+  }
+  const primaryTopic =
+    suggestedTopics[0] ||
+    fallbackNotebookTitle ||
+    (readyDocs[0]?.filename ? readyDocs[0].filename.replace(/\.[a-z0-9]+$/i, "") : "Computer Science Architecture");
+  return { primaryTopic, suggestedTopics: suggestedTopics.slice(0, 12) };
+}
+
+// Persist searched & generated external images into MongoDB Atlas (generated_images collection)
+async function persistExternalImagesToMongo(notebookId, notebookTitle, topic, imagesList = [], style = "diagram") {
+  if (!store.isMongoMode() || !Array.isArray(imagesList) || imagesList.length === 0) return;
+  try {
+    for (const img of imagesList) {
+      if (!img || !img.imageUrl) continue;
+      await GeneratedImage.findOneAndUpdate(
+        { notebookId: String(notebookId), imageUrl: img.imageUrl },
+        {
+          $set: {
+            notebookId: String(notebookId),
+            notebookTitle: notebookTitle || "",
+            imageName: img.title || img.caption || topic || "External Diagram",
+            topic: topic || "",
+            imageUrl: img.imageUrl,
+            thumbUrl: img.thumbUrl || img.thumbnailUrl || img.imageUrl,
+            sourceName: img.sourceName || "External Web",
+            externalSourceUrl: img.sourceUrl || "",
+            googleImagesUrl: img.googleSearchUrl || "",
+            style: style || "diagram",
+            summary: img.caption || "",
+            kind: img.kind || "wikipedia_diagram",
+          },
+        },
+        { upsert: true, new: true }
+      );
+    }
+  } catch (err) {
+    console.warn("[studio] Non-fatal MongoDB generated_images save notice:", err.message);
+  }
+}
+
+router.get("/web-images", async (req, res) => {
+  try {
+    const { primaryTopic, suggestedTopics } = await getNotebookDefaultSearchTopic(
+      req.params.notebookId,
+      req.notebook?.title || ""
+    );
+    const rawQuery = String(req.query.q || req.query.topic || primaryTopic || "").trim();
+    const style = String(req.query.style || "diagram").trim();
+    const result = await searchExternalTopicImages(rawQuery, req.notebook?.title || "", style);
+    await persistExternalImagesToMongo(
+      req.params.notebookId,
+      req.notebook?.title || "",
+      result.query || rawQuery,
+      result.images || [],
+      style
+    );
+    res.json({
+      ...result,
+      suggestedTopics,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/web-images", async (req, res) => {
+  try {
+    const { primaryTopic, suggestedTopics } = await getNotebookDefaultSearchTopic(
+      req.params.notebookId,
+      req.notebook?.title || ""
+    );
+    const rawQuery = String(req.body?.q || req.body?.topic || primaryTopic || "").trim();
+    const style = String(req.body?.style || "diagram").trim();
+    const result = await searchExternalTopicImages(rawQuery, req.notebook?.title || "", style);
+    await persistExternalImagesToMongo(
+      req.params.notebookId,
+      req.notebook?.title || "",
+      result.query || rawQuery,
+      result.images || [],
+      style
+    );
+    res.json({
+      ...result,
+      suggestedTopics,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get("/images", async (req, res) => {
   try {
     const artifact = await store.getArtifact(req.params.notebookId, "images");
@@ -546,33 +744,151 @@ router.post("/images", async (req, res) => {
       prompt = "",
       style = "diagram",
       aspectRatio = "16:9",
+      sourceImageId = null,
+      externalImage = null,
     } = req.body;
 
-    const genContext = await getGenerationContext({
-      notebookId: req.params.notebookId,
-      scopeType,
-      topic,
-      documentIds,
-      user: req.user,
-      apiKeyOverride: req.headers["x-gemini-key"],
-      topK: 18,
-    });
+    // 1. Resolve local extracted source image if sourceImageId was selected
+    let resolvedSourceImage = null;
+    if (sourceImageId) {
+      const { images } = await collectNotebookSourceImages(req.params.notebookId, false);
+      const found = images.find((img) => String(img.id) === String(sourceImageId));
+      if (found) {
+        const filePath = getExtractedImageFilePath(found.docId, found.fileName);
+        let base64Data = null;
+        if (filePath && fs.existsSync(filePath)) {
+          base64Data = fs.readFileSync(filePath).toString("base64");
+        }
+        resolvedSourceImage = {
+          ...found,
+          base64Data,
+        };
+      }
+    }
+
+    const { primaryTopic } = await getNotebookDefaultSearchTopic(
+      req.params.notebookId,
+      req.notebook?.title || ""
+    );
+
+    const effectiveScopeType = resolvedSourceImage ? "source" : scopeType;
+    const effectiveDocIds = resolvedSourceImage
+      ? [String(resolvedSourceImage.docId)]
+      : documentIds;
+    const effectiveTopic =
+      topic ||
+      prompt ||
+      (externalImage && externalImage.title ? externalImage.title : "") ||
+      (resolvedSourceImage ? resolvedSourceImage.caption : "") ||
+      primaryTopic;
+
+    let genContext = {
+      contextText: resolvedSourceImage?.pageContextSnippet || "",
+      chunks: [],
+      notebookTitle: req.notebook?.title || "StudyVault",
+      scopeType: effectiveScopeType,
+      topic: effectiveTopic,
+      documentIds: effectiveDocIds,
+    };
+
+    try {
+      genContext = await getGenerationContext({
+        notebookId: req.params.notebookId,
+        scopeType: effectiveScopeType,
+        topic: effectiveTopic,
+        documentIds: effectiveDocIds,
+        user: req.user,
+        apiKeyOverride: req.headers["x-gemini-key"],
+        topK: 18,
+      });
+    } catch (ctxErr) {
+      if (!resolvedSourceImage && !externalImage) throw ctxErr;
+    }
+
+    // 2. Search external web sources (Wikipedia, Wikimedia Commons, Openverse, Google Images) for the topic
+    const webSearchResult = await searchExternalTopicImages(
+      effectiveTopic || genContext.topic || genContext.notebookTitle,
+      genContext.notebookTitle,
+      style
+    ).catch(() => ({ query: effectiveTopic, googleImagesUrl: "", images: [] }));
+
+    const externalWebImages = Array.isArray(webSearchResult.images) ? webSearchResult.images : [];
+    const chosenExternalImage =
+      externalImage && externalImage.imageUrl
+        ? externalImage
+        : externalWebImages.find((img) => img.kind !== "external_ai_generated") ||
+          externalWebImages[0] ||
+          null;
+
+    // 3. If an external reference image is available, fetch its base64 bytes so Gemini Vision can analyze it
+    let externalReferenceWithBytes = chosenExternalImage ? { ...chosenExternalImage } : null;
+    if (
+      externalReferenceWithBytes &&
+      externalReferenceWithBytes.imageUrl &&
+      externalReferenceWithBytes.kind !== "external_ai_generated"
+    ) {
+      const fetched = await fetchExternalImageAsBase64(externalReferenceWithBytes.imageUrl);
+      if (fetched && fetched.base64Data) {
+        externalReferenceWithBytes.base64Data = fetched.base64Data;
+        externalReferenceWithBytes.mimeType = fetched.mimeType;
+      }
+    }
 
     const visual = await generateGroundedStudyVisuals({
       contextText: genContext.contextText,
       chunks: genContext.chunks,
       notebookTitle: genContext.notebookTitle,
-      topic: genContext.topic,
-      prompt,
+      topic: effectiveTopic || genContext.topic,
+      prompt: prompt || effectiveTopic,
       style,
       aspectRatio,
+      sourceImage: resolvedSourceImage,
+      externalImage: externalReferenceWithBytes,
+      externalWebImages,
+      googleImagesUrl: webSearchResult.googleImagesUrl,
       apiKeyOverride: req.headers["x-gemini-key"],
     });
+
+    // Ensure an AI-generated external image tailored to the synthesized visual's title & summary is attached
+    const tailoredAiWebImage = buildExternalAiGeneratedImage(
+      visual.title || effectiveTopic || genContext.notebookTitle,
+      style,
+      visual.summary || ""
+    );
+    visual.externalWebImages = [
+      ...(chosenExternalImage && chosenExternalImage.kind !== "external_ai_generated" ? [chosenExternalImage] : []),
+      ...externalWebImages.filter(
+        (img) =>
+          img.kind !== "external_ai_generated" &&
+          (!chosenExternalImage || img.imageUrl !== chosenExternalImage.imageUrl)
+      ),
+      tailoredAiWebImage,
+    ];
+    visual.externalImage =
+      chosenExternalImage && chosenExternalImage.kind !== "external_ai_generated"
+        ? chosenExternalImage
+        : visual.externalWebImages[0] || tailoredAiWebImage;
+    visual.googleImagesUrl =
+      webSearchResult.googleImagesUrl || tailoredAiWebImage.googleSearchUrl;
+    if (!visual.generatedImageUrl) {
+      visual.generatedImageUrl = visual.externalImage?.imageUrl || tailoredAiWebImage.imageUrl;
+    }
+    visual.aiGeneratedImageUrl = tailoredAiWebImage.imageUrl;
+
+    // Persist the external & AI-generated images to MongoDB Atlas (generated_images collection)
+    await persistExternalImagesToMongo(
+      req.params.notebookId,
+      genContext.notebookTitle,
+      effectiveTopic || visual.title,
+      visual.externalWebImages || [],
+      style
+    );
 
     visual.scope = {
       scopeType: genContext.scopeType,
       topic: genContext.topic,
       documentIds: genContext.documentIds,
+      sourceImageId: resolvedSourceImage ? resolvedSourceImage.id : null,
     };
 
     // Fetch existing images to maintain gallery history
@@ -641,4 +957,3 @@ router.post("/video", async (req, res) => {
 });
 
 module.exports = router;
-

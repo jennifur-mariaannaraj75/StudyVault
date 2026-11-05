@@ -1,34 +1,39 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StudyVault Admin Console</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/admin.css" />
+  <title>StudyVault — Admin Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/admin.css" />
 </head>
 <body>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!--  ACCESS DENIED / 401 / 403 SHIELD                           -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════════════════════════
+       AUTH SHIELD (401 / 403 Access Denied View)
+       ══════════════════════════════════════════════════════════════════ -->
   <div id="authShield" class="auth-shield">
     <div class="shield-card">
       <div class="shield-icon" id="shieldIcon">🛡️</div>
-      <h2 class="shield-title" id="shieldTitle">Checking Permissions...</h2>
-      <div class="shield-code" id="shieldCode">AUTH_CHECK</div>
-      <p class="shield-desc" id="shieldDesc">Verifying administrator authorization credentials...</p>
-      <a href="/" class="shield-btn" id="shieldBtn">Return to StudyVault</a>
+      <div class="shield-code" id="shieldCode">403 FORBIDDEN</div>
+      <h2 class="shield-title" id="shieldTitle">Administrator Access Required</h2>
+      <p class="shield-desc" id="shieldDesc">
+        You do not have permission to view the StudyVault Admin Console. Please sign in with an authorized administrator account.
+      </p>
+      <a href="/" class="shield-btn">
+        <span>← Return to StudyVault</span>
+      </a>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!--  MAIN ADMIN INTERFACE (Visible only to authorized admins)   -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════════════════════════
+       MAIN ADMIN CONSOLE LAYOUT
+       ══════════════════════════════════════════════════════════════════ -->
   <div id="adminLayout" class="admin-layout">
-
-    <!-- ── SIDEBAR NAVIGATION ── -->
+    
+    <!-- LEFT SIDEBAR -->
     <aside class="admin-sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">🛡️</div>
@@ -38,35 +43,47 @@
       </div>
 
       <nav class="sidebar-nav">
-        <button class="nav-item active" data-tab="overview">
+        <button class="nav-item active" data-section="overview">
           <span class="nav-icon">📊</span>
           <span>Overview</span>
         </button>
-        <button class="nav-item" data-tab="users">
+        <button class="nav-item" data-section="users">
           <span class="nav-icon">👥</span>
-          <span>Users</span>
+          <span>Users & Quotas</span>
         </button>
-        <button class="nav-item" data-tab="notebooks">
+        <button class="nav-item" data-section="plans">
+          <span class="nav-icon">💎</span>
+          <span>Plans & Restrictions</span>
+        </button>
+        <button class="nav-item" data-section="notebooks">
           <span class="nav-icon">📓</span>
           <span>Notebooks</span>
         </button>
-        <button class="nav-item" data-tab="documents">
+        <button class="nav-item" data-section="documents">
           <span class="nav-icon">📄</span>
-          <span>Documents</span>
+          <span>Documents & Indexing</span>
         </button>
-        <button class="nav-item" data-tab="analytics">
+        <button class="nav-item" data-section="rag">
+          <span class="nav-icon">🧠</span>
+          <span>RAG & AI Diagnostics</span>
+        </button>
+        <button class="nav-item" data-section="analytics">
           <span class="nav-icon">📈</span>
           <span>Analytics</span>
         </button>
-        <button class="nav-item" data-tab="health">
-          <span class="nav-icon">⚡</span>
+        <button class="nav-item" data-section="health">
+          <span class="nav-icon">💚</span>
           <span>System Health</span>
         </button>
-        <button class="nav-item" data-tab="audit">
+        <button class="nav-item" data-section="audit">
           <span class="nav-icon">📜</span>
           <span>Audit Logs</span>
         </button>
-        <button class="nav-item" data-tab="settings">
+        <button class="nav-item" data-section="database">
+          <span class="nav-icon">🗄️</span>
+          <span>Database Explorer</span>
+        </button>
+        <button class="nav-item" data-section="settings">
           <span class="nav-icon">⚙️</span>
           <span>Settings</span>
         </button>
@@ -74,109 +91,130 @@
 
       <div class="sidebar-footer">
         <a href="/" class="btn-return-app">
-          <span>← Back to Student Workspace</span>
+          <span>← Back to Workspace</span>
         </a>
       </div>
     </aside>
 
-    <!-- ── MAIN CONTENT AREA ── -->
+    <!-- MAIN CONTENT -->
     <main class="admin-main">
-
-      <!-- Top Header -->
+      
+      <!-- TOPBAR -->
       <header class="admin-topbar">
         <div class="topbar-left">
-          <h2 class="page-title" id="currentSectionTitle">System Overview</h2>
-          <span class="storage-pill mongo" id="topbarStorageBadge">Checking DB...</span>
+          <h2 class="page-title" id="pageTitle">Dashboard Overview</h2>
+          <span id="storageModeBadge" class="storage-pill local">Checking Storage...</span>
         </div>
+
         <div class="topbar-right">
+          <button class="btn-action" id="refreshCurrentSectionBtn" title="Refresh Data">🔄 Refresh</button>
           <div class="admin-user-info">
-            <div class="admin-avatar" id="topbarAdminAvatar">A</div>
             <div class="admin-meta">
-              <div class="admin-meta-name" id="topbarAdminName">Admin</div>
-              <div class="admin-meta-role">Administrator</div>
+              <div class="admin-meta-name" id="adminNameDisplay">Admin</div>
+              <div class="admin-meta-role" id="adminEmailDisplay">admin@studyvault</div>
             </div>
+            <div class="admin-avatar" id="adminAvatarDisplay">A</div>
           </div>
-          <button class="btn-logout" id="adminLogoutBtn">Log out</button>
+          <button id="adminLogoutBtn" class="btn-logout">Sign Out</button>
         </div>
       </header>
 
-      <!-- Sections Container -->
+      <!-- CONTENT AREA -->
       <div class="admin-content">
 
-        <!-- ─────────────────────────────────────────────────────────────
+        <!-- ════════════════════════════════════════════════════════════
              SECTION 1: OVERVIEW
-             ───────────────────────────────────────────────────────────── -->
-        <section id="section-overview" class="admin-section active">
-          <div class="stats-grid" id="overviewStatsGrid">
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-overview" class="admin-section active">
+          <div class="stats-grid">
             <div class="stat-card">
               <div class="stat-card-header">
-                <span class="stat-label">Total Users</span>
+                <span class="stat-label">Registered Accounts</span>
                 <span class="stat-icon">👥</span>
               </div>
-              <div class="stat-value" id="statTotalUsers">—</div>
-              <div class="stat-subtext">Registered student & admin accounts</div>
+              <div class="stat-value" id="kpiUsers">—</div>
+              <div class="stat-subtext" id="kpiUsersSub">Loading plan breakdown...</div>
             </div>
             <div class="stat-card">
               <div class="stat-card-header">
-                <span class="stat-label">Total Notebooks</span>
-                <span class="stat-icon">📓</span>
+                <span class="stat-label">Subscription MRR & Paid Tier</span>
+                <span class="stat-icon">💎</span>
               </div>
-              <div class="stat-value" id="statTotalNotebooks">—</div>
-              <div class="stat-subtext">Active workspace containers</div>
+              <div class="stat-value" id="kpiMrr">$0</div>
+              <div class="stat-subtext" id="kpiMrrSub">Paid conversion & active plans</div>
             </div>
             <div class="stat-card">
               <div class="stat-card-header">
-                <span class="stat-label">Total Documents</span>
-                <span class="stat-icon">📄</span>
+                <span class="stat-label">Notebooks & Sources</span>
+                <span class="stat-icon">📚</span>
               </div>
-              <div class="stat-value" id="statTotalDocs">—</div>
-              <div class="stat-subtext">Uploaded & indexed PDF/text files</div>
+              <div class="stat-value" id="kpiNotebooksDocs">—</div>
+              <div class="stat-subtext" id="kpiNotebooksDocsSub">Pages & extraction health</div>
             </div>
             <div class="stat-card">
               <div class="stat-card-header">
-                <span class="stat-label">Study Notes</span>
-                <span class="stat-icon">📝</span>
+                <span class="stat-label">Vector Index Coverage</span>
+                <span class="stat-icon">🧬</span>
               </div>
-              <div class="stat-value" id="statTotalNotes">—</div>
-              <div class="stat-subtext">Pinboard notes & insights</div>
+              <div class="stat-value" id="kpiChunks">—</div>
+              <div class="stat-subtext" id="kpiEmbeddedSub">0 embedded chunks</div>
             </div>
             <div class="stat-card">
               <div class="stat-card-header">
-                <span class="stat-label">Chat Messages</span>
+                <span class="stat-label">AI Queries (Today / Total)</span>
                 <span class="stat-icon">💬</span>
               </div>
-              <div class="stat-value" id="statTotalMessages">—</div>
-              <div class="stat-subtext">Grounded query exchanges</div>
+              <div class="stat-value" id="kpiMessages">—</div>
+              <div class="stat-subtext" id="kpiMessagesSub">Grounded RAG Q&A telemetry</div>
             </div>
             <div class="stat-card">
               <div class="stat-card-header">
-                <span class="stat-label">Study Artifacts</span>
-                <span class="stat-icon">🃏</span>
+                <span class="stat-label">Studio Generations</span>
+                <span class="stat-icon">✨</span>
               </div>
-              <div class="stat-value" id="statTotalArtifacts">—</div>
-              <div class="stat-subtext" id="statArtifactsBreakdown">Flashcards & quizzes</div>
+              <div class="stat-value" id="kpiStudioTotal">—</div>
+              <div class="stat-subtext" id="kpiStudioSub">Flashcards, Mind Maps, Visuals & Quizzes</div>
             </div>
           </div>
 
-          <!-- Recent Activity & Uploads Grid -->
+          <!-- Logical Plan Distribution & Studio Artifact Breakdown -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.75rem;">
+            <div class="card-panel" style="margin-bottom:0;">
+              <div class="panel-header">
+                <h3 class="panel-title">Subscription Plan Distribution & Quotas</h3>
+                <button class="btn-action" onclick="AdminApp.switchSection('plans')">Configure Plans →</button>
+              </div>
+              <div id="overviewPlanBreakdown">Loading plan distribution...</div>
+            </div>
+
+            <div class="card-panel" style="margin-bottom:0;">
+              <div class="panel-header">
+                <h3 class="panel-title">Studio Artifacts & Feature Adoption</h3>
+                <button class="btn-action" onclick="AdminApp.switchSection('analytics')">Full Analytics →</button>
+              </div>
+              <div id="overviewStudioBreakdown">Loading studio telemetry...</div>
+            </div>
+          </div>
+
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
             <!-- Recent Users -->
             <div class="card-panel">
               <div class="panel-header">
-                <h3 class="panel-title">Recently Created Users</h3>
-                <button class="btn-action" onclick="AdminApp.switchTab('users')">View All</button>
+                <h3 class="panel-title">Recent Users & Plan Status</h3>
+                <button class="btn-action" onclick="AdminApp.switchSection('users')">Manage All →</button>
               </div>
               <div class="table-responsive">
                 <table class="admin-table">
                   <thead>
                     <tr>
-                      <th>Name / Email</th>
-                      <th>Role</th>
-                      <th>Created</th>
+                      <th>User</th>
+                      <th>Plan</th>
+                      <th>Today's Usage</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
-                  <tbody id="overviewRecentUsersBody">
-                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Loading...</td></tr>
+                  <tbody id="recentUsersBody">
+                    <tr><td colspan="4">Loading...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -185,43 +223,76 @@
             <!-- Recent Documents -->
             <div class="card-panel">
               <div class="panel-header">
-                <h3 class="panel-title">Recently Ingested Documents</h3>
-                <button class="btn-action" onclick="AdminApp.switchTab('documents')">View All</button>
+                <h3 class="panel-title">Recent Uploaded Sources</h3>
+                <button class="btn-action" onclick="AdminApp.switchSection('documents')">View All →</button>
               </div>
               <div class="table-responsive">
                 <table class="admin-table">
                   <thead>
                     <tr>
                       <th>Filename</th>
-                      <th>Chunks</th>
+                      <th>Pages</th>
+                      <th>Vector Chunks</th>
                       <th>Status</th>
                     </tr>
                   </thead>
-                  <tbody id="overviewRecentDocsBody">
-                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Loading...</td></tr>
+                  <tbody id="recentDocsBody">
+                    <tr><td colspan="4">Loading...</td></tr>
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
-        </section>
 
-        <!-- ─────────────────────────────────────────────────────────────
-             SECTION 2: USERS
-             ───────────────────────────────────────────────────────────── -->
-        <section id="section-users" class="admin-section">
+          <!-- Recent Admin Activity -->
           <div class="card-panel">
             <div class="panel-header">
-              <h3 class="panel-title">Users Directory</h3>
-              <div class="panel-actions">
-                <input type="text" id="usersSearchInput" class="search-input" placeholder="Search name or email..." />
-                <select id="usersRoleFilter" class="filter-select">
-                  <option value="all">All Roles</option>
-                  <option value="admin">Admins</option>
-                  <option value="user">Users</option>
+              <h3 class="panel-title">Recent Audit & Plan Activity</h3>
+              <button class="btn-action" onclick="AdminApp.switchSection('audit')">Full Log →</button>
+            </div>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Target Entity</th>
+                  </tr>
+                </thead>
+                <tbody id="recentAuditBody">
+                  <tr><td colspan="4">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════════
+             SECTION 2: USERS & QUOTA MANAGEMENT
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-users" class="admin-section">
+          <div class="card-panel">
+            <div class="panel-header" style="flex-wrap:wrap; gap:0.75rem;">
+              <div>
+                <h3 class="panel-title">User Accounts, Plans & Quota Utilization (<span id="usersTotalCount">0</span>)</h3>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin-top:0.2rem;">Assign Free, Plus, or Pro plans, set custom per-user limits, or reset daily AI quotas.</p>
+              </div>
+              <div class="panel-actions" style="flex-wrap:wrap;">
+                <input type="text" id="userSearchInput" class="search-input" placeholder="Search by name or email..." />
+                <select id="userPlanFilter" class="filter-select">
+                  <option value="all">All Plans</option>
+                  <option value="free">Free Tier</option>
+                  <option value="plus">Plus Tier</option>
+                  <option value="pro">Pro Tier</option>
                 </select>
-                <select id="usersStatusFilter" class="filter-select">
-                  <option value="all">All Statuses</option>
+                <select id="userRoleFilter" class="filter-select">
+                  <option value="all">All Roles</option>
+                  <option value="user">Users</option>
+                  <option value="admin">Admins</option>
+                </select>
+                <select id="userStatusFilter" class="filter-select">
+                  <option value="all">All Status</option>
                   <option value="active">Active</option>
                   <option value="disabled">Disabled</option>
                 </select>
@@ -233,31 +304,55 @@
                 <thead>
                   <tr>
                     <th>User</th>
-                    <th>Email</th>
                     <th>Role</th>
+                    <th>Subscription Plan</th>
+                    <th>Workspace Quota</th>
+                    <th>Daily AI Usage</th>
                     <th>Status</th>
-                    <th>Notebooks</th>
-                    <th>Created</th>
-                    <th style="text-align: right;">Actions</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="usersTableBody">
-                  <tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Loading users...</td></tr>
+                  <tr><td colspan="8">Loading users...</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- ─────────────────────────────────────────────────────────────
-             SECTION 3: NOTEBOOKS
-             ───────────────────────────────────────────────────────────── -->
-        <section id="section-notebooks" class="admin-section">
+        <!-- ════════════════════════════════════════════════════════════
+             SECTION 3: SUBSCRIPTION PLANS & RESTRICTIONS
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-plans" class="admin-section">
+          <div class="card-panel">
+            <div class="panel-header" style="flex-wrap:wrap; gap:0.75rem;">
+              <div>
+                <h3 class="panel-title">Subscription Tiers & Usage Restrictions (Free / Plus / Pro)</h3>
+                <p style="font-size:0.82rem; color:var(--text-sub); margin-top:0.25rem;">
+                  Configure platform-wide limits on notebooks, sources per notebook, upload file size, daily AI chat queries, daily Studio generations, RAG retrieval depth, and feature gates.
+                </p>
+              </div>
+              <div class="panel-actions">
+                <button class="btn-action danger" id="resetPlansDefaultBtn">↺ Reset Tiers to Factory Default</button>
+              </div>
+            </div>
+
+            <div id="plansEditorContainer" class="plans-admin-grid">
+              <div>Loading subscription plans...</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════════
+             SECTION 4: NOTEBOOKS MANAGEMENT
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-notebooks" class="admin-section">
           <div class="card-panel">
             <div class="panel-header">
-              <h3 class="panel-title">Study Notebooks</h3>
+              <h3 class="panel-title">All Study Notebooks (<span id="notebooksTotalCount">0</span>)</h3>
               <div class="panel-actions">
-                <input type="text" id="notebooksSearchInput" class="search-input" placeholder="Search title or owner..." />
+                <input type="text" id="notebookSearchInput" class="search-input" placeholder="Search title or owner..." />
               </div>
             </div>
 
@@ -265,34 +360,37 @@
               <table class="admin-table">
                 <thead>
                   <tr>
-                    <th>Notebook Name</th>
+                    <th>Notebook Title</th>
                     <th>Owner</th>
                     <th>Documents</th>
-                    <th>Messages</th>
-                    <th>Updated</th>
+                    <th>Chat Messages</th>
                     <th>Created</th>
-                    <th style="text-align: right;">Actions</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="notebooksTableBody">
-                  <tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Loading notebooks...</td></tr>
+                  <tr><td colspan="7">Loading notebooks...</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- ─────────────────────────────────────────────────────────────
-             SECTION 4: DOCUMENTS
-             ───────────────────────────────────────────────────────────── -->
-        <section id="section-documents" class="admin-section">
+        <!-- ════════════════════════════════════════════════════════════
+             SECTION 5: DOCUMENTS & VECTOR INDEXING
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-documents" class="admin-section">
           <div class="card-panel">
-            <div class="panel-header">
-              <h3 class="panel-title">Uploaded & Ingested Documents</h3>
+            <div class="panel-header" style="flex-wrap:wrap; gap:0.75rem;">
+              <div>
+                <h3 class="panel-title">Uploaded Source Documents & Vector Index (<span id="documentsTotalCount">0</span>)</h3>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin-top:0.2rem;">Monitor OCR & text extraction, inspect vector chunk coverage, or trigger 1-click reprocessing.</p>
+              </div>
               <div class="panel-actions">
-                <input type="text" id="docsSearchInput" class="search-input" placeholder="Search filename or notebook..." />
-                <select id="docsStatusFilter" class="filter-select">
-                  <option value="all">All Statuses</option>
+                <input type="text" id="docSearchInput" class="search-input" placeholder="Search filename or notebook..." />
+                <select id="docStatusFilter" class="filter-select">
+                  <option value="all">All Status</option>
                   <option value="ready">Ready</option>
                   <option value="processing">Processing</option>
                   <option value="failed">Failed</option>
@@ -304,206 +402,168 @@
               <table class="admin-table">
                 <thead>
                   <tr>
-                    <th>Filename</th>
-                    <th>Notebook</th>
+                    <th>Document Filename</th>
+                    <th>Parent Notebook</th>
                     <th>Owner</th>
-                    <th>Pages</th>
+                    <th>Pages / Chars</th>
+                    <th>Vector Chunks (Embedded)</th>
                     <th>Status</th>
                     <th>Uploaded</th>
-                    <th style="text-align: right;">Actions</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody id="docsTableBody">
-                  <tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Loading documents...</td></tr>
+                <tbody id="documentsTableBody">
+                  <tr><td colspan="8">Loading documents...</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- ─────────────────────────────────────────────────────────────
-             SECTION 5: ANALYTICS
-             ───────────────────────────────────────────────────────────── -->
-        <section id="section-analytics" class="admin-section">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-label">Total Users</div>
-              <div class="stat-value" id="analyticsTotalUsers">—</div>
-              <div class="stat-subtext">Registered student accounts</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Study Notebooks</div>
-              <div class="stat-value" id="analyticsTotalNotebooks">—</div>
-              <div class="stat-subtext">Active workspace notebooks</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Documents Processed</div>
-              <div class="stat-value" id="analyticsTotalDocs">—</div>
-              <div class="stat-subtext">Ingested source textbooks & papers</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Document Readiness</div>
-              <div class="stat-value" id="analyticsReadyPct">—</div>
-              <div class="stat-subtext">Successfully ready for AI study</div>
-            </div>
-          </div>
-
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(400px,1fr));gap:1.5rem;">
-            <div class="card-panel">
-              <h3 class="panel-title" style="margin-bottom:1rem;">Account Registrations Over Time</h3>
-              <div class="table-responsive">
-                <table class="admin-table">
-                  <thead>
-                    <tr><th>Date</th><th>New Accounts</th></tr>
-                  </thead>
-                  <tbody id="analyticsUsersTimeBody">
-                    <tr><td colspan="2" style="text-align:center;color:var(--text-muted)">Loading...</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="card-panel">
-              <h3 class="panel-title" style="margin-bottom:1rem;">Document Uploads Over Time</h3>
-              <div class="table-responsive">
-                <table class="admin-table">
-                  <thead>
-                    <tr><th>Date</th><th>Uploaded Documents</th></tr>
-                  </thead>
-                  <tbody id="analyticsDocsTimeBody">
-                    <tr><td colspan="2" style="text-align:center;color:var(--text-muted)">Loading...</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ─────────────────────────────────────────────────────────────
-             SECTION 6: SYSTEM HEALTH
-             ───────────────────────────────────────────────────────────── -->
-        <section id="section-health" class="admin-section">
-          <div class="health-grid" id="healthGrid">
-            <!-- Backend API -->
-            <div class="health-card">
-              <div class="health-header">
-                <span class="health-name">Backend API Server</span>
-                <span class="health-badge connected" id="healthNodeBadge">Operational</span>
-              </div>
-              <div class="health-details">
-                <div class="health-row"><span class="health-key">Status</span><span class="health-val" style="color:var(--success);">Active & Running</span></div>
-                <div class="health-row"><span class="health-key">Server Uptime</span><span class="health-val" id="healthUptime">—</span></div>
-                <div class="health-row"><span class="health-key">Environment</span><span class="health-val">Production (Node.js)</span></div>
-              </div>
-            </div>
-
-            <!-- Database -->
-            <div class="health-card">
-              <div class="health-header">
-                <span class="health-name">Database Storage</span>
-                <span class="health-badge connected" id="healthDbBadge">Connected</span>
-              </div>
-              <div class="health-details">
-                <div class="health-row"><span class="health-key">Storage Engine</span><span class="health-val" id="healthDbMode">—</span></div>
-                <div class="health-row"><span class="health-key">Persistence</span><span class="health-val" id="healthDbPersistence">Active</span></div>
-                <div class="health-row"><span class="health-key">Data Integrity</span><span class="health-val" style="color:var(--success);">Verified</span></div>
-              </div>
-            </div>
-
-            <!-- Gemini AI -->
-            <div class="health-card">
-              <div class="health-header">
-                <span class="health-name">AI Generation Engine</span>
-                <span class="health-badge configured" id="healthGeminiBadge">Configured</span>
-              </div>
-              <div class="health-details">
-                <div class="health-row"><span class="health-key">Primary Model</span><span class="health-val" id="healthGeminiModel">gemini-3.8-flash</span></div>
-                <div class="health-row"><span class="health-key">Source Citations</span><span class="health-val" style="color:var(--primary-cyan);">Strict & Verified</span></div>
-                <div class="health-row"><span class="health-key">Study Modes</span><span class="health-val">Notes, Summaries, Quizzes</span></div>
-              </div>
-            </div>
-
-            <!-- Document Ingestion -->
-            <div class="health-card">
-              <div class="health-header">
-                <span class="health-name">Document Ingestion Pipeline</span>
-                <span class="health-badge available">Available</span>
-              </div>
-              <div class="health-details">
-                <div class="health-row"><span class="health-key">Supported Formats</span><span class="health-val">PDF, TXT, MD, Scanned Docs</span></div>
-                <div class="health-row"><span class="health-key">Page-Level Splitter</span><span class="health-val">Active (Per-page)</span></div>
-                <div class="health-row"><span class="health-key">Retrieval Pipeline</span><span class="health-val" style="color:var(--success);">Hybrid Dense + Lexical</span></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ─────────────────────────────────────────────────────────────
-             SECTION 7: AUDIT LOGS
-             ───────────────────────────────────────────────────────────── -->
-        <section id="section-audit" class="admin-section">
+        <!-- ════════════════════════════════════════════════════════════
+             SECTION 6: RAG & AI DIAGNOSTICS PLAYGROUND
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-rag" class="admin-section">
           <div class="card-panel">
             <div class="panel-header">
-              <h3 class="panel-title">Administrative Audit Logs</h3>
-              <div class="panel-actions">
-                <button class="btn-action" onclick="AdminApp.loadAuditLogs()">Refresh Logs</button>
+              <div>
+                <h3 class="panel-title">Hybrid Vector RAG & Gemini Telemetry</h3>
+                <p style="font-size:0.8rem; color:var(--text-sub); margin-top:0.2rem;">Real-time inspection of embedding dimensions, RRF fusion constants, and live retrieval scoring.</p>
+              </div>
+              <button class="btn-action" onclick="AdminApp.loadRagDiagnostics()">🔄 Refresh RAG Telemetry</button>
+            </div>
+            <div id="ragSpecGrid" class="rag-spec-grid">
+              <div>Loading RAG telemetry...</div>
+            </div>
+          </div>
+
+          <div class="card-panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Interactive Hybrid Retrieval Playground</h3>
+                <p style="font-size:0.8rem; color:var(--text-sub); margin-top:0.2rem;">Test any student query against indexed sources to inspect Semantic Cosine, BM25 Lexical, RRF, and Hybrid scores.</p>
               </div>
             </div>
+            <form id="ragDiagnosticForm" class="rag-tester-form" style="flex-wrap:wrap;">
+              <input type="text" id="ragTestQueryInput" class="rag-tester-input" placeholder="Enter a test query or topic (e.g. Media access Control, CSMA/CD, HDLC)..." required />
+              <select id="ragTestNotebookSelect" class="filter-select" style="min-width:210px;">
+                <option value="">All Ready Notebooks</option>
+              </select>
+              <select id="ragTestTopKSelect" class="filter-select">
+                <option value="5">Top 5 Chunks</option>
+                <option value="8" selected>Top 8 Chunks</option>
+                <option value="12">Top 12 Chunks</option>
+              </select>
+              <button type="submit" class="btn-primary" id="ragTestSubmitBtn">Run Retrieval Test</button>
+            </form>
+            <div id="ragTestResultsContainer" style="margin-top:1rem;"></div>
+          </div>
+        </section>
 
+        <!-- ════════════════════════════════════════════════════════════
+             SECTION 7: ANALYTICS
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-analytics" class="admin-section">
+          <div class="stats-grid" id="analyticsSummaryGrid"></div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+            <div class="card-panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Document Processing Breakdown</h3>
+              </div>
+              <div id="analyticsDocStatusBreakdown">Loading...</div>
+            </div>
+
+            <div class="card-panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Activity Timeline (By Day)</h3>
+              </div>
+              <div id="analyticsTimeline">Loading...</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════════
+             SECTION 8: SYSTEM HEALTH
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-health" class="admin-section">
+          <div class="health-grid" id="healthGrid">
+            <div class="card-panel">Checking system services...</div>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════════
+             SECTION 9: AUDIT LOGS
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-audit" class="admin-section">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Administrator & Subscription Audit Trail</h3>
+              <button class="btn-action" onclick="AdminApp.loadAuditLogs()">🔄 Reload Logs</button>
+            </div>
             <div class="table-responsive">
               <table class="admin-table">
                 <thead>
                   <tr>
                     <th>Timestamp</th>
-                    <th>Administrator</th>
+                    <th>Admin / Actor</th>
                     <th>Action</th>
                     <th>Affected Entity</th>
-                    <th>Metadata</th>
+                    <th>Metadata Details</th>
                   </tr>
                 </thead>
                 <tbody id="auditTableBody">
-                  <tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Loading audit logs...</td></tr>
+                  <tr><td colspan="5">Loading audit trail...</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- ─────────────────────────────────────────────────────────────
-             SECTION 8: SETTINGS
-             ───────────────────────────────────────────────────────────── -->
-        <section id="section-settings" class="admin-section">
+        <!-- ════════════════════════════════════════════════════════════
+             SECTION 10: LIVE DATABASE EXPLORER
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-database" class="admin-section">
           <div class="card-panel">
-            <h3 class="panel-title" style="margin-bottom:1rem;">Platform Configuration</h3>
-            <div class="table-responsive">
-              <table class="admin-table">
-                <tbody>
-                  <tr>
-                    <td style="font-weight:600;width:240px;">Platform Name</td>
-                    <td>StudyVault — AI-Powered Academic Research Assistant</td>
-                  </tr>
-                  <tr>
-                    <td style="font-weight:600;">Google OAuth Client ID</td>
-                    <td><span id="settingsGoogleClientIdDisplay" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--primary-cyan);">Configured</span></td>
-                  </tr>
-                  <tr>
-                    <td style="font-weight:600;">AI Engine</td>
-                    <td>Google Gemini 3.8 Flash (Multimodal & Grounded)</td>
-                  </tr>
-                  <tr>
-                    <td style="font-weight:600;">User Authentication</td>
-                    <td>JWT Authentication & Google 1-Click Sign-In</td>
-                  </tr>
-                  <tr>
-                    <td style="font-weight:600;">Session Duration</td>
-                    <td>7 days per login session</td>
-                  </tr>
-                  <tr>
-                    <td style="font-weight:600;">Role-Based Access Control</td>
-                    <td>Administrator (Full management) & Student (Workspace access)</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="panel-header" style="flex-wrap:wrap; gap:0.75rem;">
+              <div>
+                <h3 class="panel-title">Live MongoDB Atlas Database Explorer (<span id="dbExplorerMode">MongoDB</span>)</h3>
+                <p style="font-size:0.8rem; color:var(--text-sub); margin-top:0.2rem;">
+                  Inspect live documents across all 9 collections in the <code>studyvault</code> database.
+                </p>
+              </div>
+              <div class="panel-actions">
+                <select id="dbCollectionSelect" class="filter-select" style="min-width:260px;">
+                  <option value="users">users (Accounts, Plans & Quotas)</option>
+                  <option value="systemsettings">systemsettings (Global Plan Rules)</option>
+                  <option value="notebooks">notebooks (Study Workspaces)</option>
+                  <option value="documents">documents (Sources & Vector Chunks)</option>
+                  <option value="messages">messages (RAG Chat History)</option>
+                  <option value="artifacts">artifacts (Studio Generations)</option>
+                  <option value="notes">notes (Pinned Student Notes)</option>
+                  <option value="collections">collections (Library Folders)</option>
+                  <option value="auditlogs">auditlogs (Admin & Plan Audit Trail)</option>
+                </select>
+                <button class="btn-action" onclick="AdminApp.loadDatabaseExplorer()">🔄 Query Collection</button>
+              </div>
+            </div>
+            <div id="dbCollectionsSummaryBar" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.25rem;"></div>
+            <div id="dbRecordsContainer" style="display:flex; flex-direction:column; gap:0.75rem;">
+              <div>Select a collection to inspect live records...</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════════
+             SECTION 11: SETTINGS
+             ════════════════════════════════════════════════════════════ -->
+        <section id="view-settings" class="admin-section">
+          <div class="card-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">System & Environment Configuration (Read-Only)</h3>
+            </div>
+            <div class="health-details" id="settingsEnvSummary">
+              Loading environment configuration...
             </div>
           </div>
         </section>
@@ -512,78 +572,81 @@
     </main>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!--  MODALS                                                     -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-
-  <!-- User Details & Role Modal -->
-  <div class="modal-overlay" id="userModal">
-    <div class="modal-box">
+  <!-- ══════════════════════════════════════════════════════════════════
+       DETAIL / INSPECTION MODAL
+       ══════════════════════════════════════════════════════════════════ -->
+  <div id="inspectModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:680px;">
       <div class="modal-header">
-        <h3 class="modal-title" id="userModalTitle">User Management</h3>
-        <button class="modal-close" onclick="AdminApp.closeModal('userModal')">✕</button>
+        <h3 class="modal-title" id="inspectModalTitle">Details</h3>
+        <button class="modal-close" id="closeInspectModalBtn">✕</button>
       </div>
-      <div class="modal-body" id="userModalBody">
-        <!-- populated dynamically -->
-      </div>
-      <div class="modal-footer" id="userModalFooter">
-        <button class="btn-action" onclick="AdminApp.closeModal('userModal')">Close</button>
+      <div class="modal-body" id="inspectModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn-action" id="closeInspectFooterBtn">Close</button>
       </div>
     </div>
   </div>
 
-  <!-- Notebook Inspection Modal -->
-  <div class="modal-overlay" id="notebookModal">
-    <div class="modal-box">
+  <!-- ══════════════════════════════════════════════════════════════════
+       USER PLAN & CUSTOM QUOTA MODAL
+       ══════════════════════════════════════════════════════════════════ -->
+  <div id="userPlanModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:540px;">
       <div class="modal-header">
-        <h3 class="modal-title" id="notebookModalTitle">Notebook Details</h3>
-        <button class="modal-close" onclick="AdminApp.closeModal('notebookModal')">✕</button>
+        <h3 class="modal-title" id="userPlanModalTitle">Manage User Plan & Quotas</h3>
+        <button class="modal-close" id="closeUserPlanModalBtn">✕</button>
       </div>
-      <div class="modal-body" id="notebookModalBody">
-        <!-- populated dynamically -->
+      <div class="modal-body">
+        <input type="hidden" id="editPlanUserId" />
+        <div id="editPlanUserSummary" style="margin-bottom:1.1rem; padding:0.85rem; background:var(--bg-card); border-radius:8px; border:1px solid var(--border-color);"></div>
+
+        <div style="margin-bottom:1.15rem;">
+          <label style="display:block; font-size:0.8rem; color:var(--text-main); font-weight:600; margin-bottom:0.45rem;">Subscription Tier</label>
+          <select id="editUserPlanSelect" class="filter-select" style="width:100%;">
+            <option value="free">Free Tier ($0/mo — Starter)</option>
+            <option value="plus">Plus Tier ($9/mo — Scholar)</option>
+            <option value="pro">Pro Tier ($19/mo — Unlimited Researcher)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:1rem;">
+          <div style="font-size:0.8rem; font-weight:600; color:var(--text-main); margin-bottom:0.35rem;">Optional Custom Quota Overrides (Leave blank to use Plan defaults)</div>
+          <div class="plan-field-grid">
+            <div class="plan-field">
+              <label>Max Notebooks Override</label>
+              <input type="number" id="customMaxNotebooks" min="1" placeholder="Plan default" />
+            </div>
+            <div class="plan-field">
+              <label>Max Docs / Notebook Override</label>
+              <input type="number" id="customMaxDocs" min="1" placeholder="Plan default" />
+            </div>
+            <div class="plan-field">
+              <label>Max Daily Chat Queries</label>
+              <input type="number" id="customMaxChat" min="1" placeholder="Plan default" />
+            </div>
+            <div class="plan-field">
+              <label>Max Daily Studio Generations</label>
+              <input type="number" id="customMaxStudio" min="1" placeholder="Plan default" />
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:0.75rem; border-top:1px solid var(--border-color);">
+          <span style="font-size:0.78rem; color:var(--text-muted);">Need to clear today's counter for this user?</span>
+          <button type="button" class="btn-action" id="resetUserDailyQuotaBtn">↺ Reset Today's Usage to 0</button>
+        </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-action" onclick="AdminApp.closeModal('notebookModal')">Close</button>
+        <button class="btn-action" id="cancelUserPlanModalBtn">Cancel</button>
+        <button class="btn-primary" id="saveUserPlanModalBtn">Save Plan & Quotas</button>
       </div>
     </div>
   </div>
 
-  <!-- Document Inspection Modal -->
-  <div class="modal-overlay" id="docModal">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3 class="modal-title" id="docModalTitle">Document Metadata & Chunks</h3>
-        <button class="modal-close" onclick="AdminApp.closeModal('docModal')">✕</button>
-      </div>
-      <div class="modal-body" id="docModalBody">
-        <!-- populated dynamically -->
-      </div>
-      <div class="modal-footer">
-        <button class="btn-action" onclick="AdminApp.closeModal('docModal')">Close</button>
-      </div>
-    </div>
-  </div>
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Generic Confirmation Modal -->
-  <div class="modal-overlay" id="confirmModal">
-    <div class="modal-box" style="max-width: 440px;">
-      <div class="modal-header">
-        <h3 class="modal-title" id="confirmModalTitle">Confirm Action</h3>
-        <button class="modal-close" onclick="AdminApp.closeModal('confirmModal')">✕</button>
-      </div>
-      <div class="modal-body" id="confirmModalDesc">
-        Are you sure you want to proceed?
-      </div>
-      <div class="modal-footer">
-        <button class="btn-action" onclick="AdminApp.closeModal('confirmModal')">Cancel</button>
-        <button class="btn-action danger" id="confirmModalActionBtn">Confirm</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast Container -->
-  <div class="toast-container" id="toastContainer"></div>
-
-  <script src="js/admin.js"></script>
+  <script src="/js/admin.js"></script>
 </body>
 </html>

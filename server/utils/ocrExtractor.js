@@ -1,5 +1,3 @@
-const { createWorker } = require("tesseract.js");
-
 // mupdf is ESM-only, so it must be loaded via dynamic import() even from
 // this CommonJS file. It's pure WebAssembly — no native compilation, no
 // platform-specific binaries, works the same on Windows/Mac/Linux.
@@ -33,6 +31,7 @@ async function ocrPdfBuffer(buffer, onProgress, onlyPages = null) {
     : Array.from({ length: pageCount }, (_, i) => i + 1)
   ).sort((a, b) => a - b);
 
+  const { createWorker } = require("tesseract.js");
   const poolSize = Math.max(1, Math.min(OCR_WORKERS, targets.length));
   const workers = await Promise.all(Array.from({ length: poolSize }, () => createWorker("eng")));
 

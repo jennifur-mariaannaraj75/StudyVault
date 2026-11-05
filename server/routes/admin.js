@@ -2,6 +2,7 @@ const express = require("express");
 const store = require("../config/store");
 const { authenticateToken, requireAdmin } = require("../middleware/authMiddleware");
 const vectorEngine = require("../utils/vectorEngine");
+const { reprocessDocumentById } = require("./documents");
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get("/stats", async (req, res) => {
     const stats = await store.getSystemStats();
     res.json({
       success: true,
-      storageMode: store.isMongoMode() ? "MongoDB Database" : "Zero-Config In-Memory Storage",
+      storageMode: store.isMongoMode() ? "MongoDB Atlas Database" : "Zero-Config In-Memory Storage",
       ...stats
     });
   } catch (err) {
@@ -28,7 +29,71 @@ router.get("/stats", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 2. USERS MANAGEMENT
+// 2. SUBSCRIPTION PLANS & QUOTA POLICIES
+// ─────────────────────────────────────────────────────────────
+// GET /api/admin/plans
+router.get("/plans", async (req, res) => {
+  try {
+    const config = store.getPlansConfig();
+    res.json({
+      success: true,
+      ...config
+    });
+  } catch (err) {
+    console.error("[admin] Error fetching plans:", err);
+    res.status(500).json({ error: "Failed to load subscription plans configuration." });
+  }
+});
+
+// PUT /api/admin/plans/:tier
+router.put("/plans/:tier", async (req, res) => {
+  try {
+    const { tier } = req.params;
+    const updated = store.updatePlanTierConfig(tier, req.body || {});
+
+    await store.createAuditLog({
+      adminUser: { id: req.user.id, email: req.user.email, name: req.user.name },
+      action: "plan_tier_updated",
+      affectedEntity: `Plan Tier: ${tier.toUpperCase()}`,
+      metadata: {
+        tier,
+        maxNotebooks: updated.maxNotebooks,
+        maxDocsPerNotebook: updated.maxDocsPerNotebook,
+        maxDailyChatQueries: updated.maxDailyChatQueries,
+        maxDailyStudioGenerations: updated.maxDailyStudioGenerations,
+        allowedFeaturesCount: (updated.allowedStudioFeatures || []).length
+      }
+    });
+
+    res.json({
+      success: true,
+      plan: updated,
+      plans: store.getPlansConfig().plans
+    });
+  } catch (err) {
+    console.error("[admin] Error updating plan tier:", err);
+    res.status(400).json({ error: err.message || "Failed to update plan tier." });
+  }
+});
+
+// POST /api/admin/plans/reset
+router.post("/plans/reset", async (req, res) => {
+  try {
+    const plans = store.resetPlansConfig();
+    await store.createAuditLog({
+      adminUser: { id: req.user.id, email: req.user.email, name: req.user.name },
+      action: "plans_reset_defaults",
+      affectedEntity: "All Subscription Tiers (Free, Plus, Pro)",
+      metadata: { resetBy: req.user.email }
+    });
+    res.json({ success: true, plans });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to reset plans to defaults." });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// 3. USERS & QUOTA MANAGEMENT
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/users
 router.get("/users", async (req, res) => {
@@ -52,6 +117,67 @@ router.get("/users/:userId", async (req, res) => {
   } catch (err) {
     console.error("[admin] Error fetching user:", err);
     res.status(500).json({ error: "Failed to fetch user details." });
+  }
+});
+
+// PATCH & PUT /api/admin/users/:userId/plan
+async function handleUserPlanUpdate(req, res) {
+  try {
+    const { userId } = req.params;
+    const { plan, customQuota } = req.body;
+    if (!plan || !["free", "plus", "pro"].includes(String(plan).toLowerCase())) {
+      return res.status(400).json({ error: "Plan must be 'free', 'plus', or 'pro'." });
+    }
+
+    const result = await store.updateUserPlan(userId, plan, customQuota);
+    if (!result) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    await store.createAuditLog({
+      adminUser: { id: req.user.id, email: req.user.email, name: req.user.name },
+      action: "user_plan_changed",
+      affectedEntity: `User: ${result.email || userId}`,
+      metadata: {
+        userId,
+        newPlan: String(plan).toLowerCase(),
+        hasCustomQuota: Boolean(result.hasCustomQuota),
+        updatedBy: req.user.email
+      }
+    });
+
+    res.json({ success: true, user: result });
+  } catch (err) {
+    console.error("[admin] Error updating user plan:", err);
+    res.status(500).json({ error: "Failed to update user plan." });
+  }
+}
+router.patch("/users/:userId/plan", handleUserPlanUpdate);
+router.put("/users/:userId/plan", handleUserPlanUpdate);
+
+// POST /api/admin/users/:userId/reset-quota
+router.post("/users/:userId/reset-quota", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const usage = await store.resetUserQuota(userId);
+    if (!usage) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    await store.createAuditLog({
+      adminUser: { id: req.user.id, email: req.user.email, name: req.user.name },
+      action: "user_quota_reset",
+      affectedEntity: `User ID: ${userId}`,
+      metadata: { userId, resetBy: req.user.email }
+    });
+
+    res.json({ success: true, usage, message: "Daily AI Chat & Studio quotas reset to 0." });
+  } catch (err) {
+    console.error("[admin] Error resetting user quota:", err);
+    res.status(500).json({ error: "Failed to reset user daily quota." });
   }
 });
 
@@ -149,7 +275,7 @@ router.delete("/users/:userId", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 3. NOTEBOOK MANAGEMENT
+// 4. NOTEBOOK MANAGEMENT
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/notebooks
 router.get("/notebooks", async (req, res) => {
@@ -206,7 +332,7 @@ router.delete("/notebooks/:notebookId", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 4. DOCUMENT MANAGEMENT
+// 5. DOCUMENT MANAGEMENT & REPROCESSING
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/documents
 router.get("/documents", async (req, res) => {
@@ -230,6 +356,32 @@ router.get("/documents/:documentId", async (req, res) => {
   } catch (err) {
     console.error("[admin] Error fetching document details:", err);
     res.status(500).json({ error: "Failed to fetch document details." });
+  }
+});
+
+// POST /api/admin/documents/:documentId/reprocess
+router.post("/documents/:documentId/reprocess", async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    const result = await reprocessDocumentById(documentId);
+    if (!result || result.error) {
+      return res.status(400).json({ error: result?.error || "Failed to reprocess document." });
+    }
+
+    await store.createAuditLog({
+      adminUser: { id: req.user.id, email: req.user.email, name: req.user.name },
+      action: "document_reprocessed",
+      affectedEntity: `Document: "${result.filename}" (${documentId})`,
+      metadata: { documentId, mode: result.mode }
+    });
+
+    res.json({
+      success: true,
+      message: `Reprocessing started for "${result.filename}" (${result.mode}).`
+    });
+  } catch (err) {
+    console.error("[admin] Error reprocessing document:", err);
+    res.status(500).json({ error: "Failed to trigger document reprocessing." });
   }
 });
 
@@ -263,7 +415,7 @@ router.delete("/documents/:documentId", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 5. AI / RAG MONITORING & DIAGNOSTICS
+// 6. AI / RAG MONITORING & DIAGNOSTICS
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/rag
 router.get("/rag", async (req, res) => {
@@ -283,7 +435,7 @@ router.get("/rag", async (req, res) => {
 // Diagnostic semantic & hybrid retrieval test endpoint
 router.post("/rag/test", async (req, res) => {
   try {
-    const { query, notebookId, topK = 5 } = req.body;
+    const { query, notebookId, topK = 5, alpha = 0.65 } = req.body;
     if (!query || !query.trim()) {
       return res.status(400).json({ error: "A query string is required for diagnostic retrieval." });
     }
@@ -306,11 +458,11 @@ router.post("/rag/test", async (req, res) => {
     }
 
     const t0 = Date.now();
-    const retrieved = await vectorEngine.hybridRetrieve(query, readyDocs, {
+    const retrieved = await vectorEngine.hybridRetrieve({
+      documents: readyDocs,
+      query: query.trim(),
       topK: Math.min(Number(topK) || 5, 20),
-      semanticWeight: 0.65,
-      lexicalWeight: 0.35,
-      rrfConstant: 60
+      alpha: Number(alpha) || 0.65
     });
     const latencyMs = Date.now() - t0;
 
@@ -328,7 +480,7 @@ router.post("/rag/test", async (req, res) => {
         lexicalScore: Math.round((r.lexicalScore || 0) * 10000) / 10000,
         rrfScore: Math.round((r.rrfScore || 0) * 100000) / 100000,
         hybridScore: Math.round((r.hybridScore || 0) * 10000) / 10000,
-        textSnippet: (r.chunk || "").slice(0, 250) + ((r.chunk || "").length > 250 ? "..." : "")
+        textSnippet: (r.chunk || "").slice(0, 320) + ((r.chunk || "").length > 320 ? "..." : "")
       }))
     });
   } catch (err) {
@@ -338,7 +490,7 @@ router.post("/rag/test", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 6. SYSTEM HEALTH
+// 7. SYSTEM HEALTH
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/health
 router.get("/health", async (req, res) => {
@@ -352,7 +504,7 @@ router.get("/health", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 7. ANALYTICS
+// 8. ANALYTICS
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/analytics
 router.get("/analytics", async (req, res) => {
@@ -366,8 +518,21 @@ router.get("/analytics", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 8. AUDIT LOGS
+// 9. AUDIT LOGS & LIVE DATABASE EXPLORER
 // ─────────────────────────────────────────────────────────────
+// GET /api/admin/database
+router.get("/database", async (req, res) => {
+  try {
+    const col = req.query.collection || "users";
+    const limit = Number(req.query.limit) || 25;
+    const snapshot = await store.getDatabaseExplorer(col, limit);
+    res.json({ success: true, ...snapshot });
+  } catch (err) {
+    console.error("[admin] Error fetching database explorer:", err);
+    res.status(500).json({ error: "Failed to query database collection." });
+  }
+});
+
 // GET /api/admin/audit-logs
 router.get("/audit-logs", async (req, res) => {
   try {

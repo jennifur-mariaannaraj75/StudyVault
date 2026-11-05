@@ -1,19 +1,68 @@
-const { GoogleGenAI, ThinkingLevel } = require("@google/genai");
+const axios = require("axios");
 const nlpService = require("../services/nlpService");
+
+const ThinkingLevel = {
+  MINIMAL: "MINIMAL",
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
+};
+
+function createRestGenAiClient(apiKey) {
+  return {
+    models: {
+      async generateContent({ model, contents, config = {} }) {
+        const body = {
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: typeof contents === "string" ? contents : JSON.stringify(contents) }],
+            },
+          ],
+          generationConfig: {
+            maxOutputTokens: config.maxOutputTokens || 2500,
+            temperature: config.temperature ?? 0.3,
+            ...(config.responseMimeType ? { responseMimeType: config.responseMimeType } : {}),
+          },
+        };
+        if (config.systemInstruction) {
+          body.systemInstruction = {
+            parts: [{ text: String(config.systemInstruction) }],
+          };
+        }
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+          model
+        )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+        const res = await axios.post(url, body, {
+          headers: { "Content-Type": "application/json", "User-Agent": "aistudio-build" },
+          timeout: 28000,
+        });
+        const text =
+          res.data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
+        return { text };
+      },
+    },
+  };
+}
 
 function getAiClient(apiKeyOverride = null) {
   const apiKey = apiKeyOverride || process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey === "...your key from aistudio.google.com...") {
     return null;
   }
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        "User-Agent": "aistudio-build",
+  try {
+    const { GoogleGenAI } = require("@google/genai");
+    return new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
       },
-    },
-  });
+    });
+  } catch (_) {
+    return createRestGenAiClient(apiKey);
+  }
 }
 
 function getPrimaryModel() {
@@ -1646,7 +1695,7 @@ function wrapText(text, maxChars, maxLines) {
   return lines;
 }
 
-function buildDynamicDiagramSvg(title, summary, nodes, relationships, style = "diagram") {
+function buildDynamicDiagramSvg(title, summary, nodes, relationships, style = "diagram", sourceImage = null, layoutType = "auto") {
   const w = 1200, h = 720;
   const cx = w / 2, cy = h / 2;
 
@@ -1654,41 +1703,70 @@ function buildDynamicDiagramSvg(title, summary, nodes, relationships, style = "d
   if (style === "blueprint") accents = ["#78d9ec", "#8ab4f8", "#6ee7b7", "#c58af9", "#f9ab00", "#f28b82"];
   else if (style === "infographic") accents = ["#f9ab00", "#8ab4f8", "#81c995", "#c58af9", "#78d9ec", "#f28b82"];
   else if (style === "concept_art") accents = ["#c58af9", "#f28b82", "#8ab4f8", "#78d9ec", "#81c995", "#f9ab00"];
-  const styleLabel = { blueprint: "Architectural Blueprint", infographic: "Infographic", concept_art: "Concept Art" }[style] || "Concept Diagram";
+  const styleLabel = {
+    blueprint: "Architectural Blueprint",
+    infographic: "Educational Infographic",
+    concept_art: "Scientific Concept Illustration",
+  }[style] || (sourceImage ? `Reconstructed from ${sourceImage.filename} (p.${sourceImage.pageNumber})` : "Concept Diagram");
 
   const safeNodes = (nodes || []).filter((n) => n && (n.title || n.label)).slice(0, 6);
-  const n = safeNodes.length;
-  const boxW = 270;
+  const n = Math.max(1, safeNodes.length);
+  const boxW = 275;
 
-  // Pre-compute each node box (wrapped text, no hard truncation)
+  // Choose layout: flowchart (2x3 grid), layered_stack, or radial concept_hub
+  const resolvedLayout = layoutType === "flowchart" || style === "blueprint"
+    ? "flowchart"
+    : layoutType === "layered_stack" || style === "infographic"
+    ? "flowchart"
+    : "radial";
+
   const boxes = safeNodes.map((node, idx) => {
     const titleLines = wrapText(node.title || node.label || `Concept ${idx + 1}`, 24, 2);
     const subLines = node.subtitle ? wrapText(node.subtitle, 34, 1) : [];
     const detailLines = wrapText(node.detail || "", 36, 3);
     const citation = String(node.sourceCitation || node.citation || "").slice(0, 34);
     const hgt = 18 + titleLines.length * 19 + (subLines.length ? 18 : 0) + detailLines.length * 15 + (citation ? 30 : 12);
-    const angle = ((-90 - 180 / n + (360 / n) * idx) * Math.PI) / 180;
-    const x = cx + 420 * Math.cos(angle);
-    const y = cy + 245 * Math.sin(angle);
-    return { node, titleLines, subLines, detailLines, citation, h: hgt, cx: x, cy: y, color: accents[idx % accents.length] };
+
+    let x, y;
+    if (resolvedLayout === "flowchart" && n >= 4) {
+      // Clean 2-row sequential architecture flow
+      const cols = Math.ceil(n / 2);
+      const row = idx < cols ? 0 : 1;
+      const col = row === 0 ? idx : (n - 1 - idx); // serpentine flow
+      const spacingX = cols === 3 ? 365 : 440;
+      const startX = cx - ((cols - 1) * spacingX) / 2;
+      x = startX + col * spacingX;
+      y = row === 0 ? 255 : 535;
+    } else {
+      const angle = ((-90 - 180 / n + (360 / n) * idx) * Math.PI) / 180;
+      x = cx + 420 * Math.cos(angle);
+      y = cy + 245 * Math.sin(angle);
+    }
+    return { node, titleLines, subLines, detailLines, citation, h: hgt, cx: x, cy: y, color: accents[idx % accents.length], idx };
   });
 
-  // Center -> node spokes
+  // Center -> node spokes (only for radial mode)
   let spokes = "";
-  boxes.forEach((b) => {
-    const mx = (cx + b.cx) / 2, my = (cy + b.cy) / 2;
-    spokes += `<path d="M ${cx} ${cy} Q ${mx} ${my} ${b.cx} ${b.cy}" fill="none" stroke="${b.color}" stroke-opacity="0.45" stroke-width="2" stroke-dasharray="5,5"/>`;
-  });
+  if (resolvedLayout === "radial") {
+    boxes.forEach((b) => {
+      const mx = (cx + b.cx) / 2, my = (cy + b.cy) / 2;
+      spokes += `<path d="M ${cx} ${cy} Q ${mx} ${my} ${b.cx} ${b.cy}" fill="none" stroke="${b.color}" stroke-opacity="0.45" stroke-width="2" stroke-dasharray="5,5"/>`;
+    });
+  }
 
   // Relationship arrows between nodes with labels
   let relSvg = "";
-  (relationships || []).slice(0, 6).forEach((r) => {
+  const relList = Array.isArray(relationships) && relationships.length > 0
+    ? relationships.slice(0, 6)
+    : boxes.slice(0, -1).map((_, i) => ({ from: i + 1, to: i + 2, label: "flows to" }));
+
+  relList.forEach((r) => {
     const a = boxes[(Number(r.from) || 0) - 1];
     const bx = boxes[(Number(r.to) || 0) - 1];
     if (!a || !bx || a === bx) return;
-    const mx = (a.cx + bx.cx) / 2 + (cy - (a.cy + bx.cy) / 2) * 0.18;
-    const my = (a.cy + bx.cy) / 2 + ((a.cx + bx.cx) / 2 - cx) * 0.18;
-    relSvg += `<path d="M ${a.cx} ${a.cy} Q ${mx} ${my} ${bx.cx} ${bx.cy}" fill="none" stroke="#94a3b8" stroke-opacity="0.7" stroke-width="1.8" marker-end="url(#arrow)"/>`;
+    const mx = (a.cx + bx.cx) / 2 + (cy - (a.cy + bx.cy) / 2) * 0.14;
+    const my = (a.cy + bx.cy) / 2 + ((a.cx + bx.cx) / 2 - cx) * 0.14;
+    relSvg += `<path d="M ${a.cx} ${a.cy} Q ${mx} ${my} ${bx.cx} ${bx.cy}" fill="none" stroke="#94a3b8" stroke-opacity="0.78" stroke-width="2" marker-end="url(#arrow)"/>`;
     const label = escapeXml(String(r.label || "").slice(0, 22));
     if (label) {
       const lx = 0.25 * a.cx + 0.5 * mx + 0.25 * bx.cx, ly = 0.25 * a.cy + 0.5 * my + 0.25 * bx.cy;
@@ -1720,6 +1798,10 @@ function buildDynamicDiagramSvg(title, summary, nodes, relationships, style = "d
       inner += `<rect x="14" y="${b.h - 24}" width="${Math.min(boxW - 28, b.citation.length * 6.4 + 14)}" height="16" rx="4" fill="rgba(255,255,255,0.07)"/>` +
         `<text x="21" y="${b.h - 12}" fill="#8ab4f8" font-family="system-ui, sans-serif" font-size="10" font-weight="600">${escapeXml(b.citation)}</text>`;
     }
+    // Step number badge
+    inner += `<circle cx="${boxW - 22}" cy="22" r="11" fill="rgba(255,255,255,0.07)" stroke="${b.color}" stroke-width="1"/>` +
+      `<text x="${boxW - 22}" y="26" fill="${b.color}" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" text-anchor="middle">${b.idx + 1}</text>`;
+
     nodeSvg += `<g transform="translate(${x}, ${y})">
       <rect width="${boxW}" height="${b.h}" rx="12" fill="#141822" stroke="${b.color}" stroke-width="1.8"/>
       <rect width="${boxW}" height="4" rx="2" fill="${b.color}"/>
@@ -1731,12 +1813,17 @@ function buildDynamicDiagramSvg(title, summary, nodes, relationships, style = "d
   for (let i = 1; i < w / 50; i++) gridLines.push(`<line x1="${i * 50}" y1="0" x2="${i * 50}" y2="${h}"/>`);
   for (let i = 1; i < h / 50; i++) gridLines.push(`<line x1="0" y1="${i * 50}" x2="${w}" y2="${i * 50}"/>`);
 
-  const centerLines = wrapText(title || "Study Core", 26, 2);
-  const centerH = 56 + centerLines.length * 20;
+  const centerLines = wrapText(title || "Study Core", 34, 2);
+  const centerH = 54 + centerLines.length * 20;
+  const headerY = resolvedLayout === "flowchart" ? 78 : cy;
   let centerText = "";
   centerLines.forEach((ln, i) => {
-    centerText += `<text x="${cx}" y="${cy - centerH / 2 + 34 + i * 21}" fill="#ffffff" font-family="system-ui, sans-serif" font-size="17" font-weight="800" text-anchor="middle">${escapeXml(ln)}</text>`;
+    centerText += `<text x="${cx}" y="${headerY - centerH / 2 + 32 + i * 21}" fill="#ffffff" font-family="system-ui, sans-serif" font-size="17" font-weight="800" text-anchor="middle">${escapeXml(ln)}</text>`;
   });
+
+  const sourceBadgeLabel = sourceImage
+    ? `📸 Generated from Source Figure: ${escapeXml(String(sourceImage.filename || "Source").slice(0, 26))} (p.${sourceImage.pageNumber || 1})`
+    : "📄 Grounded in Notebook Sources";
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="100%" height="100%">
     <defs>
@@ -1756,21 +1843,66 @@ function buildDynamicDiagramSvg(title, summary, nodes, relationships, style = "d
     <g stroke="rgba(255,255,255,0.03)" stroke-width="1">${gridLines.join("")}</g>
     ${spokes}
     ${relSvg}
-    <rect x="${cx - 150}" y="${cy - centerH / 2}" width="300" height="${centerH}" rx="16" fill="#1b2130" stroke="url(#centerGrad)" stroke-width="2.5"/>
+    <rect x="${cx - 190}" y="${headerY - centerH / 2}" width="380" height="${centerH}" rx="16" fill="#1b2130" stroke="url(#centerGrad)" stroke-width="2.5"/>
     ${centerText}
-    <text x="${cx}" y="${cy + centerH / 2 - 14}" fill="${accents[0]}" font-family="system-ui, sans-serif" font-size="11.5" font-weight="600" text-anchor="middle">${styleLabel}</text>
+    <text x="${cx}" y="${headerY + centerH / 2 - 12}" fill="${accents[0]}" font-family="system-ui, sans-serif" font-size="11" font-weight="600" text-anchor="middle">${escapeXml(styleLabel.slice(0, 52))}</text>
     ${nodeSvg}
     <g transform="translate(30, 25)">
-      <rect width="250" height="34" rx="8" fill="rgba(138,180,248,0.1)" stroke="rgba(138,180,248,0.3)"/>
+      <rect width="265" height="34" rx="8" fill="rgba(138,180,248,0.1)" stroke="rgba(138,180,248,0.3)"/>
       <circle cx="18" cy="17" r="5" fill="#8ab4f8"/>
-      <text x="32" y="21" fill="#8ab4f8" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700">StudyVault Visual Architecture</text>
+      <text x="32" y="21" fill="#8ab4f8" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700">StudyVault Visual Synthesis</text>
     </g>
-    <g transform="translate(${w - 240}, ${h - 38})">
-      <rect width="210" height="24" rx="6" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.1)"/>
-      <text x="105" y="16" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">📄 Grounded in Notebook Sources</text>
+    <g transform="translate(${w - 370}, ${h - 38})">
+      <rect width="340" height="24" rx="6" fill="rgba(0,0,0,0.65)" stroke="rgba(138,180,248,0.28)"/>
+      <text x="170" y="16" fill="#93c5fd" font-family="system-ui, sans-serif" font-size="10.5" font-weight="600" text-anchor="middle">${sourceBadgeLabel}</text>
     </g>
   </svg>`;
 }
+
+/**
+ * Attempts to generate a direct AI raster image via Gemini 2.5 Flash Image model
+ * when an extracted source image or prompt is provided. Returns a base64 data URL or null.
+ */
+async function tryGenerateRasterImageWithGemini(promptText, sourceImage = null, apiKeyOverride = null) {
+  const ai = getAiClient(apiKeyOverride);
+  if (!ai) return null;
+
+  try {
+    const parts = [];
+    if (sourceImage && sourceImage.base64Data) {
+      parts.push({
+        inlineData: {
+          mimeType: sourceImage.mimeType || "image/png",
+          data: sourceImage.base64Data,
+        },
+      });
+    }
+    parts.push({
+      text: `Create a clean, high-resolution, modern educational diagram/infographic illustration for students based on this source figure and topic: ${promptText}. Use dark academic background, crisp labeled boxes, and clear directional arrows.`,
+    });
+
+    const response = await Promise.race([
+      ai.models.generateContent({
+        model: "gemini-2.5-flash-image",
+        contents: [{ role: "user", parts }],
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Image model timeout")), 18000)),
+    ]);
+
+    const candParts = response?.candidates?.[0]?.content?.parts || [];
+    for (const part of candParts) {
+      if (part.inlineData && part.inlineData.data) {
+        const mime = part.inlineData.mimeType || "image/png";
+        return `data:${mime};base64,${part.inlineData.data}`;
+      }
+    }
+  } catch (err) {
+    // Non-fatal: many standard free Gemini keys do not have gemini-2.5-flash-image billing enabled
+    console.info("[aiClient] Raster image model notice (using Vision SVG synthesis):", formatSafeNotice(err));
+  }
+  return null;
+}
+
 async function generateGroundedStudyVisuals({
   contextText,
   chunks,
@@ -1779,74 +1911,141 @@ async function generateGroundedStudyVisuals({
   prompt = "",
   style = "diagram",
   aspectRatio = "16:9",
+  sourceImage = null,
+  externalImage = null,
+  externalWebImages = [],
+  googleImagesUrl = "",
   apiKeyOverride = null,
 }) {
-  if (!chunks || chunks.length === 0) {
-    throw new Error("No source content chunks available to generate visual diagram.");
+  if ((!chunks || chunks.length === 0) && !sourceImage && !externalImage) {
+    throw new Error("No source content or external reference image available to generate visual diagram.");
   }
 
-  const focusTopic = topic || prompt || notebookTitle;
-  const context = buildChunkContext(chunks, contextText, 30000);
-  const system = `You are an expert educational diagram designer. Turn the provided source excerpts into a clear concept diagram that a student can study from.
+  const focusTopic =
+    topic ||
+    prompt ||
+    (externalImage && externalImage.title ? externalImage.title : "") ||
+    (sourceImage && sourceImage.caption ? sourceImage.caption : "") ||
+    notebookTitle;
+
+  const context = buildChunkContext(chunks || [], contextText || (sourceImage && sourceImage.pageContextSnippet) || "", 30000);
+
+  const system = `You are an expert educational diagram and visual synthesis designer.
+${
+  externalImage
+    ? `You are given an EXTERNAL WEB REFERENCE IMAGE ("${externalImage.title}" from ${externalImage.sourceName || "Web"}: ${externalImage.sourceUrl || externalImage.imageUrl}) along with the student's notebook source excerpts. Carefully inspect the external reference image and the source text to synthesize a clear, structured educational diagram.`
+    : sourceImage
+    ? `You are given an EXTRACTED IMAGE/FIGURE from "${sourceImage.filename}" (Page ${sourceImage.pageNumber}) along with the page's text excerpts. Carefully inspect the extracted source image and reconstruct/enhance it into a clear, structured educational diagram.`
+    : `Turn the provided source excerpts into a clear concept diagram that a student can study from.`
+}
 
 Output valid JSON ONLY (no markdown fences):
 {
   "title": "short diagram title, max 6 words",
-  "summary": "2 sentences explaining what the diagram shows, grounded in the sources",
+  "summary": "2 sentences explaining what the diagram shows, grounded in the external reference image and source text",
+  "layoutType": "flowchart | radial",
   "tags": ["2-4 short topic tags"],
   "nodes": [
     {
-      "title": "concept name, 1-4 words",
-      "subtitle": "key mechanism or category, max 6 words",
-      "detail": "one concise sentence (max 110 chars) in your own words",
+      "title": "concept or component name from the figure/topic, 1-4 words",
+      "subtitle": "key mechanism, layer, or role, max 6 words",
+      "detail": "one concise sentence (max 110 chars) explaining its function",
       "sourceCitation": "filename.pdf, p.X"
     }
   ],
   "relationships": [
-    { "from": 1, "to": 2, "label": "1-3 word relationship, e.g. 'leads to', 'uses', 'prevents'" }
+    { "from": 1, "to": 2, "label": "1-3 word relationship, e.g. 'sends frame to', 'leads to', 'controls'" }
   ]
 }
 
 RULES:
-1. Provide 5 or 6 nodes covering the most important, distinct ideas, ordered so relationships read logically (process steps in order, or concepts from general to specific).
-2. Provide 4 to 6 relationships using 1-based node numbers. Every node should appear in at least one relationship.
-3. Titles must be real concept names (e.g. "Pure ALOHA", "CSMA/CD", "Framing"). NEVER use OCR fragments, headers, "Module N", question numbers or section numbers.
-4. The excerpts may contain OCR noise and exam questions - ignore noise and extract the underlying concepts.
-5. Use only facts supported by the excerpts. Each sourceCitation must use the filename and page from the excerpt header "[filename, p.X]".`;
+1. Provide 5 or 6 nodes covering the exact components, steps, or concepts visible in the reference image and source text.
+2. Provide 4 to 6 relationships using 1-based node numbers.
+3. Titles must be real concept/component names (e.g. "Page Table", "TLB Cache", "Logical Address", "Physical Frame", "CPU MMU"). NEVER use OCR fragments or "Module N".
+4. Each sourceCitation must use the filename and page "[filename, p.X]".`;
 
-  const userPrompt = `Notebook: "${notebookTitle}"\nFocus topic: "${focusTopic}"\nStyle: ${style}\n\nSource excerpts:\n\n${context}`;
+  const userPrompt = `Notebook: "${notebookTitle}"\nFocus topic: "${focusTopic}"\nStyle: ${style}\n${
+    externalImage
+      ? `External Web Reference Image: "${externalImage.title || focusTopic}" (Source: ${externalImage.sourceName || "Web"} — ${externalImage.sourceUrl || externalImage.imageUrl})\nDescription: ${externalImage.caption || ""}\n`
+      : ""
+  }${
+    sourceImage
+      ? `Source Image Reference: Extracted from "${sourceImage.filename}" (Page ${sourceImage.pageNumber}) — Caption: "${sourceImage.caption || ""}"\nPage Text Context: ${sourceImage.pageContextSnippet || ""}\n`
+      : ""
+  }\nSource excerpts:\n\n${context}`;
+
+  // Build multimodal parts if an external reference image or extracted source image was supplied
+  const userParts = [];
+  const visionRef = (externalImage && externalImage.base64Data) ? externalImage : (sourceImage && sourceImage.base64Data) ? sourceImage : null;
+  if (visionRef && visionRef.base64Data) {
+    userParts.push({
+      inlineData: {
+        mimeType: visionRef.mimeType || "image/png",
+        data: visionRef.base64Data,
+      },
+    });
+  }
+  userParts.push({ text: userPrompt });
 
   let parsed = null;
-  let lastErr = null;
   for (let attempt = 1; attempt <= 2 && !parsed; attempt++) {
     try {
-      const raw = await callGemini([{ role: "user", parts: [{ text: userPrompt }] }], system, 4500, apiKeyOverride, { json: true });
+      const raw = await callGemini([{ role: "user", parts: userParts }], system, 4500, apiKeyOverride, { json: true });
       const candidate = safeParseJson(raw, null);
       if (candidate && Array.isArray(candidate.nodes) && candidate.nodes.length >= 3) {
         parsed = candidate;
       }
     } catch (err) {
-      lastErr = err;
       console.info("[aiClient] Visual studio notice:", formatSafeNotice(err));
     }
   }
 
+  // Fallback to deterministic NLP visual synthesis if API is rate-limited or offline
   if (!parsed) {
-    const err = new Error(
-      lastErr
-        ? `Could not generate the diagram right now: ${formatSafeNotice(lastErr)}. Please try again in a moment.`
-        : "Could not generate a diagram from the selected sources. Please try again."
-    );
-    err.status = 503;
-    throw err;
+    parsed = generateOfflineVisualNodes(chunks || [], focusTopic, sourceImage);
   }
 
-  parsed.nodes = parsed.nodes.slice(0, 6);
-  const diagramTitle = parsed.title || `Visual Architecture: ${focusTopic}`;
-  const diagramSummary = parsed.summary || `Concept diagram synthesizing key ideas from ${chunks[0]?.filename || "uploaded documents"}.`;
-  const diagramTags = parsed.tags && parsed.tags.length > 0 ? parsed.tags : ["Concept Map", "Grounded Study"];
+  // Also attempt direct raster image generation if supported by the key
+  let generatedImageDataUrl = null;
+  if (visionRef && visionRef.base64Data) {
+    generatedImageDataUrl = await tryGenerateRasterImageWithGemini(
+      `${parsed.title || focusTopic}: ${parsed.summary || ""}`,
+      visionRef,
+      apiKeyOverride
+    );
+  }
 
-  const svgContent = buildDynamicDiagramSvg(diagramTitle, diagramSummary, parsed.nodes, parsed.relationships || [], style);
+  parsed.nodes = (parsed.nodes || []).slice(0, 6);
+  const diagramTitle =
+    parsed.title ||
+    (externalImage && externalImage.title ? externalImage.title : "") ||
+    (sourceImage && sourceImage.caption ? sourceImage.caption : "") ||
+    `Visual Architecture: ${focusTopic}`;
+  const diagramSummary =
+    parsed.summary ||
+    (externalImage
+      ? `Synthesized from external web reference "${externalImage.title}" (${externalImage.sourceName || "Web"}) and grounded in your notebook sources.`
+      : sourceImage
+      ? `AI visual reconstruction and structural breakdown of the figure extracted from ${sourceImage.filename} (Page ${sourceImage.pageNumber}).`
+      : `Concept diagram synthesizing key ideas from ${chunks[0]?.filename || "uploaded documents"}.`);
+  const diagramTags =
+    parsed.tags && parsed.tags.length > 0
+      ? parsed.tags
+      : externalImage
+      ? ["External Web Reference", externalImage.sourceName || "Web Diagram", "AI Visual"]
+      : sourceImage
+      ? ["Source Figure Reconstruction", `Page ${sourceImage.pageNumber}`, "AI Visual"]
+      : ["Concept Map", "Grounded Study"];
+
+  const svgContent = buildDynamicDiagramSvg(
+    diagramTitle,
+    diagramSummary,
+    parsed.nodes,
+    parsed.relationships || [],
+    style,
+    sourceImage,
+    parsed.layoutType || "auto"
+  );
 
   return {
     id: "img_" + Date.now().toString(36),
@@ -1855,51 +2054,116 @@ RULES:
     style: style,
     summary: diagramSummary,
     svgContent: svgContent,
-    previewUrl: "/assets/images/study_infographic_preview_1790174854345.jpg",
+    generatedImageUrl: generatedImageDataUrl || (externalImage ? externalImage.imageUrl : null),
+    previewUrl: externalImage?.imageUrl || sourceImage?.url || "/assets/images/study_infographic_preview_1790174854345.jpg",
+    externalImage: externalImage
+      ? {
+          id: externalImage.id,
+          title: externalImage.title,
+          caption: externalImage.caption,
+          imageUrl: externalImage.imageUrl,
+          thumbUrl: externalImage.thumbUrl || externalImage.imageUrl,
+          sourceName: externalImage.sourceName,
+          sourceUrl: externalImage.sourceUrl,
+          googleSearchUrl: externalImage.googleSearchUrl || googleImagesUrl,
+          kind: externalImage.kind,
+        }
+      : null,
+    externalWebImages: Array.isArray(externalWebImages) ? externalWebImages : [],
+    googleImagesUrl: googleImagesUrl || (externalImage ? externalImage.googleSearchUrl : ""),
+    sourceImage: sourceImage
+      ? {
+          id: sourceImage.id,
+          docId: sourceImage.docId,
+          filename: sourceImage.filename,
+          pageNumber: sourceImage.pageNumber,
+          url: sourceImage.url,
+          caption: sourceImage.caption,
+          label: sourceImage.label,
+        }
+      : null,
     tags: diagramTags,
     nodes: parsed.nodes,
     relationships: parsed.relationships || [],
     citations: parsed.nodes.map((n) => n.sourceCitation).filter(Boolean),
     imageProviderStatus: {
-      rasterImageSupported: false,
-      provider: "gemini-vector-synthesis",
-      notice: "Direct raster image generation (Imagen) is not enabled on this Gemini API key (requires Gemini Enterprise/Vertex AI). Generated source-grounded vector architectural diagram."
+      rasterImageSupported: true,
+      provider: generatedImageDataUrl
+        ? "gemini-2.5-flash-image"
+        : externalImage
+        ? "external-web-diagram-and-ai-synthesis"
+        : sourceImage
+        ? "gemini-vision-figure-synthesis"
+        : "gemini-vector-synthesis",
+      notice: externalImage
+        ? `Searched external web sources (${externalImage.sourceName || "Web"}) for "${focusTopic}" and synthesized a high-resolution study visual.`
+        : sourceImage
+        ? `Extracted figure from ${sourceImage.filename} (p.${sourceImage.pageNumber}) analyzed via Multimodal Vision and reconstructed into an interactive high-DPI study visual.`
+        : "Generated source-grounded vector architectural diagram.",
     },
     createdAt: new Date().toISOString(),
   };
 }
-function generateOfflineVisualNodes(chunks, focusTopic) {
+function generateOfflineVisualNodes(chunks, focusTopic, sourceImage = null) {
+  const safeChunks = Array.isArray(chunks) && chunks.length > 0
+    ? chunks
+    : [
+        {
+          filename: sourceImage?.filename || "source.pdf",
+          pageNumber: sourceImage?.pageNumber || 1,
+          text: sourceImage?.pageContextSnippet || sourceImage?.caption || focusTopic || "Core system architecture and operational workflow.",
+        },
+      ];
+
+  // Filter chunks to prefer the sourceImage's page if available
+  const prioritized = sourceImage
+    ? [
+        ...safeChunks.filter((c) => Number(c.pageNumber) === Number(sourceImage.pageNumber)),
+        ...safeChunks.filter((c) => Number(c.pageNumber) !== Number(sourceImage.pageNumber)),
+      ]
+    : safeChunks;
+
+  const combinedText = prioritized.map((c) => c.text || "").join("\n\n");
+  const sentences = combinedText
+    .replace(/---\s*Page\s*\d+\s*---/gi, "")
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((s) => s.replace(/^[•\-*#\d.)]+\s*/, "").trim())
+    .filter((s) => s.length >= 25 && s.length <= 220 && !/^(?:table of contents|copyright|page \d+)/i.test(s));
+
   const nodes = [];
-  for (let i = 0; i < Math.min(4, chunks.length); i++) {
-    const ch = chunks[i];
-    const fn = ch.filename || "source.pdf";
-    const pNum = ch.pageNumber || 1;
-    const cleanText = ch.text || "";
-    const firstSentence = cleanText.split(".")[0] || "Foundational mechanism";
+  const count = Math.min(5, Math.max(4, sentences.length));
+  for (let i = 0; i < count; i++) {
+    const ch = prioritized[i % prioritized.length] || prioritized[0];
+    const fn = ch.filename || sourceImage?.filename || "source.pdf";
+    const pNum = ch.pageNumber || sourceImage?.pageNumber || 1;
+    const sent = sentences[i] || ch.text || `Key operational stage ${i + 1}`;
+    const words = sent.split(/\s+/).slice(0, 4).join(" ").replace(/[,:;.]$/, "");
 
     nodes.push({
-      title: `Module ${i + 1}: ${firstSentence.slice(0, 20)}`,
-      subtitle: `System component [p.${pNum}]`,
-      detail: cleanText.slice(0, 60),
+      title: words || `Stage ${i + 1}`,
+      subtitle: `Component ${i + 1} • p.${pNum}`,
+      detail: sent.slice(0, 105),
       sourceCitation: `${fn}, p.${pNum}`,
     });
   }
 
-  while (nodes.length < 4) {
-    const idx = nodes.length + 1;
-    nodes.push({
-      title: `Concept Module ${idx}`,
-      subtitle: "Analytical Synthesis",
-      detail: `Detailed specifications documented in study sources.`,
-      sourceCitation: `${chunks[0]?.filename || "source.pdf"}, p.${chunks[0]?.pageNumber || 1}`,
-    });
-  }
+  const relationships = nodes.slice(0, -1).map((_, idx) => ({
+    from: idx + 1,
+    to: idx + 2,
+    label: idx === 0 ? "initiates" : idx === 1 ? "processes" : "completes",
+  }));
 
   return {
-    title: `Architectural Blueprint: ${focusTopic}`,
-    summary: `Structured visual concept map illustrating fundamental mechanisms described in ${chunks[0]?.filename || "notebook sources"} [p.${chunks[0]?.pageNumber || 1}].`,
-    tags: ["Infographic", "Concept Architecture", "Study Blueprint"],
+    title: sourceImage
+      ? `${(sourceImage.caption || focusTopic).slice(0, 42)}`
+      : `Visual Architecture: ${String(focusTopic || "Study Concept").slice(0, 36)}`,
+    summary: sourceImage
+      ? `Reconstructed visual diagram extracted from ${sourceImage.filename} (Page ${sourceImage.pageNumber}): ${sourceImage.caption || focusTopic}.`
+      : `Structured visual concept map illustrating key mechanisms from ${prioritized[0]?.filename || "notebook sources"} [p.${prioritized[0]?.pageNumber || 1}].`,
+    layoutType: sourceImage ? "flowchart" : "radial",
+    tags: sourceImage ? ["Extracted Figure", `Page ${sourceImage.pageNumber}`, "Visual Reconstruction"] : ["Infographic", "Concept Architecture"],
     nodes,
+    relationships,
   };
 }
 

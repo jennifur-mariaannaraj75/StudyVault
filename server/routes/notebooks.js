@@ -44,6 +44,12 @@ router.post("/sample/:sampleKey", async (req, res) => {
     if (!sample) return res.status(404).json({ error: "Sample notebook not found" });
 
     const userId = req.user ? req.user.id : null;
+    const role = req.user ? req.user.role : "user";
+    const quota = await store.checkQuota(userId, role, "create_notebook");
+    if (!quota.allowed) {
+      return res.status(403).json(quota);
+    }
+
     const notebook = await store.createNotebook(sample.title, sample.description, userId);
 
     for (const d of sample.documents) {
@@ -106,6 +112,11 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Notebook title is required" });
     }
     const userId = req.user ? req.user.id : null;
+    const role = req.user ? req.user.role : "user";
+    const quota = await store.checkQuota(userId, role, "create_notebook");
+    if (!quota.allowed) {
+      return res.status(403).json(quota);
+    }
     const notebook = await store.createNotebook(title.trim(), description || "", userId, icon || "📓", color || "#8ab4f8");
     res.status(201).json(notebook);
   } catch (err) {
@@ -117,6 +128,11 @@ router.post("/", async (req, res) => {
 router.post("/:id/duplicate", async (req, res) => {
   try {
     const userId = req.user ? req.user.id : null;
+    const role = req.user ? req.user.role : "user";
+    const quota = await store.checkQuota(userId, role, "create_notebook");
+    if (!quota.allowed) {
+      return res.status(403).json(quota);
+    }
     const duplicated = await store.duplicateNotebook(req.params.id, userId);
     res.status(201).json(duplicated);
   } catch (err) {

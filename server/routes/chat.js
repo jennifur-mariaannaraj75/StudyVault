@@ -47,6 +47,12 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Question is required" });
     }
 
+    const quota = await store.checkQuota(req.user?.id, req.user?.role, "chat_query");
+    if (!quota.allowed) {
+      return res.status(403).json(quota);
+    }
+    const planTopK = quota.status?.limits?.ragTopK || 8;
+
     const allDocs = await store.getDocuments(req.params.notebookId);
     const docs = allDocs.filter((d) => d.status === "ready");
     if (docs.length === 0) {
@@ -61,11 +67,11 @@ router.post("/", async (req, res) => {
 
     const history = await store.getMessages(req.params.notebookId);
 
-    // Hybrid Vector RAG Retrieval
+    // Hybrid Vector RAG Retrieval (depth scaled by user's subscription plan)
     const relevantChunks = await hybridRetrieve({
       documents: docs,
       query: question.trim(),
-      topK: 8,
+      topK: planTopK,
       alpha: 0.65,
       apiKeyOverride,
     });
@@ -90,9 +96,12 @@ router.post("/", async (req, res) => {
       citations,
     });
 
+    const updatedUsage = await store.incrementUserUsage(req.user?.id, "chat");
+
     res.json({
       userMessage: userMsg,
       assistantMessage: assistantMsg,
+      usage: updatedUsage,
       retrieval: {
         sourcesRetrieved: relevantChunks.length,
         topScore: relevantChunks[0]?.hybridScore || 0,
